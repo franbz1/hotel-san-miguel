@@ -10,6 +10,7 @@ import {
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
 
 /**
  * Controller CRUD para manejar usuarios
@@ -30,8 +31,8 @@ export class UsuariosController {
   }
 
   @Get()
-  findAll() {
-    return this.usuariosService.findAll();
+  findAll(@Param() paginationDto: PaginationDto) {
+    return this.usuariosService.findAll(paginationDto);
   }
 
   @Get(':id')

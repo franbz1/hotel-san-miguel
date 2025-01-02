@@ -63,17 +63,16 @@ export class UsuariosService {
 
     return { data: usuarios, meta: { page, limit, totalUsuarios, lastPage } };
   }
-  }
 
-  findOne(id: number) {
+  async findOne(id: number) {
     return `This action returns a #${id} usuario`;
   }
 
-  update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
+  async update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
     return `This action updates a #${id} usuario`;
   }
 
-  remove(id: number) {
+  async remove(id: number) {
     return `This action removes a #${id} usuario`;
   }
 }
