@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { PrismaService } from 'src/usuarios/prisma/prisma.service';
@@ -83,14 +83,44 @@ export class UsuariosService {
     });
 
     if (!usuario) {
-      throw new Error(`No se encontró el usuario con id ${id}`);
+      throw new Error(`No se encontró el usuario con id: ${id}`);
     }
 
     return usuario;
   }
 
+  /**
+   * Actualiza un usuario por id
+   * @param id
+   * @param updateUsuarioDto
+   * @returns Usuario
+   * @example
+   * {
+   *   id: Int,
+   *   nombre: string,
+   *   rol: string,
+   *   createdAt: DateTime,
+   *   updatedAt: DateTime
+   * }
+   */
   async update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
-    return `This action updates a #${id} usuario`;
+    if (Object.keys(updateUsuarioDto).length === 0) {
+      throw new BadRequestException(
+        'Debe enviar datos para actualizar el usuario',
+      );
+    }
+    try {
+      return await this.prisma.usuario.update({
+        where: { id },
+        data: updateUsuarioDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException(`No se encontró el usuario con id: ${id}`);
+      } else {
+        throw error;
+      }
+    }
   }
 
   async remove(id: number) {
