@@ -16,7 +16,16 @@ export class CreateUsuarioDto {
   })
   public nombre: string;
 
-  @IsEnum(Rol, {
+  /* 
+    De momento se usara Sqlite como db de desarrollo y no soporta enums por lo cual se usa la validación manual
+    @IsEnum(Rol, {
+    message: `El rol es obligatorio y debe ser uno de los siguientes: ${Object.values(
+      Rol,
+    ).join(', ')}`,
+    always: true,
+  })
+  */
+  @IsString({
     message: `El rol es obligatorio y debe ser uno de los siguientes: ${Object.values(
       Rol,
     ).join(', ')}`,
