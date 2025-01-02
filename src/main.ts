@@ -5,6 +5,7 @@ import { envs } from './config/envs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const logger = new Logger('App');
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -14,6 +15,6 @@ async function bootstrap() {
   );
 
   await app.listen(envs.port);
-  Logger.log(`Application is running on: ${envs.port}`);
+  logger.log(`Application is running on: ${envs.port}`);
 }
 bootstrap();

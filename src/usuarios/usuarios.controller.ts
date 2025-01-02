@@ -11,10 +11,19 @@ import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 
+/**
+ * Controller CRUD para manejar usuarios
+ */
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
+  /**
+   * Método para crear un usuario
+   * `POST /usuarios`
+   * @param createUsuarioDto
+   * @returns Usuario
+   */
   @Post()
   create(@Body() createUsuarioDto: CreateUsuarioDto) {
     return this.usuariosService.create(createUsuarioDto);
