@@ -12,3 +12,11 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  rol       String   @default("CAJERO")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
