@@ -1,5 +1,12 @@
-import { IsString, MinLength, MaxLength, IsEnum } from 'class-validator';
-import { Rol } from '../entities/rol.enum';
+import {
+  IsString,
+  MinLength,
+  MaxLength,
+  //IsEnum,
+  Validate,
+} from 'class-validator';
+import { IsValidRolConstraint } from 'src/common/validators/IsValidRol';
+//import { Rol } from '../entities/rol.enum';
 
 export class CreateUsuarioDto {
   @IsString({
@@ -25,11 +32,7 @@ export class CreateUsuarioDto {
     always: true,
   })
   */
-  @IsString({
-    message: `El rol es obligatorio y debe ser uno de los siguientes: ${Object.values(
-      Rol,
-    ).join(', ')}`,
-    always: true,
-  })
-  public rol: Rol;
+  @IsString()
+  @Validate(IsValidRolConstraint)
+  public rol: string;
 }
