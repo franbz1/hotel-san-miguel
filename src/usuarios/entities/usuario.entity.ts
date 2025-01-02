@@ -1,5 +1,5 @@
 export class Usuario {
-  id: number;
-  nombre: string;
-  rol: string;
+  public id: number;
+  public nombre: string;
+  public rol: string;
 }
