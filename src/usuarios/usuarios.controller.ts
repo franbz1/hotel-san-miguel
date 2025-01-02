@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
@@ -31,7 +32,7 @@ export class UsuariosController {
   }
 
   @Get()
-  findAll(@Param() paginationDto: PaginationDto) {
+  findAll(@Query() paginationDto: PaginationDto) {
     return this.usuariosService.findAll(paginationDto);
   }
 
