@@ -1,1 +1,5 @@
-export class Usuario {}
+export class Usuario {
+  id: number;
+  nombre: string;
+  rol: string;
+}
