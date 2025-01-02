@@ -64,8 +64,29 @@ export class UsuariosService {
     return { data: usuarios, meta: { page, limit, totalUsuarios, lastPage } };
   }
 
+  /**
+   * Busca un usuario por id
+   * @param id
+   * @returns Usuario
+   * @example
+   * {
+   *   id: Int,
+   *   nombre: string,
+   *   rol: string,
+   *   createdAt: DateTime,
+   *   updatedAt: DateTime
+   * }
+   */
   async findOne(id: number) {
-    return `This action returns a #${id} usuario`;
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id },
+    });
+
+    if (!usuario) {
+      throw new Error(`No se encontró el usuario con id ${id}`);
+    }
+
+    return usuario;
   }
 
   async update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
