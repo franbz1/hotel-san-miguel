@@ -91,7 +91,14 @@ export class UsuariosService {
    */
   async findOne(id: number) {
     const usuario = await this.prisma.usuario.findUnique({
-      where: { id },
+      where: { id, deleted: false },
+      select: {
+        id: true,
+        nombre: true,
+        rol: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     if (!usuario) {
@@ -123,7 +130,7 @@ export class UsuariosService {
     }
     try {
       return await this.prisma.usuario.update({
-        where: { id },
+        where: { id, deleted: false },
         data: updateUsuarioDto,
       });
     } catch (error) {
@@ -138,7 +145,7 @@ export class UsuariosService {
   async remove(id: number) {
     try {
       return await this.prisma.usuario.update({
-        where: { id },
+        where: { id, deleted: false },
         data: { deleted: true },
       });
     } catch (error) {
