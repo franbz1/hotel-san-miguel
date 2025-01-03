@@ -52,7 +52,7 @@ export class UsuariosService {
   async findAll(paginationDto: PaginationDto) {
     const { page, limit } = paginationDto;
 
-    const totalUsuarios = await this.prisma.usuario.count();
+    const totalUsuarios = await this.prisma.usuario.count({where: {deleted: false}});
 
     if (totalUsuarios === 0) {
       return { data: [], meta: { page, limit, totalUsuarios, lastPage: 0 } };
