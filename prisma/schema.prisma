@@ -27,7 +27,6 @@ model Usuario {
 
 model Huesped {
   id        Int      @id @default(autoincrement())
-  nombre    String
   tipo_documento String
   numero_documento String
   nombres   String
