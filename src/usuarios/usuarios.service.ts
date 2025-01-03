@@ -63,6 +63,14 @@ export class UsuariosService {
     const usuarios = await this.prisma.usuario.findMany({
       skip: (page - 1) * limit,
       take: limit,
+      where: { deleted: false },
+      select: {
+        id: true,
+        nombre: true,
+        rol: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     return { data: usuarios, meta: { page, limit, totalUsuarios, lastPage } };
