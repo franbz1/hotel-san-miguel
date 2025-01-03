@@ -32,16 +32,35 @@ export class UsuariosController {
     return this.usuariosService.create(createUsuarioDto);
   }
 
+  /**
+   * Método para obtener todos los usuarios con paginación
+   * `GET /usuarios`
+   * @param paginationDto
+   * @returns Objeto con los usuarios y metadatos de paginación
+   */
   @Get()
   findAll(@Query() paginationDto: PaginationDto) {
     return this.usuariosService.findAll(paginationDto);
   }
 
+  /**
+   * Busca un usuario por id
+   * `GET /usuarios/:id`
+   * @param id
+   * @returns Usuario
+   */
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usuariosService.findOne(id);
   }
 
+  /**
+   * Actualiza un usuario por id
+   * `PATCH /usuarios/:id`
+   * @param id
+   * @param updateUsuarioDto
+   * @returns Usuario actualizado
+   */
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -50,6 +69,12 @@ export class UsuariosController {
     return this.usuariosService.update(id, updateUsuarioDto);
   }
 
+  /**
+   * Elimina un usuario por id
+   * `DELETE /usuarios/:id`
+   * @param id
+   * @returns Usuario eliminado
+   */
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usuariosService.remove(id);
