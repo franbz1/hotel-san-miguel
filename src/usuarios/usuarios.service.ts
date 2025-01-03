@@ -54,6 +54,10 @@ export class UsuariosService {
 
     const totalUsuarios = await this.prisma.usuario.count();
 
+    if (totalUsuarios === 0) {
+      return { data: [], meta: { page, limit, totalUsuarios, lastPage: 0 } };
+    }
+
     const lastPage = Math.ceil(totalUsuarios / limit);
 
     if (page > lastPage) {
@@ -102,7 +106,7 @@ export class UsuariosService {
     });
 
     if (!usuario) {
-      throw new Error(`No se encontró el usuario con id: ${id}`);
+      throw new NotFoundException(`No se encontró el usuario con id: ${id}`);
     }
 
     return usuario;
