@@ -7,8 +7,8 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 export class HuespedesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(CreateHuespedDto: CreateHuespedDto) {
-    return this.prisma.huesped.create({
+  async create(CreateHuespedDto: CreateHuespedDto) {
+    return await this.prisma.huesped.create({
       data: CreateHuespedDto,
     });
   }
