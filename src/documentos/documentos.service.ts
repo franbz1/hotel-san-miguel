@@ -13,6 +13,11 @@ import emptyPaginationResponse from 'src/common/responses/emptyPaginationRespons
 export class DocumentosService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Crea un nuevo documento.
+   * @param createDocumentoDto Datos del documento a crear.
+   * @returns El documento creado.
+   */
   async create(createDocumentoDto: CreateDocumentoDto) {
     try {
       return await this.prisma.documento.create({
@@ -27,8 +32,8 @@ export class DocumentosService {
   /**
    * Busca todos los documentos por el id del huesped
    * @param huespedId
-   * @param paginationDto
-   * @returns Documentos[]
+   * @param paginationDto datos de paginación
+   * @returns Documentos[] con los documentos y metadatos de paginación
    */
   async findAll(huespedId: number, paginationDto: PaginationDto) {
     const { page, limit } = paginationDto;
