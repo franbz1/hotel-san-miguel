@@ -6,5 +6,5 @@ import { NotFoundException } from '@nestjs/common';
  * @returns Objeto con el mensaje de error.
  */
 export default function notFoundError(id: number) {
-  return new NotFoundException(`No se encontró el usuario con ID: ${id}`);
+  throw new NotFoundException(`No se encontró el usuario con ID: ${id}`);
 }
