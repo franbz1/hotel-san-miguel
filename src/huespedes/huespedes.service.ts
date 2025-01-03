@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { CreateHuespedDto } from './dto/create-huesped.dto';
 import { UpdateHuespedeDto } from './dto/update-huespede.dto';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 
 @Injectable()
 export class HuespedesService {
+  constructor(private readonly prisma: PrismaService) {}
+
   create(CreateHuespedDto: CreateHuespedDto) {
-    return 'This action adds a new huespede';
+    return this.prisma.huesped.create({
+      data: CreateHuespedDto,
+    });
   }
 
   findAll() {
