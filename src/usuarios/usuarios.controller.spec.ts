@@ -4,6 +4,7 @@ import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('UsuariosController', () => {
   let controller: UsuariosController;
@@ -50,6 +51,31 @@ describe('UsuariosController', () => {
 
       expect(await controller.create(createUsuarioDto)).toBe(result);
     });
+
+    it('should throw a BadRequestException if creation fails', async () => {
+      const createUsuarioDto: CreateUsuarioDto = {
+        nombre: 'John Doe',
+        rol: 'ADMINISTRADOR',
+      };
+      jest
+        .spyOn(service, 'create')
+        .mockRejectedValue(new BadRequestException());
+
+      await expect(controller.create(createUsuarioDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should handle empty input gracefully', async () => {
+      const createUsuarioDto: Partial<CreateUsuarioDto> = {};
+      jest
+        .spyOn(service, 'create')
+        .mockRejectedValue(new BadRequestException('Invalid input'));
+
+      await expect(
+        controller.create(createUsuarioDto as CreateUsuarioDto),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   describe('findAll', () => {
@@ -62,6 +88,28 @@ describe('UsuariosController', () => {
       jest.spyOn(service, 'findAll').mockResolvedValue(result);
 
       expect(await controller.findAll(paginationDto)).toBe(result);
+    });
+
+    it('should throw a BadRequestException if findAll fails', async () => {
+      const paginationDto: PaginationDto = { page: 1, limit: 10 };
+      jest
+        .spyOn(service, 'findAll')
+        .mockRejectedValue(new BadRequestException());
+
+      await expect(controller.findAll(paginationDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should handle invalid pagination gracefully', async () => {
+      const paginationDto: PaginationDto = { page: -1, limit: 0 };
+      jest
+        .spyOn(service, 'findAll')
+        .mockRejectedValue(new BadRequestException('Invalid pagination'));
+
+      await expect(controller.findAll(paginationDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -77,6 +125,20 @@ describe('UsuariosController', () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(result);
 
       expect(await controller.findOne(1)).toBe(result);
+    });
+
+    it('should throw a NotFoundException if usuario is not found', async () => {
+      jest.spyOn(service, 'findOne').mockRejectedValue(new NotFoundException());
+
+      await expect(controller.findOne(1)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle invalid ID input', async () => {
+      jest
+        .spyOn(service, 'findOne')
+        .mockRejectedValue(new BadRequestException('Invalid ID'));
+
+      await expect(controller.findOne(-1)).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -97,6 +159,29 @@ describe('UsuariosController', () => {
 
       expect(await controller.update(1, updateUsuarioDto)).toBe(result);
     });
+
+    it('should throw a NotFoundException if usuario to update is not found', async () => {
+      const updateUsuarioDto: UpdateUsuarioDto = {
+        nombre: 'John Doe Updated',
+        rol: 'CAJERO',
+      };
+      jest.spyOn(service, 'update').mockRejectedValue(new NotFoundException());
+
+      await expect(controller.update(1, updateUsuarioDto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should handle empty update data gracefully', async () => {
+      const updateUsuarioDto: Partial<UpdateUsuarioDto> = {};
+      jest
+        .spyOn(service, 'update')
+        .mockRejectedValue(new BadRequestException('No data provided'));
+
+      await expect(
+        controller.update(1, updateUsuarioDto as UpdateUsuarioDto),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   describe('remove', () => {
@@ -111,6 +196,20 @@ describe('UsuariosController', () => {
       jest.spyOn(service, 'remove').mockResolvedValue(result);
 
       expect(await controller.remove(1)).toBe(result);
+    });
+
+    it('should throw a NotFoundException if usuario to remove is not found', async () => {
+      jest.spyOn(service, 'remove').mockRejectedValue(new NotFoundException());
+
+      await expect(controller.remove(1)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle invalid ID input for removal gracefully', async () => {
+      jest
+        .spyOn(service, 'remove')
+        .mockRejectedValue(new BadRequestException('Invalid ID'));
+
+      await expect(controller.remove(-1)).rejects.toThrow(BadRequestException);
     });
   });
 });
