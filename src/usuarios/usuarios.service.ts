@@ -31,6 +31,13 @@ export class UsuariosService {
   async create(createUsuarioDto: CreateUsuarioDto) {
     return await this.prisma.usuario.create({
       data: createUsuarioDto,
+      select: {
+        id: true,
+        nombre: true,
+        rol: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 
@@ -136,6 +143,13 @@ export class UsuariosService {
       return await this.prisma.usuario.update({
         where: { id, deleted: false },
         data: updateUsuarioDto,
+        select: {
+          id: true,
+          nombre: true,
+          rol: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
     } catch (error) {
       if (error.code === 'P2025') {
@@ -151,6 +165,13 @@ export class UsuariosService {
       return await this.prisma.usuario.update({
         where: { id, deleted: false },
         data: { deleted: true },
+        select: {
+          id: true,
+          nombre: true,
+          rol: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
     } catch (error) {
       if (error.code === 'P2025') {
