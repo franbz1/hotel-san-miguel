@@ -21,4 +21,6 @@ model Usuario {
   updatedAt DateTime @updatedAt
 
   deleted Boolean @default(false)
+
+  @@index([deleted])
 }
