@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -57,12 +57,46 @@ export class DocumentosService {
     return { data: docs, meta: { page, limit, total: totalDocs, lastPage } };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} documento`;
+  /**
+   * Busca un documento por su ID.
+   * @param id ID del documento.
+   * @returns El documento encontrado.
+   * @throws NotFoundException si el documento no existe.
+   */
+  async findOne(id: number) {
+    try {
+      return await this.prisma.documento.findFirstOrThrow({
+        where: { id },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 
-  update(id: number, updateDocumentoDto: UpdateDocumentoDto) {
-    return `This action updates a #${id} documento`;
+  /**
+   * Actualiza los datos de un documento por su ID.
+   * @param id ID del documento.
+   * @param updateDocumentoDto Datos para actualizar.
+   * @returns El documento actualizado.
+   * @throws BadRequestException si no se proporcionan datos para actualizar.
+   * @throws NotFoundException si el documento no existe.
+   */
+  async update(id: number, updateDocumentoDto: UpdateDocumentoDto) {
+    if (!Object.keys(updateDocumentoDto).length)
+      throw new BadRequestException(
+        'Debe enviar datos para actualizar el documento.',
+      );
+
+    try {
+      return await this.prisma.documento.update({
+        where: { id },
+        data: updateDocumentoDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 
   remove(id: number) {

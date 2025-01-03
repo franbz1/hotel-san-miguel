@@ -32,16 +32,16 @@ export class DocumentosController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.documentosService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.documentosService.findOne(id);
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateDocumentoDto: UpdateDocumentoDto,
   ) {
-    return this.documentosService.update(+id, updateDocumentoDto);
+    return this.documentosService.update(id, updateDocumentoDto);
   }
 
   @Delete(':id')
