@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  Query,
+} from '@nestjs/common';
 import { DocumentosService } from './documentos.service';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
@@ -13,8 +23,8 @@ export class DocumentosController {
   }
 
   @Get()
-  findAll() {
-    return this.documentosService.findAll();
+  findAll(@Query('huespedId', ParseIntPipe) huespedId: number) {
+    return this.documentosService.findAll(huespedId);
   }
 
   @Get(':id')
@@ -23,7 +33,10 @@ export class DocumentosController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDocumentoDto: UpdateDocumentoDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateDocumentoDto: UpdateDocumentoDto,
+  ) {
     return this.documentosService.update(+id, updateDocumentoDto);
   }
 
