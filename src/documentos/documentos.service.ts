@@ -99,7 +99,20 @@ export class DocumentosService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} documento`;
+  /**
+   * Elimina un documento por su ID.
+   * @param id ID del documento.
+   * @returns El documento eliminado.
+   * @throws NotFoundException si el documento no existe.
+   */
+  async remove(id: number) {
+    try {
+      return await this.prisma.documento.delete({
+        where: { id },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 }

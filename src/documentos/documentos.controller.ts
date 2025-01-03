@@ -45,7 +45,7 @@ export class DocumentosController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.documentosService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.documentosService.remove(id);
   }
 }
