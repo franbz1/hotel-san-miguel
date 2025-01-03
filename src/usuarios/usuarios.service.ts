@@ -128,6 +128,17 @@ export class UsuariosService {
   }
 
   async remove(id: number) {
-    return `This action removes a #${id} usuario`;
+    try {
+      return await this.prisma.usuario.update({
+        where: { id },
+        data: { deleted: true },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException(`No se encontró el usuario con id: ${id}`);
+      } else {
+        throw error;
+      }
+    }
   }
 }
