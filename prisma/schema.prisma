@@ -19,4 +19,6 @@ model Usuario {
   rol       String   @default("CAJERO")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  deleted Boolean @default(false)
 }
