@@ -23,7 +23,7 @@ export class DocumentosController {
     return this.documentosService.create(createDocumentoDto);
   }
 
-  @Get(':huespedId')
+  @Get('huesped/:huespedId')
   findAll(
     @Param('huespedId', ParseIntPipe) huespedId: number,
     @Query() paginationDto: PaginationDto,
