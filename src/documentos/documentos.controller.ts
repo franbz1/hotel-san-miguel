@@ -12,6 +12,7 @@ import {
 import { DocumentosService } from './documentos.service';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
 
 @Controller('documentos')
 export class DocumentosController {
@@ -22,9 +23,12 @@ export class DocumentosController {
     return this.documentosService.create(createDocumentoDto);
   }
 
-  @Get()
-  findAll(@Query('huespedId', ParseIntPipe) huespedId: number) {
-    return this.documentosService.findAll(huespedId);
+  @Get(':huespedId')
+  findAll(
+    @Param('huespedId', ParseIntPipe) huespedId: number,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.documentosService.findAll(huespedId, paginationDto);
   }
 
   @Get(':id')
