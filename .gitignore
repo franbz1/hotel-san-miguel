@@ -58,5 +58,10 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # Todo list
 todo.md
 
-# Prisma
-.db
+# Ignorar archivos de base de datos de desarrollo de Prisma
+prisma/*.db
+prisma/*.sqlite
+
+# Ignorar archivos de base de datos de desarrollo en general
+*.db
+*.sqlite
