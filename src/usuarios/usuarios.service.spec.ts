@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsuariosService } from './usuarios.service';
-import { PrismaService } from 'src/usuarios/prisma/prisma.service';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
