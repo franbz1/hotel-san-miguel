@@ -24,3 +24,34 @@ model Usuario {
 
   @@index([deleted])
 }
+
+model Huesped {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  tipo_documento String
+  numero_documento String
+  nombres   String
+  apellidos String
+  fecha_nacimiento DateTime
+  direccion String
+  procedencia String
+  destino String
+  motivo_viaje String
+  correo String
+  documentos_subidos Documento[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deleted Boolean @default(false)
+
+  @@index([deleted])
+}
+
+model Documento {
+  id        Int      @id @default(autoincrement())
+  url String
+  nombre String
+  huespedId Int
+  huesped Huesped @relation(fields: [huespedId], references: [id])
+  createdAt DateTime @default(now())
+}
