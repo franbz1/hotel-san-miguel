@@ -1,12 +1,9 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
+import notFoundError from 'src/common/errors/notfoundError';
 
 /**
  * Service CRUD para manejar usuarios
@@ -67,7 +64,7 @@ export class UsuariosService {
       select: this.defaultUserSelection(),
     });
 
-    if (!usuario) throw this.notFoundError(id);
+    if (!usuario) throw notFoundError(id);
 
     return usuario;
   }
@@ -94,7 +91,7 @@ export class UsuariosService {
         select: this.defaultUserSelection(),
       });
     } catch (error) {
-      if (error.code === 'P2025') throw this.notFoundError(id);
+      if (error.code === 'P2025') throw notFoundError(id);
 
       throw error;
     }
@@ -114,7 +111,7 @@ export class UsuariosService {
         select: this.defaultUserSelection(),
       });
     } catch (error) {
-      if (error.code === 'P2025') throw this.notFoundError(id);
+      if (error.code === 'P2025') throw notFoundError(id);
       throw error;
     }
   }
@@ -148,14 +145,5 @@ export class UsuariosService {
     lastPage = 0,
   ) {
     return { data: [], meta: { page, limit, totalUsuarios, lastPage } };
-  }
-
-  /**
-   * Error de Usuario no encontrado customizado.
-   * @param id ID del usuario.
-   * @returns Objeto con el mensaje de error.
-   */
-  private notFoundError(id: number) {
-    return new NotFoundException(`No se encontró el usuario con ID: ${id}`);
   }
 }
