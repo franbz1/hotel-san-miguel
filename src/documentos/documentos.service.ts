@@ -116,6 +116,12 @@ export class DocumentosService {
     }
   }
 
+  /**
+   * Elimina todos los documentos de un huesped.
+   * @param huespedId ID del huesped.
+   * @returns El número de documentos eliminados.
+   * @throws NotFoundException si el huesped no existe.
+   */
   async removeAllByHuespedId(huespedId: number) {
     try {
       return await this.prisma.documento.deleteMany({
