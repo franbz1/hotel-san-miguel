@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { HuespedesService } from './huespedes.service';
 import { CreateHuespedDto } from './dto/create-huesped.dto';
@@ -39,7 +40,7 @@ export class HuespedesController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.huespedesService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.huespedesService.remove(id);
   }
 }
