@@ -115,4 +115,15 @@ export class DocumentosService {
       throw error;
     }
   }
+
+  async removeAllByHuespedId(huespedId: number) {
+    try {
+      return await this.prisma.documento.deleteMany({
+        where: { huespedId },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(huespedId);
+      throw error;
+    }
+  }
 }
