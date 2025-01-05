@@ -9,7 +9,7 @@ import { DocumentosService } from 'src/documentos/documentos.service';
 export class HuespedesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly documentosService: DocumentosService,
+    private readonly documentosService: DocumentosService
   ) {}
 
   async create(CreateHuespedDto: CreateHuespedDto) {

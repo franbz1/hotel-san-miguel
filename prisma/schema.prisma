@@ -30,8 +30,7 @@ model Huesped {
   tipo_documento String
   numero_documento String
   nombres   String
-  primer_apellido String
-  segundo_apellido String
+  apellidos String
   fecha_nacimiento DateTime
   direccion String
   procedencia String
