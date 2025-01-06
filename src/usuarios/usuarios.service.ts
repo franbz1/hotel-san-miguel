@@ -1,12 +1,10 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
-import { PrismaService } from 'src/usuarios/prisma/prisma.service';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
+import notFoundError from 'src/common/errors/notfoundError';
+import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 
 /**
  * Service CRUD para manejar usuarios
@@ -39,11 +37,16 @@ export class UsuariosService {
       where: { deleted: false },
     });
 
-    if (totalUsuarios === 0) return this.emptyPaginationResponse(page, limit);
-
     const lastPage = Math.ceil(totalUsuarios / limit);
 
-    if (page > lastPage) return this.emptyPaginationResponse(page, limit);
+    const emptyData = emptyPaginationResponse(
+      page,
+      limit,
+      totalUsuarios,
+      lastPage,
+    );
+
+    if (totalUsuarios === 0 || page > emptyData.meta.lastPage) return emptyData;
 
     const usuarios = await this.prisma.usuario.findMany({
       skip: (page - 1) * limit,
@@ -67,7 +70,7 @@ export class UsuariosService {
       select: this.defaultUserSelection(),
     });
 
-    if (!usuario) throw this.notFoundError(id);
+    if (!usuario) throw notFoundError(id);
 
     return usuario;
   }
@@ -94,7 +97,7 @@ export class UsuariosService {
         select: this.defaultUserSelection(),
       });
     } catch (error) {
-      if (error.code === 'P2025') throw this.notFoundError(id);
+      if (error.code === 'P2025') throw notFoundError(id);
 
       throw error;
     }
@@ -114,7 +117,7 @@ export class UsuariosService {
         select: this.defaultUserSelection(),
       });
     } catch (error) {
-      if (error.code === 'P2025') throw this.notFoundError(id);
+      if (error.code === 'P2025') throw notFoundError(id);
       throw error;
     }
   }
@@ -131,31 +134,5 @@ export class UsuariosService {
       createdAt: true,
       updatedAt: true,
     };
-  }
-
-  /**
-   * Respuesta de paginación vacía.
-   * @param page Página actual.
-   * @param limit Límite de registros por página.
-   * @param totalUsuarios Número total de usuarios (opcional).
-   * @param lastPage Última página (opcional).
-   * @returns Objeto con datos vacíos y metadatos de paginación.
-   */
-  private emptyPaginationResponse(
-    page: number,
-    limit: number,
-    totalUsuarios = 0,
-    lastPage = 0,
-  ) {
-    return { data: [], meta: { page, limit, totalUsuarios, lastPage } };
-  }
-
-  /**
-   * Error de Usuario no encontrado customizado.
-   * @param id ID del usuario.
-   * @returns Objeto con el mensaje de error.
-   */
-  private notFoundError(id: number) {
-    return new NotFoundException(`No se encontró el usuario con ID: ${id}`);
   }
 }

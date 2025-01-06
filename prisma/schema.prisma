@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -19,8 +13,136 @@ model Usuario {
   rol       String   @default("CAJERO")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
 
-  deleted Boolean @default(false)
+  @@index([deleted])
+}
+
+model Huesped {
+  id                      Int      @id @default(autoincrement())
+  tipo_documento          String
+  numero_documento        String   @unique
+  primer_apellido         String
+  segundo_apellido        String?
+  nombres                 String
+  pais_residencia         String
+  departamento_residencia String
+  ciudad_residencia       String
+  lugar_nacimiento        String
+  fecha_nacimiento        DateTime
+  nacionalidad            String
+  ocupacion               String
+  genero                  String
+  telefono                String?
+  correo                  String?
+
+  reservas              Reserva[]
+  huespedes_secundarios HuespedSecundario[]
+  documentos_subidos    Documento[]
+  facturas              Factura[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([numero_documento])
+  @@index([deleted])
+}
+
+model HuespedSecundario {
+  id                      Int         @id @default(autoincrement())
+  tipo_documento          String
+  numero_documento        String
+  primer_apellido         String
+  segundo_apellido        String
+  nombres                 String
+  pais_residencia         String
+  departamento_residencia String
+  ciudad_residencia       String
+  lugar_nacimiento        String
+  fecha_nacimiento        DateTime
+  nacionalidad            String
+  ocupacion               String
+  genero                  String
+  telefono                String?
+  correo                  String?
+  huespedId               Int
+  huesped                 Huesped     @relation(fields: [huespedId], references: [id])
+  documentos_subidos      Documento[]
+}
+
+model Documento {
+  id                  Int    @id @default(autoincrement())
+  url                 String
+  nombre              String
+  huespedId           Int?
+  huespedSecundarioId Int?
+
+  huesped           Huesped?           @relation(fields: [huespedId], references: [id])
+  huespedSecundario HuespedSecundario? @relation(fields: [huespedSecundarioId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([huespedId])
+  @@index([huespedSecundarioId])
+}
+
+model Reserva {
+  id                       Int        @id @default(autoincrement())
+  fecha_inicio             DateTime
+  fecha_fin                DateTime
+  estado                   String     @default("RESERVADO")
+  pais_procedencia         String
+  departamento_procedencia String
+  ciudad_procedencia       String
+  pais_destino             String
+  motivo_viaje             String
+  check_in                 DateTime
+  check_out                DateTime
+  costo                    Float
+  numero_acompaniantes     Int
+  habitacionId             Int
+  huespedId                Int
+  facturaId                Int?       @unique
+  huesped                  Huesped    @relation(fields: [huespedId], references: [id])
+  habitacion               Habitacion @relation(fields: [habitacionId], references: [id])
+  factura                  Factura?   @relation(fields: [facturaId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([huespedId])
+  @@index([deleted])
+}
+
+model Habitacion {
+  id                Int       @id @default(autoincrement())
+  numero_habitacion Int       @unique
+  tipo              String    @default("UNACAMA")
+  estado            String    @default("LIBRE")
+  precio_por_noche  Float
+  reservas          Reserva[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([deleted])
+}
+
+model Factura {
+  id            Int      @id @default(autoincrement())
+  total         Float
+  fecha_factura DateTime
+  huespedId     Int
+
+  reserva Reserva?
+  huesped Huesped  @relation(fields: [huespedId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
 
   @@index([deleted])
 }

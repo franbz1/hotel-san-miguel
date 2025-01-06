@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsuariosService } from './usuarios.service';
-import { PrismaService } from 'src/usuarios/prisma/prisma.service';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
@@ -74,7 +74,7 @@ describe('UsuariosService', () => {
       const paginationDto = { page: 1, limit: 10 };
       const result = {
         data: [],
-        meta: { page: 1, limit: 10, totalUsuarios: 0, lastPage: 0 },
+        meta: { page: 1, limit: 10, total: 0, lastPage: 0 },
       };
       jest.spyOn(prisma.usuario, 'findMany').mockResolvedValue(result.data);
       jest.spyOn(prisma.usuario, 'count').mockResolvedValue(0);
