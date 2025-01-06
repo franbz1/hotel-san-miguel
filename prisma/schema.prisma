@@ -118,7 +118,7 @@ model Reserva {
 
 model Habitacion {
   id                Int       @id @default(autoincrement())
-  numero_habitacion Int
+  numero_habitacion Int       @unique
   tipo              String    @default("UNACAMA")
   estado            String    @default("LIBRE")
   precio_por_noche  Int
