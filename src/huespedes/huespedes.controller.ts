@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { HuespedesService } from './huespedes.service';
 import { CreateHuespedDto } from './dto/create-huesped.dto';
-import { UpdateHuespedeDto } from './dto/update-huespede.dto';
+import { UpdateHuespedDto } from './dto/update-huesped.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 
 @Controller('huespedes')
@@ -40,10 +40,10 @@ export class HuespedesController {
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
-    @Body() updateHuespedeDto: UpdateHuespedeDto,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateHuespedDto: UpdateHuespedDto,
   ) {
-    return this.huespedesService.update(+id, updateHuespedeDto);
+    return this.huespedesService.update(id, updateHuespedDto);
   }
 
   @Delete(':id')

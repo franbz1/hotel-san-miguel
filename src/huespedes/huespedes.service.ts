@@ -1,6 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateHuespedDto } from './dto/create-huesped.dto';
-import { UpdateHuespedeDto } from './dto/update-huespede.dto';
+import { UpdateHuespedDto } from './dto/update-huesped.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import notFoundError from 'src/common/errors/notfoundError';
 import { DocumentosService } from 'src/documentos/documentos.service';
@@ -101,8 +105,30 @@ export class HuespedesService {
     }
   }
 
-  update(id: number, updateHuespedeDto: UpdateHuespedeDto) {
-    return `This action updates a #${id} huespede`;
+  /**
+   * Actualiza los datos de un huesped por su ID.
+   * @param id ID del huesped.
+   * @param updateHuespedeDto Datos para actualizar.
+   * @returns El huesped actualizado.
+   * @throws BadRequestException si no se proporcionan datos para actualizar.
+   * @throws NotFoundException si el huesped no existe.
+   */
+  async update(id: number, updateHuespedDto: UpdateHuespedDto) {
+    if (!Object.keys(updateHuespedDto).length) {
+      throw new BadRequestException(
+        'Debe enviar datos para actualizar el huesped.',
+      );
+    }
+
+    try {
+      return await this.prisma.huesped.update({
+        where: { id, deleted: false },
+        data: updateHuespedDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 
   /**
