@@ -6,10 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { HabitacionesService } from './habitaciones.service';
 import { CreateHabitacionDto } from './dto/create-habitacion.dto';
 import { UpdateHabitacionDto } from './dto/update-habitacion.dto';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
 
 @Controller('habitaciones')
 export class HabitacionesController {
@@ -21,8 +23,8 @@ export class HabitacionesController {
   }
 
   @Get()
-  findAll() {
-    return this.habitacionesService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.habitacionesService.findAll(paginationDto);
   }
 
   @Get(':id')
