@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateHuespedDto } from './dto/create-huesped.dto';
 import { UpdateHuespedeDto } from './dto/update-huespede.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import notFoundError from 'src/common/errors/notfoundError';
 import { DocumentosService } from 'src/documentos/documentos.service';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
+import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 
 @Injectable()
 export class HuespedesService {
@@ -12,14 +14,54 @@ export class HuespedesService {
     private readonly documentosService: DocumentosService,
   ) {}
 
+  /**
+   * Crea un nuevo huesped.
+   * @param createHuespedDto Datos del huesped a crear.
+   * @returns El huesped creado.
+   */
   async create(CreateHuespedDto: CreateHuespedDto) {
-    return await this.prisma.huesped.create({
-      data: CreateHuespedDto,
-    });
+    try {
+      return await this.prisma.huesped.create({
+        data: CreateHuespedDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2002')
+        throw new BadRequestException('El huesped ya existe');
+      throw error;
+    }
   }
 
-  findAll() {
-    return `This action returns all huespedes`;
+  /**
+   * Obtiene todos los huespedes con paginación.
+   * @param paginationDto Datos de paginación.
+   * @returns Objeto con la lista de huespedes y metadatos de paginación.
+   */
+  async findAll(paginationDto: PaginationDto) {
+    const { page, limit } = paginationDto;
+
+    const totalHuespedes = await this.prisma.huesped.count({
+      where: { deleted: false },
+    });
+
+    const lastPage = Math.ceil(totalHuespedes / limit);
+
+    const emptyData = emptyPaginationResponse(
+      page,
+      limit,
+      totalHuespedes,
+      lastPage,
+    );
+
+    if (totalHuespedes === 0 || page > emptyData.meta.lastPage)
+      return emptyData;
+
+    const huespedes = await this.prisma.huesped.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      where: { deleted: false },
+    });
+
+    return { data: huespedes, meta: { page, limit, totalHuespedes, lastPage } };
   }
 
   findOne(id: number) {

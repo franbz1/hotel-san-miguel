@@ -7,10 +7,12 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { HuespedesService } from './huespedes.service';
 import { CreateHuespedDto } from './dto/create-huesped.dto';
 import { UpdateHuespedeDto } from './dto/update-huespede.dto';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
 
 @Controller('huespedes')
 export class HuespedesController {
@@ -22,8 +24,8 @@ export class HuespedesController {
   }
 
   @Get()
-  findAll() {
-    return this.huespedesService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.huespedesService.findAll(paginationDto);
   }
 
   @Get(':id')
