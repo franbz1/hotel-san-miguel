@@ -82,8 +82,30 @@ export class HabitacionesService {
     }
   }
 
-  update(id: number, updateHabitacionDto: UpdateHabitacionDto) {
-    return `This action updates a #${id} habitacione`;
+  /**
+   * Actualiza los datos de una habitación por su ID.
+   * @param id ID de la habitación.
+   * @param updateHabitacionDto Datos para actualizar.
+   * @returns La habitación actualizada.
+   * @throws BadRequestException si no se proporcionan datos para actualizar.
+   * @throws NotFoundException si la habitación no existe.
+   */
+  async update(id: number, updateHabitacionDto: UpdateHabitacionDto) {
+    if (!Object.keys(updateHabitacionDto).length) {
+      throw new BadRequestException(
+        'Debe enviar datos para actualizar la habitación.',
+      );
+    }
+
+    try {
+      return await this.prisma.habitacion.update({
+        where: { id, deleted: false },
+        data: updateHabitacionDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 
   remove(id: number) {

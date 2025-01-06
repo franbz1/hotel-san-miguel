@@ -34,8 +34,11 @@ export class HabitacionesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateHabitacionDto: UpdateHabitacionDto) {
-    return this.habitacionesService.update(+id, updateHabitacionDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateHabitacionDto: UpdateHabitacionDto,
+  ) {
+    return this.habitacionesService.update(id, updateHabitacionDto);
   }
 
   @Delete(':id')
