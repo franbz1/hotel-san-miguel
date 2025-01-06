@@ -4,6 +4,7 @@ import { UpdateHabitacionDto } from './dto/update-habitacion.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
+import notFoundError from 'src/common/errors/notfoundError';
 
 @Injectable()
 export class HabitacionesService {
@@ -64,8 +65,21 @@ export class HabitacionesService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} habitacione`;
+  /**
+   * Busca una habitación por su ID.
+   * @param id ID de la habitación.
+   * @returns La habitación encontrada.
+   * @throws NotFoundException si la habitación no existe.
+   */
+  async findOne(id: number) {
+    try {
+      return await this.prisma.habitacion.findFirstOrThrow({
+        where: { id, deleted: false },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 
   update(id: number, updateHabitacionDto: UpdateHabitacionDto) {

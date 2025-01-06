@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { HabitacionesService } from './habitaciones.service';
 import { CreateHabitacionDto } from './dto/create-habitacion.dto';
@@ -28,8 +29,8 @@ export class HabitacionesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.habitacionesService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.habitacionesService.findOne(id);
   }
 
   @Patch(':id')
