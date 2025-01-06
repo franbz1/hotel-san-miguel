@@ -2,16 +2,39 @@ import { TipoDoc } from './tipoDoc.enum';
 
 export class Huesped {
   id: number;
-  nombre: string;
+
   tipo_documento: TipoDoc;
   numero_documento: string;
+
+  prmimer_apellido: string;
+  segundo_apellido: string;
   nombres: string;
-  apellidos: string;
+
+  pais_recidencia: string;
+  departamento_recidencia: string;
+  ciudad_recidencia: string;
+
+  pais_procedencia: string;
+  ciudad_procedencia: string;
+
+  pais_destino: string;
+
+  lugar_nacimiento: string;
   fecha_nacimiento: Date;
-  direccion: string;
-  procedencia: string;
-  destino: string;
+  nacionalidad: string;
+  ocupacion: string;
+  genero: string;
   motivo_viaje: string;
+
+  telefono: string;
   correo: string;
+
+  reservas: [] | null;
+  huespedes_secundarios: [] | null;
   documentos_subidos: [] | null;
+
+  createdAt: Date;
+  updatedAt: Date;
+
+  deleted: boolean;
 }
