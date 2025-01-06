@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateHabitacionDto } from './dto/create-habitacion.dto';
 import { UpdateHabitacionDto } from './dto/update-habitacion.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -83,6 +83,26 @@ export class HabitacionesService {
   }
 
   /**
+   * Busca una habitación por su numero de habitación.
+   * @param numeroHabitacion Numero de la habitación.
+   * @returns La habitación encontrada.
+   * @throws NotFoundException si la habitación no existe.
+   */
+  async findByNumeroHabitacion(numeroHabitacion: number) {
+    try {
+      return await this.prisma.habitacion.findFirstOrThrow({
+        where: { numero_habitacion: numeroHabitacion, deleted: false },
+      });
+    } catch (error) {
+      if (error.code === 'P2025')
+        throw new NotFoundException(
+          `No se encontró la habitación con el numero de habitación: ${numeroHabitacion}`,
+        );
+      throw error;
+    }
+  }
+
+  /**
    * Actualiza los datos de una habitación por su ID.
    * @param id ID de la habitación.
    * @param updateHabitacionDto Datos para actualizar.
@@ -108,7 +128,21 @@ export class HabitacionesService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} habitacione`;
+  /**
+   * Elimina una habitación por su ID.
+   * @param id ID de la habitación.
+   * @returns La habitación eliminada.
+   * @throws NotFoundException si la habitación no existe.
+   */
+  async remove(id: number) {
+    try {
+      return await this.prisma.habitacion.update({
+        where: { id, deleted: false },
+        data: { deleted: true },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 }

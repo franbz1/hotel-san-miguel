@@ -28,6 +28,13 @@ export class HabitacionesController {
     return this.habitacionesService.findAll(paginationDto);
   }
 
+  @Get('numero_habitacion/:numeroHabitacion')
+  findByNumeroHabitacion(
+    @Param('numeroHabitacion', ParseIntPipe) numeroHabitacion: number,
+  ) {
+    return this.habitacionesService.findByNumeroHabitacion(numeroHabitacion);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.habitacionesService.findOne(id);
@@ -42,7 +49,7 @@ export class HabitacionesController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.habitacionesService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.habitacionesService.remove(id);
   }
 }
