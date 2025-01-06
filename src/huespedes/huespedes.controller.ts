@@ -33,6 +33,11 @@ export class HuespedesController {
     return this.huespedesService.findOne(id);
   }
 
+  @Get('documento/:documentoId')
+  findByDocumentoId(@Param('documentoId') documentoId: string) {
+    return this.huespedesService.findByDocumentoId(documentoId);
+  }
+
   @Patch(':id')
   update(
     @Param('id') id: string,

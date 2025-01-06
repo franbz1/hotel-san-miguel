@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateHuespedDto } from './dto/create-huesped.dto';
 import { UpdateHuespedeDto } from './dto/update-huespede.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -77,6 +77,26 @@ export class HuespedesService {
       });
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca un huesped por su numero de Documento.
+   * @param documentoId ID del documento.
+   * @returns El huesped encontrado.
+   * @throws NotFoundException si el huesped no existe.
+   */
+  async findByDocumentoId(documentoId: string) {
+    try {
+      return await this.prisma.huesped.findFirstOrThrow({
+        where: { numero_documento: documentoId, deleted: false },
+      });
+    } catch (error) {
+      if (error.code === 'P2025')
+        throw new NotFoundException(
+          `No se encontró el huesped con el numero de documento: ${documentoId}`,
+        );
       throw error;
     }
   }
