@@ -14,17 +14,11 @@ export class Huesped {
   departamento_recidencia: string;
   ciudad_recidencia: string;
 
-  pais_procedencia: string;
-  ciudad_procedencia: string;
-
-  pais_destino: string;
-
   lugar_nacimiento: string;
   fecha_nacimiento: Date;
   nacionalidad: string;
   ocupacion: string;
   genero: string;
-  motivo_viaje: string;
 
   telefono: string;
   correo: string;

@@ -19,27 +19,22 @@ model Usuario {
 }
 
 model Huesped {
-  id                    Int      @id @default(autoincrement())
-  tipo_documento        String
-  numero_documento      String
-  primer_apellido       String
-  segundo_apellido      String?
-  nombres               String
-  pais_residencia       String
+  id                      Int      @id @default(autoincrement())
+  tipo_documento          String
+  numero_documento        String   @unique
+  primer_apellido         String
+  segundo_apellido        String?
+  nombres                 String
+  pais_residencia         String
   departamento_residencia String
-  ciudad_residencia     String
-  pais_procedencia      String
-  departamento_procedencia String
-  ciudad_procedencia    String
-  pais_destino          String
-  lugar_nacimiento      String
-  fecha_nacimiento      DateTime
-  nacionalidad          String
-  ocupacion             String
-  genero                String
-  motivo_viaje          String
-  telefono              String?
-  correo                String?
+  ciudad_residencia       String
+  lugar_nacimiento        String
+  fecha_nacimiento        DateTime
+  nacionalidad            String
+  ocupacion               String
+  genero                  String
+  telefono                String?
+  correo                  String?
 
   reservas              Reserva[]
   huespedes_secundarios HuespedSecundario[]
@@ -50,40 +45,41 @@ model Huesped {
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
 
+  @@index([numero_documento])
   @@index([deleted])
 }
 
 model HuespedSecundario {
-  id                   Int     @id @default(autoincrement())
-  tipo_documento       String
-  numero_documento     String
-  primer_apellido      String
-  segundo_apellido     String
-  nombres              String
-  pais_residencia      String
+  id                      Int         @id @default(autoincrement())
+  tipo_documento          String
+  numero_documento        String
+  primer_apellido         String
+  segundo_apellido        String
+  nombres                 String
+  pais_residencia         String
   departamento_residencia String
-  ciudad_residencia    String
-  lugar_nacimiento     String
-  fecha_nacimiento     DateTime
-  nacionalidad         String
-  ocupacion            String
-  genero               String
-  telefono             String?
-  correo               String?
-  huespedId            Int
-  huesped              Huesped @relation(fields: [huespedId], references: [id])
-  documentos_subidos   Documento[]
+  ciudad_residencia       String
+  lugar_nacimiento        String
+  fecha_nacimiento        DateTime
+  nacionalidad            String
+  ocupacion               String
+  genero                  String
+  telefono                String?
+  correo                  String?
+  huespedId               Int
+  huesped                 Huesped     @relation(fields: [huespedId], references: [id])
+  documentos_subidos      Documento[]
 }
 
 model Documento {
-  id                 Int                @id @default(autoincrement())
-  url                String
-  nombre             String
-  huespedId          Int?
+  id                  Int    @id @default(autoincrement())
+  url                 String
+  nombre              String
+  huespedId           Int?
   huespedSecundarioId Int?
 
-  huesped            Huesped?          @relation(fields: [huespedId], references: [id])
-  huespedSecundario  HuespedSecundario? @relation(fields: [huespedSecundarioId], references: [id])
+  huesped           Huesped?           @relation(fields: [huespedId], references: [id])
+  huespedSecundario HuespedSecundario? @relation(fields: [huespedSecundarioId], references: [id])
 
   createdAt DateTime @default(now())
 
@@ -92,30 +88,39 @@ model Documento {
 }
 
 model Reserva {
-  id          Int      @id @default(autoincrement())
-  fecha_inicio DateTime
-  fecha_fin   DateTime
-  estado      String   @default("RESERVADO")
-  habitacionId Int
-  huespedId  Int
-  facturaId  Int?      @unique
-  huesped    Huesped   @relation(fields: [huespedId], references: [id])
-  habitacion Habitacion @relation(fields: [habitacionId], references: [id])
-  factura    Factura?  @relation(fields: [facturaId], references: [id])
+  id                       Int        @id @default(autoincrement())
+  fecha_inicio             DateTime
+  fecha_fin                DateTime
+  estado                   String     @default("RESERVADO")
+  pais_procedencia         String
+  departamento_procedencia String
+  ciudad_procedencia       String
+  pais_destino             String
+  motivo_viaje             String
+  check_in                 DateTime
+  check_out                DateTime
+  costo                    Float
+  numero_acompaniantes     Int
+  habitacionId             Int
+  huespedId                Int
+  facturaId                Int?       @unique
+  huesped                  Huesped    @relation(fields: [huespedId], references: [id])
+  habitacion               Habitacion @relation(fields: [habitacionId], references: [id])
+  factura                  Factura?   @relation(fields: [facturaId], references: [id])
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  deleted    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
 
   @@index([huespedId])
   @@index([deleted])
 }
 
 model Habitacion {
-  id                Int      @id @default(autoincrement())
+  id                Int       @id @default(autoincrement())
   numero_habitacion Int
-  tipo              String   @default("UNACAMA")
-  estado            String   @default("LIBRE")
+  tipo              String    @default("UNACAMA")
+  estado            String    @default("LIBRE")
   precio_por_noche  Int
   reservas          Reserva[]
 
@@ -127,13 +132,13 @@ model Habitacion {
 }
 
 model Factura {
-  id            Int     @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   total         Float
   fecha_factura DateTime
   huespedId     Int
 
-  reserva       Reserva?
-  huesped       Huesped @relation(fields: [huespedId], references: [id])
+  reserva Reserva?
+  huesped Huesped  @relation(fields: [huespedId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -141,4 +146,3 @@ model Factura {
 
   @@index([deleted])
 }
-

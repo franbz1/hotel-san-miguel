@@ -75,39 +75,6 @@ export class CreateHuespedDto {
   ciudad_residencia: string;
 
   @IsString({
-    message: 'El pais de procedencia es obligatorio y debe ser un texto',
-    always: true,
-  })
-  @MinLength(2)
-  @MaxLength(50)
-  pais_procedencia: string;
-
-  @IsString({
-    message:
-      'El departamento de procedencia es obligatorio y debe ser un texto',
-    always: true,
-  })
-  @MinLength(2)
-  @MaxLength(50)
-  departamento_procedencia: string;
-
-  @IsString({
-    message: 'La ciudad de procedencia es obligatorio y debe ser un texto',
-    always: true,
-  })
-  @MinLength(2)
-  @MaxLength(50)
-  ciudad_procedencia: string;
-
-  @IsString({
-    message: 'El pais de destino es obligatorio y debe ser un texto',
-    always: true,
-  })
-  @MinLength(2)
-  @MaxLength(50)
-  pais_destino: string;
-
-  @IsString({
     message: 'El lugar de nacimiento es obligatorio y debe ser un texto',
     always: true,
   })
@@ -145,14 +112,6 @@ export class CreateHuespedDto {
   @MinLength(4)
   @MaxLength(9)
   genero: 'MASCULINO' | 'FEMENINO' | 'OTRO';
-
-  @IsString({
-    message: 'El motivo de viaje es obligatorio y debe ser un texto',
-    always: true,
-  })
-  @MinLength(2)
-  @MaxLength(50)
-  motivo_viaje: string;
 
   @IsPhoneNumber()
   @IsOptional()
