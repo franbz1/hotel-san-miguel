@@ -64,8 +64,21 @@ export class HuespedesService {
     return { data: huespedes, meta: { page, limit, totalHuespedes, lastPage } };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} huespede`;
+  /**
+   * Busca un huesped por su ID.
+   * @param id ID del huesped.
+   * @returns El huesped encontrado.
+   * @throws NotFoundException si el huesped no existe.
+   */
+  async findOne(id: number) {
+    try {
+      return await this.prisma.huesped.findFirstOrThrow({
+        where: { id, deleted: false },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 
   update(id: number, updateHuespedeDto: UpdateHuespedeDto) {

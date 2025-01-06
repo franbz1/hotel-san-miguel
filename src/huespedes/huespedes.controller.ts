@@ -29,8 +29,8 @@ export class HuespedesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.huespedesService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.huespedesService.findOne(id);
   }
 
   @Patch(':id')
