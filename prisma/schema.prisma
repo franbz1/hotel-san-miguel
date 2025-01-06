@@ -121,7 +121,7 @@ model Habitacion {
   numero_habitacion Int       @unique
   tipo              String    @default("UNACAMA")
   estado            String    @default("LIBRE")
-  precio_por_noche  Int
+  precio_por_noche  Float
   reservas          Reserva[]
 
   createdAt DateTime @default(now())
