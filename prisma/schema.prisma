@@ -66,8 +66,8 @@ model HuespedSecundario {
   genero                  String
   telefono                String?
   correo                  String?
-  huespedId               Int
-  huesped                 Huesped     @relation(fields: [huespedId], references: [id])
+  huespedId               Int?
+  huesped                 Huesped?     @relation(fields: [huespedId], references: [id])
   documentos_subidos      Documento[]
 }
 
