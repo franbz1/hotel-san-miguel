@@ -1,14 +1,17 @@
+import { Type } from 'class-transformer';
 import {
+  IsInt,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
   MinLength,
   Validate,
 } from 'class-validator';
 import { IsValidTipoDocConstraint } from 'src/common/validators/IsValidTipoDoc';
 
 export class CreateHuespedSecundarioDto {
-  @IsString()
+  @IsString({ always: true })
   @Validate(IsValidTipoDocConstraint)
   tipo_documento: string;
 
@@ -97,9 +100,20 @@ export class CreateHuespedSecundarioDto {
   @MaxLength(9)
   genero: 'MASCULINO' | 'FEMENINO' | 'OTRO';
 
-  @IsString()
+  @IsString({
+    message: 'El telefono es opcional y debe ser un texto',
+  })
   telefono: string;
 
-  @IsString()
+  @IsString({
+    message: 'El correo es opcional y debe ser un correo',
+  })
   correo: string;
+
+  @IsInt({
+    message: 'El huespedId es obligatorio y debe ser un numero entero',
+  })
+  @Min(1)
+  @Type(() => Number)
+  huespedId: number;
 }
