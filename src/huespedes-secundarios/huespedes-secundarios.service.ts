@@ -176,7 +176,21 @@ export class HuespedesSecundariosService {
     }
   }
 
+  /**
+   * Elimina un huesped secundario por su ID
+   * @param id ID del huesped secundario
+   * @returns El huesped secundario eliminado
+   * @throws NotFoundException si el huesped secundario no existe
+   */
   async remove(id: number) {
-    return `This action removes a #${id} huespedesSecundario`;
+    try {
+      return await this.prisma.huespedSecundario.update({
+        where: { id, deleted: false },
+        data: { deleted: true },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 }
