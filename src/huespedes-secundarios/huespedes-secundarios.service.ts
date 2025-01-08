@@ -73,7 +73,6 @@ export class HuespedesSecundariosService {
    * @param huespedId ID del huesped principal
    * @param PaginationDto Datos de paginación
    * @returns Lista de huespedes secundarios
-   * @throws BadRequestException si el huespedId no es valido
    */
   async findAllHuespedesSecundariosByHuespedId(
     huespedId: number,
