@@ -68,7 +68,56 @@ export class HuespedesSecundariosService {
     };
   }
 
-  findOne(id: number) {
+  /**
+   * Busca todos los huespedes secundarios de un huesped
+   * @param huespedId ID del huesped principal
+   * @param PaginationDto Datos de paginación
+   * @returns Lista de huespedes secundarios
+   * @throws BadRequestException si el huespedId no es valido
+   */
+  async findAllHuespedesSecundariosByHuespedId(
+    huespedId: number,
+    paginationDto: PaginationDto,
+  ) {
+    const { page, limit } = paginationDto;
+
+    const totalHuespedesSecundarios = await this.prisma.huespedSecundario.count(
+      {
+        where: { huespedId, deleted: false },
+      },
+    );
+
+    const lastPage = Math.ceil(totalHuespedesSecundarios / limit);
+
+    const emptyData = emptyPaginationResponse(
+      page,
+      limit,
+      totalHuespedesSecundarios,
+      lastPage,
+    );
+
+    if (totalHuespedesSecundarios === 0 || page > emptyData.meta.lastPage)
+      return emptyData;
+
+    const huespedesSecundarios = await this.prisma.huespedSecundario.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      where: { huespedId, deleted: false },
+    });
+
+    return {
+      data: huespedesSecundarios,
+      meta: { page, limit, totalHuespedesSecundarios, lastPage },
+    };
+  }
+
+  /**
+   * Busca un huesped secundario por su ID
+   * @param id ID del huesped secundario
+   * @returns El huesped secundario encontrado
+   * @throws BadRequestException si el huesped secundario no existe
+   */
+  async findOne(id: number) {
     return `This action returns a #${id} huespedesSecundario`;
   }
 

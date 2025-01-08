@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { HuespedesSecundariosService } from './huespedes-secundarios.service';
 import { CreateHuespedSecundarioDto } from './dto/create-huesped-secundario.dto';
@@ -29,9 +30,20 @@ export class HuespedesSecundariosController {
     return this.huespedesSecundariosService.findAll(paginationDto);
   }
 
+  @Get('huespedId/:huespedId')
+  findAllByHuespedId(
+    @Param('huespedId', ParseIntPipe) huespedId: number,
+    @Body() paginationDto: PaginationDto,
+  ) {
+    return this.huespedesSecundariosService.findAllHuespedesSecundariosByHuespedId(
+      huespedId,
+      paginationDto,
+    );
+  }
+
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.huespedesSecundariosService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.huespedesSecundariosService.findOne(id);
   }
 
   @Patch(':id')
