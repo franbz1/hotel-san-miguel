@@ -6,10 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { HuespedesSecundariosService } from './huespedes-secundarios.service';
 import { CreateHuespedSecundarioDto } from './dto/create-huesped-secundario.dto';
 import { UpdateHuespedSecundarioDto } from './dto/update-huesped-secundario.dto';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
 
 @Controller('huespedes-secundarios')
 export class HuespedesSecundariosController {
@@ -23,8 +25,8 @@ export class HuespedesSecundariosController {
   }
 
   @Get()
-  findAll() {
-    return this.huespedesSecundariosService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.huespedesSecundariosService.findAll(paginationDto);
   }
 
   @Get(':id')

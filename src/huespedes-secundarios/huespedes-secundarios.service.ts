@@ -2,6 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateHuespedSecundarioDto } from './dto/create-huesped-secundario.dto';
 import { UpdateHuespedSecundarioDto } from './dto/update-huesped-secundario.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
+import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 
 @Injectable()
 export class HuespedesSecundariosService {
@@ -28,8 +30,42 @@ export class HuespedesSecundariosService {
     }
   }
 
-  findAll() {
-    return `This action returns all huespedesSecundarios`;
+  /**
+   * Devuelve todos los huespedes secundarios con paginación
+   * @param PaginationDto Datos de paginación
+   * @returns Objeto con la lista de huespedes secundarios y metadatos de paginación
+   */
+  async findAll(paginationDto: PaginationDto) {
+    const { page, limit } = paginationDto;
+
+    const totalHuespedesSecundarios = await this.prisma.huespedSecundario.count(
+      {
+        where: { deleted: false },
+      },
+    );
+
+    const lastPage = Math.ceil(totalHuespedesSecundarios / limit);
+
+    const emptyData = emptyPaginationResponse(
+      page,
+      limit,
+      totalHuespedesSecundarios,
+      lastPage,
+    );
+
+    if (totalHuespedesSecundarios === 0 || page > emptyData.meta.lastPage)
+      return emptyData;
+
+    const huespedesSecundarios = await this.prisma.huespedSecundario.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      where: { deleted: false },
+    });
+
+    return {
+      data: huespedesSecundarios,
+      meta: { page, limit, totalHuespedesSecundarios, lastPage },
+    };
   }
 
   findOne(id: number) {
