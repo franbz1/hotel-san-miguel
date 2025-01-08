@@ -4,6 +4,7 @@ import { UpdateHuespedSecundarioDto } from './dto/update-huesped-secundario.dto'
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
+import notFoundError from 'src/common/errors/notfoundError';
 
 @Injectable()
 export class HuespedesSecundariosService {
@@ -117,7 +118,33 @@ export class HuespedesSecundariosService {
    * @throws BadRequestException si el huesped secundario no existe
    */
   async findOne(id: number) {
-    return `This action returns a #${id} huespedesSecundario`;
+    try {
+      return await this.prisma.huespedSecundario.findFirstOrThrow({
+        where: { id, deleted: false },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca un huesped secundario por su numero de documento
+   * @param numeroDocumento Numero de documento del huesped secundario
+   * @returns El huesped secundario encontrado
+   * @throws BadRequestException si el huesped secundario no existe
+   */
+  async findByNumeroDocumento(numeroDocumento: string) {
+    try {
+      return await this.prisma.huespedSecundario.findFirstOrThrow({
+        where: { numero_documento: numeroDocumento, deleted: false },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new BadRequestException('El numero de documento no existe');
+      }
+      throw error;
+    }
   }
 
   update(id: number, UpdateHuespedSecundarioDto: UpdateHuespedSecundarioDto) {

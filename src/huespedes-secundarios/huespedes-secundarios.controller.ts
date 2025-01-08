@@ -46,6 +46,13 @@ export class HuespedesSecundariosController {
     return this.huespedesSecundariosService.findOne(id);
   }
 
+  @Get('numeroDocumento/:numeroDocumento')
+  findByNumeroDocumento(@Param('numeroDocumento') numeroDocumento: string) {
+    return this.huespedesSecundariosService.findByNumeroDocumento(
+      numeroDocumento,
+    );
+  }
+
   @Patch(':id')
   update(
     @Param('id') id: string,
