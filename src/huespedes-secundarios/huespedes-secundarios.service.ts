@@ -15,6 +15,8 @@ export class HuespedesSecundariosService {
     } catch (error) {
       if (error.code === 'P2003') {
         throw new BadRequestException('El huespedId no es valido');
+      } else if (error.code === 'P2002') {
+        throw new BadRequestException('El numero de documento ya existe');
       }
       throw error;
     }
