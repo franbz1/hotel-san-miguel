@@ -54,7 +54,7 @@ model HuespedSecundario {
   tipo_documento          String
   numero_documento        String
   primer_apellido         String
-  segundo_apellido        String
+  segundo_apellido        String?
   nombres                 String
   pais_residencia         String
   departamento_residencia String
