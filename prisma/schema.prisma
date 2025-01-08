@@ -52,9 +52,9 @@ model Huesped {
 model HuespedSecundario {
   id                      Int         @id @default(autoincrement())
   tipo_documento          String
-  numero_documento        String
+  numero_documento        String   @unique
   primer_apellido         String
-  segundo_apellido        String
+  segundo_apellido        String?
   nombres                 String
   pais_residencia         String
   departamento_residencia String
@@ -66,9 +66,16 @@ model HuespedSecundario {
   genero                  String
   telefono                String?
   correo                  String?
-  huespedId               Int
-  huesped                 Huesped     @relation(fields: [huespedId], references: [id])
+  huespedId               Int?
+  huesped                 Huesped?     @relation(fields: [huespedId], references: [id])
   documentos_subidos      Documento[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([numero_documento])
+  @@index([deleted])
 }
 
 model Documento {

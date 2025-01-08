@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsNumber, IsString, IsUrl } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Validate,
+} from 'class-validator';
+import { IsValidDocumentoDto } from 'src/common/validators/IsValidDocumentoDto';
 
 /**
  * Representa los datos necesarios para crear un documento
@@ -13,6 +20,20 @@ export class CreateDocumentoDto {
   nombre: string;
 
   @IsNumber()
+  @IsOptional()
   @Type(() => Number)
-  huespedId: number;
+  huespedId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  huespedSecundarioId?: number;
+
+  @Validate(IsValidDocumentoDto)
+  get validate() {
+    return {
+      huespedId: this.huespedId,
+      huespedSecundarioId: this.huespedSecundarioId,
+    };
+  }
 }
