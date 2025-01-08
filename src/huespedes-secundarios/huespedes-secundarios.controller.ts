@@ -55,11 +55,11 @@ export class HuespedesSecundariosController {
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() UpdateHuespedSecundarioDto: UpdateHuespedSecundarioDto,
   ) {
     return this.huespedesSecundariosService.update(
-      +id,
+      id,
       UpdateHuespedSecundarioDto,
     );
   }

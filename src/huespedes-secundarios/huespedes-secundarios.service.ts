@@ -147,11 +147,36 @@ export class HuespedesSecundariosService {
     }
   }
 
-  update(id: number, UpdateHuespedSecundarioDto: UpdateHuespedSecundarioDto) {
-    return `This action updates a #${id} huespedesSecundario`;
+  /**
+   * Actualiza los datos de un huesped secundario por su ID
+   * @param id ID del huesped secundario
+   * @param UpdateHuespedSecundarioDto Datos para actualizar
+   * @returns El huesped secundario actualizado
+   * @throws BadRequestException si no se proporcionan datos para actualizar
+   * @throws NotFoundException si el huesped secundario no existe
+   */
+  async update(
+    id: number,
+    UpdateHuespedSecundarioDto: UpdateHuespedSecundarioDto,
+  ) {
+    if (!Object.keys(UpdateHuespedSecundarioDto).length) {
+      throw new BadRequestException(
+        'Debe enviar datos para actualizar el huesped secundario',
+      );
+    }
+
+    try {
+      return await this.prisma.huespedSecundario.update({
+        where: { id, deleted: false },
+        data: UpdateHuespedSecundarioDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 
-  remove(id: number) {
+  async remove(id: number) {
     return `This action removes a #${id} huespedesSecundario`;
   }
 }
