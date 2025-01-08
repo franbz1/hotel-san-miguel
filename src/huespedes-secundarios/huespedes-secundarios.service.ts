@@ -7,6 +7,12 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 export class HuespedesSecundariosService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Crea un huesped secundario
+   * @param CreateHuespedSecundarioDto
+   * @returns El huesped secundario creado
+   * @throws BadRequestException si el huespedId no es valido o el numero de documento ya existe
+   */
   async create(CreateHuespedSecundarioDto: CreateHuespedSecundarioDto) {
     try {
       return await this.prisma.huespedSecundario.create({
