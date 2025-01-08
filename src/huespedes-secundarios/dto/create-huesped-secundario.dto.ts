@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsDate,
   IsInt,
   IsOptional,
   IsString,
@@ -72,11 +73,10 @@ export class CreateHuespedSecundarioDto {
   @MaxLength(50)
   lugar_nacimiento: string;
 
-  @IsString({
+  @IsDate({
     message: 'La fecha de nacimiento es obligatoria y debe ser una fecha',
   })
-  @MinLength(2)
-  @MaxLength(50)
+  @Type(() => Date)
   fecha_nacimiento: Date;
 
   @IsString({
