@@ -6,10 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { FacturasService } from './facturas.service';
 import { CreateFacturaDto } from './dto/create-factura.dto';
 import { UpdateFacturaDto } from './dto/update-factura.dto';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
 
 @Controller('facturas')
 export class FacturasController {
@@ -21,8 +23,8 @@ export class FacturasController {
   }
 
   @Get()
-  findAll() {
-    return this.facturasService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.facturasService.findAll(paginationDto);
   }
 
   @Get(':id')
