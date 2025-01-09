@@ -4,6 +4,7 @@ import { UpdateReservaDto } from './dto/update-reserva.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
+import notFoundError from 'src/common/errors/notfoundError';
 
 @Injectable()
 export class ReservasService {
@@ -61,8 +62,21 @@ export class ReservasService {
     return { data: reservas, meta: { page, limit, totalReservas, lastPage } };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} reserva`;
+  /**
+   * Busca una reserva por su ID.
+   * @param id ID de la reserva.
+   * @returns La reserva encontrada.
+   * @throws NotFoundException si la reserva no existe.
+   */
+  async findOne(id: number) {
+    try {
+      return await this.prisma.reserva.findFirstOrThrow({
+        where: { id, deleted: false },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 
   update(id: number, updateReservaDto: UpdateReservaDto) {

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ReservasService } from './reservas.service';
 import { CreateReservaDto } from './dto/create-reserva.dto';
@@ -28,8 +29,8 @@ export class ReservasController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.reservasService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.reservasService.findOne(id);
   }
 
   @Patch(':id')
