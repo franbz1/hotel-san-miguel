@@ -2,6 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateReservaDto } from './dto/create-reserva.dto';
 import { UpdateReservaDto } from './dto/update-reserva.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
+import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 
 @Injectable()
 export class ReservasService {
@@ -27,8 +29,36 @@ export class ReservasService {
     }
   }
 
-  findAll() {
-    return `This action returns all reservas`;
+  /**
+   * Obtiene todas las reservas con paginación.
+   * @param paginationDto Datos de paginación.
+   * @returns Objeto con la lista de reservas y metadatos de paginación.
+   */
+  async findAll(paginationDto: PaginationDto) {
+    const { page, limit } = paginationDto;
+
+    const totalReservas = await this.prisma.reserva.count({
+      where: { deleted: false },
+    });
+
+    const lastPage = Math.ceil(totalReservas / limit);
+
+    const emptyData = emptyPaginationResponse(
+      page,
+      limit,
+      totalReservas,
+      lastPage,
+    );
+
+    if (totalReservas === 0 || page > emptyData.meta.lastPage) return emptyData;
+
+    const reservas = await this.prisma.reserva.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      where: { deleted: false },
+    });
+
+    return { data: reservas, meta: { page, limit, totalReservas, lastPage } };
   }
 
   findOne(id: number) {

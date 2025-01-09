@@ -6,10 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ReservasService } from './reservas.service';
 import { CreateReservaDto } from './dto/create-reserva.dto';
 import { UpdateReservaDto } from './dto/update-reserva.dto';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
 
 @Controller('reservas')
 export class ReservasController {
@@ -21,8 +23,8 @@ export class ReservasController {
   }
 
   @Get()
-  findAll() {
-    return this.reservasService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.reservasService.findAll(paginationDto);
   }
 
   @Get(':id')
