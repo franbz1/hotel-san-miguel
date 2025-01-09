@@ -42,7 +42,7 @@ export class ReservasController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.reservasService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.reservasService.remove(id);
   }
 }

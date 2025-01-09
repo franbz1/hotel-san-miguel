@@ -105,7 +105,21 @@ export class ReservasService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} reserva`;
+  /**
+   * Elimina una reserva por su ID.
+   * @param id ID de la reserva.
+   * @returns La reserva eliminada.
+   * @throws NotFoundException si la reserva no existe.
+   */
+  async remove(id: number) {
+    try {
+      return await this.prisma.reserva.update({
+        where: { id, deleted: false },
+        data: { deleted: true },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 }
