@@ -25,7 +25,7 @@ export class DocumentosService {
       });
     } catch (error) {
       if (error.code === 'P2003') notFoundError(createDocumentoDto.huespedId);
-      console.log(error);
+      throw error;
     }
   }
 
