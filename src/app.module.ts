@@ -4,6 +4,7 @@ import { HuespedesModule } from './huespedes/huespedes.module';
 import { DocumentosModule } from './documentos/documentos.module';
 import { HabitacionesModule } from './habitaciones/habitaciones.module';
 import { HuespedesSecundariosModule } from './huespedes-secundarios/huespedes-secundarios.module';
+import { FacturasModule } from './facturas/facturas.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { HuespedesSecundariosModule } from './huespedes-secundarios/huespedes-se
     DocumentosModule,
     HabitacionesModule,
     HuespedesSecundariosModule,
+    FacturasModule,
   ],
   controllers: [],
   providers: [],
