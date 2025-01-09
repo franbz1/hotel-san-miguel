@@ -79,8 +79,30 @@ export class ReservasService {
     }
   }
 
-  update(id: number, updateReservaDto: UpdateReservaDto) {
-    return `This action updates a #${id} reserva`;
+  /**
+   * Actualiza los datos de una reserva por su ID.
+   * @param id ID de la reserva.
+   * @param updateReservaDto Datos para actualizar.
+   * @returns La reserva actualizada.
+   * @throws BadRequestException si no se proporcionan datos para actualizar.
+   * @throws NotFoundException si la reserva no existe.
+   */
+  async update(id: number, updateReservaDto: UpdateReservaDto) {
+    if (!Object.keys(updateReservaDto).length) {
+      throw new BadRequestException(
+        'Debe enviar datos para actualizar la reserva.',
+      );
+    }
+
+    try {
+      return await this.prisma.reserva.update({
+        where: { id, deleted: false },
+        data: updateReservaDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 
   remove(id: number) {

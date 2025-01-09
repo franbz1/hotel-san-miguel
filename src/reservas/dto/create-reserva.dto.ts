@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsDate,
+  IsInt,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -89,7 +90,7 @@ export class CreateReservaDto {
   @Type(() => Number)
   costo: number;
 
-  @IsPositive({
+  @IsInt({
     message:
       'El numero de acompañantes es obligatorio y debe ser un número positivo',
   })

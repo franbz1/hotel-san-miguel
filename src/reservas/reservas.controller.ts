@@ -34,8 +34,11 @@ export class ReservasController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateReservaDto: UpdateReservaDto) {
-    return this.reservasService.update(+id, updateReservaDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateReservaDto: UpdateReservaDto,
+  ) {
+    return this.reservasService.update(id, updateReservaDto);
   }
 
   @Delete(':id')
