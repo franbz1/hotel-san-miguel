@@ -1,1 +1,3 @@
-export class Reserva {}
+export class Reserva {
+    
+}
