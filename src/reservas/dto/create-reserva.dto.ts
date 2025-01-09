@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsDate,
   IsNumber,
+  IsOptional,
   IsPositive,
   IsString,
   MaxLength,
@@ -107,4 +108,11 @@ export class CreateReservaDto {
   })
   @Type(() => Number)
   huespedId: number;
+
+  @IsPositive({
+    message: 'La factura ID debe ser un numero positivo',
+  })
+  @Type(() => Number)
+  @IsOptional()
+  facturaId?: number;
 }
