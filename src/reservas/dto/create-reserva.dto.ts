@@ -97,14 +97,13 @@ export class CreateReservaDto {
 
   @IsPositive({
     message:
-      'El numero de habitaciones es obligatorio y debe ser un número positivo',
+      'El Id de la habitacion es obligatorio y debe ser un número positivo',
   })
   @Type(() => Number)
   habitacionId: number;
 
   @IsPositive({
-    message:
-      'El numero de huesped es obligatorio y debe ser un número positivo',
+    message: 'El Id del huesped es obligatorio y debe ser un número positivo',
   })
   @Type(() => Number)
   huespedId: number;
