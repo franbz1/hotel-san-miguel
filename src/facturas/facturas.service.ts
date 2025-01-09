@@ -4,6 +4,7 @@ import { UpdateFacturaDto } from './dto/update-factura.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
+import notFoundError from 'src/common/errors/notfoundError';
 
 @Injectable()
 export class FacturasService {
@@ -52,8 +53,21 @@ export class FacturasService {
     return { data: facturas, meta: { page, limit, totalFacturas, lastPage } };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} factura`;
+  /**
+   * Busca una factura por su ID.
+   * @param id ID de la factura.
+   * @returns La factura encontrada.
+   * @throws NotFoundException si la factura no existe.
+   */
+  async findOne(id: number) {
+    try {
+      return await this.prisma.factura.findFirstOrThrow({
+        where: { id, deleted: false },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 
   update(id: number, updateFacturaDto: UpdateFacturaDto) {

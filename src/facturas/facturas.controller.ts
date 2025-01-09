@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { FacturasService } from './facturas.service';
 import { CreateFacturaDto } from './dto/create-factura.dto';
@@ -28,8 +29,8 @@ export class FacturasController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.facturasService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.facturasService.findOne(id);
   }
 
   @Patch(':id')
