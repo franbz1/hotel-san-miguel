@@ -34,8 +34,11 @@ export class FacturasController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateFacturaDto: UpdateFacturaDto) {
-    return this.facturasService.update(+id, updateFacturaDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateFacturaDto: UpdateFacturaDto,
+  ) {
+    return this.facturasService.update(id, updateFacturaDto);
   }
 
   @Delete(':id')

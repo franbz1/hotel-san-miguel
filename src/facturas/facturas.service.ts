@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateFacturaDto } from './dto/create-factura.dto';
 import { UpdateFacturaDto } from './dto/update-factura.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -70,8 +70,30 @@ export class FacturasService {
     }
   }
 
-  update(id: number, updateFacturaDto: UpdateFacturaDto) {
-    return `This action updates a #${id} factura`;
+  /**
+   * Actualiza los datos de una factura por su ID.
+   * @param id ID de la factura.
+   * @param updateFacturaDto Datos para actualizar.
+   * @returns La factura actualizada.
+   * @throws BadRequestException si no se proporcionan datos para actualizar.
+   * @throws NotFoundException si la factura no existe.
+   */
+  async update(id: number, updateFacturaDto: UpdateFacturaDto) {
+    if (!Object.keys(updateFacturaDto).length) {
+      throw new BadRequestException(
+        'Debe enviar datos para actualizar la factura.',
+      );
+    }
+
+    try {
+      return await this.prisma.factura.update({
+        where: { id, deleted: false },
+        data: updateFacturaDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 
   remove(id: number) {
