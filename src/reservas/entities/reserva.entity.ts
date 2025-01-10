@@ -1,8 +1,10 @@
+import { EstadosReserva } from 'src/common/enums/estadosReserva.enum';
+
 export class Reserva {
   id: number;
   fecha_inicio: Date;
   fecha_fin: Date;
-  estado: string;
+  estado: EstadosReserva;
   pais_procedencia: string;
   departamento_procedencia: string;
   ciudad_procedencia: string;

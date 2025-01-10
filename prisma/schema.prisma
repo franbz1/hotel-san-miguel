@@ -115,11 +115,18 @@ model Documento {
   @@index([huespedSecundarioId])
 }
 
+enum EstadosReserva {
+  RESERVADO
+  CANCELADO
+  FINALIZADO
+  PENDIENTE
+}
+
 model Reserva {
   id                       Int        @id @default(autoincrement())
   fecha_inicio             DateTime
   fecha_fin                DateTime
-  estado                   String     @default("RESERVADO")
+  estado                   EstadosReserva
   pais_procedencia         String
   departamento_procedencia String
   ciudad_procedencia       String
