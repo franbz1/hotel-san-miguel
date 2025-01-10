@@ -24,9 +24,18 @@ model Usuario {
   @@index([deleted])
 }
 
+enum TipoDocumento {
+  CC
+  CE
+  TI
+  PASAPORTE
+  PEP
+  DNI
+}
+
 model Huesped {
   id                      Int      @id @default(autoincrement())
-  tipo_documento          String
+  tipo_documento          TipoDocumento
   numero_documento        String   @unique
   primer_apellido         String
   segundo_apellido        String?

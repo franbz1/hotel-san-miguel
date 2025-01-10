@@ -2,20 +2,23 @@ import { Type } from 'class-transformer';
 import {
   IsDate,
   IsEmail,
+  IsEnum,
   IsOptional,
   IsPhoneNumber,
   IsString,
   MaxLength,
   MinLength,
-  Validate,
 } from 'class-validator';
-import { IsValidTipoDocConstraint } from 'src/common/validators/IsValidTipoDoc';
+import { TipoDoc } from '../entities/tipoDoc.enum';
 
 export class CreateHuespedDto {
-  //De momento se usara Sqlite como db de desarrollo y no soporta enums por lo cual se usa la validación manual
-  @IsString({ always: true })
-  @Validate(IsValidTipoDocConstraint)
-  tipo_documento: string;
+  @IsEnum(TipoDoc, {
+    message: `El tipo de documento es obligatorio y debe ser uno de los siguientes: ${Object.values(
+      TipoDoc,
+    ).join(', ')}`,
+    always: true,
+  })
+  tipo_documento: TipoDoc;
 
   @IsString({
     message: 'El numero de documento es obligatorio y debe ser un texto',
