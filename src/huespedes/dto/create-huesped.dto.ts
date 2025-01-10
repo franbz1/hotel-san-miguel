@@ -9,7 +9,8 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { TipoDoc } from '../entities/tipoDoc.enum';
+import { TipoDoc } from '../../common/enums/tipoDoc.enum';
+import { Genero } from 'src/common/enums/generos.enum';
 
 export class CreateHuespedDto {
   @IsEnum(TipoDoc, {
@@ -108,13 +109,13 @@ export class CreateHuespedDto {
   @MaxLength(50)
   ocupacion: string;
 
-  @IsString({
-    message: 'El genero es obligatorio y debe ser MASCULINO, FEMENINO u OTRO',
+  @IsEnum(Genero, {
+    message: `El genero es obligatorio y debe ser uno de los siguientes: ${Object.values(
+      Genero,
+    ).join(', ')}`,
     always: true,
   })
-  @MinLength(4)
-  @MaxLength(9)
-  genero: 'MASCULINO' | 'FEMENINO' | 'OTRO';
+  genero: Genero;
 
   @IsPhoneNumber()
   @IsOptional()

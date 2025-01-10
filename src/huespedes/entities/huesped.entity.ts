@@ -1,4 +1,4 @@
-import { TipoDoc } from './tipoDoc.enum';
+import { TipoDoc } from '../../common/enums/tipoDoc.enum';
 
 export class Huesped {
   id: number;
