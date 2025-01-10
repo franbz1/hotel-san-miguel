@@ -1,20 +1,24 @@
 import { Type } from 'class-transformer';
 import {
   IsDate,
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
   MaxLength,
   Min,
   MinLength,
-  Validate,
 } from 'class-validator';
-import { IsValidTipoDocConstraint } from 'src/common/validators/IsValidTipoDoc';
+import { Genero } from 'src/common/enums/generos.enum';
+import { TipoDoc } from 'src/common/enums/tipoDoc.enum';
 
 export class CreateHuespedSecundarioDto {
-  @IsString({ always: true })
-  @Validate(IsValidTipoDocConstraint)
-  tipo_documento: string;
+  @IsEnum(TipoDoc, {
+    message: `El tipo de documento es obligatorio y debe ser uno de los siguientes: ${Object.values(
+      TipoDoc,
+    ).join(', ')}`,
+  })
+  tipo_documento: TipoDoc;
 
   @IsString({
     message: 'El numero de documento es obligatorio y debe ser un texto',
@@ -93,12 +97,12 @@ export class CreateHuespedSecundarioDto {
   @MaxLength(50)
   ocupacion: string;
 
-  @IsString({
-    message: 'El genero es obligatorio y debe ser MASCULINO, FEMENINO u OTRO',
+  @IsEnum(Genero, {
+    message: `El genero es obligatorio y debe ser uno de los siguientes: ${Object.values(
+      Genero,
+    ).join(', ')}`,
   })
-  @MinLength(4)
-  @MaxLength(9)
-  genero: 'MASCULINO' | 'FEMENINO' | 'OTRO';
+  genero: Genero;
 
   @IsString({
     message: 'El telefono es opcional y debe ser un texto',

@@ -72,7 +72,7 @@ model Huesped {
 
 model HuespedSecundario {
   id                      Int         @id @default(autoincrement())
-  tipo_documento          String
+  tipo_documento          TipoDocumento
   numero_documento        String   @unique
   primer_apellido         String
   segundo_apellido        String?
@@ -84,7 +84,7 @@ model HuespedSecundario {
   fecha_nacimiento        DateTime
   nacionalidad            String
   ocupacion               String
-  genero                  String
+  genero                  Genero
   telefono                String?
   correo                  String?
   huespedId               Int?

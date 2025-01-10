@@ -1,3 +1,4 @@
+import { Genero } from 'src/common/enums/generos.enum';
 import { TipoDoc } from 'src/common/enums/tipoDoc.enum';
 
 export class HuespedSecundario {
@@ -14,7 +15,7 @@ export class HuespedSecundario {
   fecha_nacimiento: Date;
   nacionalidad: string;
   ocupacion: string;
-  genero: string;
+  genero: Genero;
   telefono?: string;
   correo?: string;
 
