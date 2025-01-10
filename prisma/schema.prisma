@@ -152,11 +152,27 @@ model Reserva {
   @@index([deleted])
 }
 
+enum TiposHabitacion {
+  UNA_CAMA
+  DOS_CAMAS
+  TRES_CAMAS
+  CUATRO_CAMAS
+}
+
+enum EstadosHabitacion {
+  LIBRE
+  OCUPADO
+  RESERVADO
+  EN_DESINFECCION
+  EN_MANTENIMIENTO
+  EN_LIMPIEZA
+}
+
 model Habitacion {
   id                Int       @id @default(autoincrement())
   numero_habitacion Int       @unique
-  tipo              String    @default("UNACAMA")
-  estado            String    @default("LIBRE")
+  tipo              TiposHabitacion
+  estado            EstadosHabitacion
   precio_por_noche  Float
   reservas          Reserva[]
 

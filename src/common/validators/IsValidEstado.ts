@@ -2,7 +2,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { EstadoHabitacion } from 'src/habitaciones/entities/estadosHbaitacion.enum';
+import { EstadoHabitacion } from 'src/common/enums/estadosHbaitacion.enum';
 
 const ESTADOS_VALIDOS = new Set(Object.values(EstadoHabitacion).map(String));
 

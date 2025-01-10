@@ -1,8 +1,6 @@
-import { IsInt, IsNumber, IsPositive, Validate } from 'class-validator';
-import { TipoHabitacion } from '../entities/tipoHabitacion.enum';
-import IsValidTipoHabitacionConstraint from 'src/common/validators/IsValidTipoHabitacion.enum';
-import { EstadoHabitacion } from '../entities/estadosHbaitacion.enum';
-import IsValidEstadoConstraint from 'src/common/validators/IsValidEstado';
+import { IsEnum, IsInt, IsNumber, IsPositive } from 'class-validator';
+import { TipoHabitacion } from '../../common/enums/tipoHabitacion.enum';
+import { EstadoHabitacion } from '../../common/enums/estadosHbaitacion.enum';
 import { Type } from 'class-transformer';
 
 export class CreateHabitacionDto {
@@ -13,10 +11,18 @@ export class CreateHabitacionDto {
   @Type(() => Number)
   numero_habitacion: number;
 
-  @Validate(IsValidTipoHabitacionConstraint)
+  @IsEnum(TipoHabitacion, {
+    message: `El tipo de habitación es obligatorio y debe ser uno de los siguientes: ${Object.values(
+      TipoHabitacion,
+    ).join(', ')}`,
+  })
   tipo: TipoHabitacion;
 
-  @Validate(IsValidEstadoConstraint)
+  @IsEnum(EstadoHabitacion, {
+    message: `El estado de la habitación es obligatorio y debe ser uno de los siguientes: ${Object.values(
+      EstadoHabitacion,
+    ).join(', ')}`,
+  })
   estado: EstadoHabitacion;
 
   @IsPositive({
