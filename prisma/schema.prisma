@@ -111,6 +111,7 @@ model Reserva {
   habitacionId             Int
   huespedId                Int
   facturaId                Int?       @unique
+
   huesped                  Huesped    @relation(fields: [huespedId], references: [id])
   habitacion               Habitacion @relation(fields: [habitacionId], references: [id])
   factura                  Factura?   @relation(fields: [facturaId], references: [id])

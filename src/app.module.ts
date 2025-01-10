@@ -5,6 +5,7 @@ import { DocumentosModule } from './documentos/documentos.module';
 import { HabitacionesModule } from './habitaciones/habitaciones.module';
 import { HuespedesSecundariosModule } from './huespedes-secundarios/huespedes-secundarios.module';
 import { FacturasModule } from './facturas/facturas.module';
+import { ReservasModule } from './reservas/reservas.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { FacturasModule } from './facturas/facturas.module';
     HabitacionesModule,
     HuespedesSecundariosModule,
     FacturasModule,
+    ReservasModule,
   ],
   controllers: [],
   providers: [],
