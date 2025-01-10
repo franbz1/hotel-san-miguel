@@ -7,10 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMINISTRADOR
+  CAJERO
+  ASEO
+}
+
 model Usuario {
   id        Int      @id @default(autoincrement())
   nombre    String
-  rol       String   @default("CAJERO")
+  rol       Role     @default(CAJERO)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)

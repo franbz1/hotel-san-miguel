@@ -2,11 +2,11 @@ import {
   IsString,
   MinLength,
   MaxLength,
-  //IsEnum,
-  Validate,
+  IsEnum,
+  //Validate,
 } from 'class-validator';
-import { IsValidRolConstraint } from 'src/common/validators/IsValidRol';
-//import { Rol } from '../entities/rol.enum';
+//import { IsValidRolConstraint } from 'src/common/validators/IsValidRol';
+import { Role } from '../entities/rol.enum';
 
 export class CreateUsuarioDto {
   @IsString({
@@ -23,16 +23,17 @@ export class CreateUsuarioDto {
   })
   public nombre: string;
 
-  /* 
-    De momento se usara Sqlite como db de desarrollo y no soporta enums por lo cual se usa la validación manual
-    @IsEnum(Rol, {
+  @IsEnum(Role, {
     message: `El rol es obligatorio y debe ser uno de los siguientes: ${Object.values(
-      Rol,
+      Role,
     ).join(', ')}`,
     always: true,
   })
-  */
+  public rol: Role;
+
+  /**
   @IsString()
   @Validate(IsValidRolConstraint)
   public rol: string;
+   */
 }
