@@ -42,7 +42,7 @@ export class FacturasController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.facturasService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.facturasService.remove(id);
   }
 }

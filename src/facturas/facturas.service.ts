@@ -96,7 +96,21 @@ export class FacturasService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} factura`;
+  /**
+   * Elimina una factura por su ID.
+   * @param id ID de la factura.
+   * @returns La factura eliminada.
+   * @throws NotFoundException si la factura no existe.
+   */
+  async remove(id: number) {
+    try {
+      return await this.prisma.factura.update({
+        where: { id, deleted: false },
+        data: { deleted: true },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
   }
 }
