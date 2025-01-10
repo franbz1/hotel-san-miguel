@@ -16,9 +16,15 @@ export class FacturasService {
    * @returns La factura creada.
    */
   async create(createFacturaDto: CreateFacturaDto) {
-    return await this.prisma.factura.create({
-      data: createFacturaDto,
-    });
+    try {
+      return await this.prisma.factura.create({
+        data: createFacturaDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2003')
+        throw notFoundError(createFacturaDto.huespedId);
+      throw error;
+    }
   }
 
   /**
