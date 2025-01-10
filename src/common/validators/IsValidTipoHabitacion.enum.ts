@@ -2,7 +2,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { TipoHabitacion } from 'src/habitaciones/entities/tipoHabitacion.enum';
+import { TipoHabitacion } from 'src/common/enums/tipoHabitacion.enum';
 
 const TIPOS_VALIDOS = new Set(Object.values(TipoHabitacion).map(String));
 

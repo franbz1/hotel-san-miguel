@@ -1,5 +1,5 @@
-import { EstadoHabitacion } from './estadosHbaitacion.enum';
-import { TipoHabitacion } from './tipoHabitacion.enum';
+import { EstadoHabitacion } from '../../common/enums/estadosHbaitacion.enum';
+import { TipoHabitacion } from '../../common/enums/tipoHabitacion.enum';
 
 export class Habitacion {
   id: number;

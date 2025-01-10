@@ -19,12 +19,16 @@ export class DocumentosService {
    * @returns El documento creado.
    */
   async create(createDocumentoDto: CreateDocumentoDto) {
+    const { huespedId, huespedSecundarioId } = createDocumentoDto;
     try {
       return await this.prisma.documento.create({
         data: createDocumentoDto,
       });
     } catch (error) {
-      if (error.code === 'P2003') notFoundError(createDocumentoDto.huespedId);
+      if (error.code === 'P2003') {
+        if (huespedId) throw notFoundError(huespedId);
+        if (huespedSecundarioId) throw notFoundError(huespedSecundarioId);
+      }
       throw error;
     }
   }

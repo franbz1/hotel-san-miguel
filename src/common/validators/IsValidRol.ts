@@ -1,10 +1,10 @@
-import { Rol } from 'src/usuarios/entities/rol.enum';
+import { Role } from 'src/usuarios/entities/rol.enum';
 import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
 
-const ROLES_VALIDOS = new Set(Object.values(Rol).map(String));
+const ROLES_VALIDOS = new Set(Object.values(Role).map(String));
 
 @ValidatorConstraint({ name: 'IsValidRol', async: false })
 export class IsValidRolConstraint implements ValidatorConstraintInterface {

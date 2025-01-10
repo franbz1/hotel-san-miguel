@@ -3,14 +3,20 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMINISTRADOR
+  CAJERO
+  ASEO
 }
 
 model Usuario {
   id        Int      @id @default(autoincrement())
   nombre    String
-  rol       String   @default("CAJERO")
+  rol       Role     @default(CAJERO)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
@@ -18,9 +24,24 @@ model Usuario {
   @@index([deleted])
 }
 
+enum TipoDocumento {
+  CC
+  CE
+  TI
+  PASAPORTE
+  PEP
+  DNI
+}
+
+enum Genero {
+  MASCULINO
+  FEMENINO
+  OTRO
+}
+
 model Huesped {
   id                      Int      @id @default(autoincrement())
-  tipo_documento          String
+  tipo_documento          TipoDocumento
   numero_documento        String   @unique
   primer_apellido         String
   segundo_apellido        String?
@@ -32,7 +53,7 @@ model Huesped {
   fecha_nacimiento        DateTime
   nacionalidad            String
   ocupacion               String
-  genero                  String
+  genero                  Genero
   telefono                String?
   correo                  String?
 
@@ -51,7 +72,7 @@ model Huesped {
 
 model HuespedSecundario {
   id                      Int         @id @default(autoincrement())
-  tipo_documento          String
+  tipo_documento          TipoDocumento
   numero_documento        String   @unique
   primer_apellido         String
   segundo_apellido        String?
@@ -63,7 +84,7 @@ model HuespedSecundario {
   fecha_nacimiento        DateTime
   nacionalidad            String
   ocupacion               String
-  genero                  String
+  genero                  Genero
   telefono                String?
   correo                  String?
   huespedId               Int?
@@ -94,11 +115,18 @@ model Documento {
   @@index([huespedSecundarioId])
 }
 
+enum EstadosReserva {
+  RESERVADO
+  CANCELADO
+  FINALIZADO
+  PENDIENTE
+}
+
 model Reserva {
   id                       Int        @id @default(autoincrement())
   fecha_inicio             DateTime
   fecha_fin                DateTime
-  estado                   String     @default("RESERVADO")
+  estado                   EstadosReserva
   pais_procedencia         String
   departamento_procedencia String
   ciudad_procedencia       String
@@ -124,11 +152,27 @@ model Reserva {
   @@index([deleted])
 }
 
+enum TiposHabitacion {
+  UNA_CAMA
+  DOS_CAMAS
+  TRES_CAMAS
+  CUATRO_CAMAS
+}
+
+enum EstadosHabitacion {
+  LIBRE
+  OCUPADO
+  RESERVADO
+  EN_DESINFECCION
+  EN_MANTENIMIENTO
+  EN_LIMPIEZA
+}
+
 model Habitacion {
   id                Int       @id @default(autoincrement())
   numero_habitacion Int       @unique
-  tipo              String    @default("UNACAMA")
-  estado            String    @default("LIBRE")
+  tipo              TiposHabitacion
+  estado            EstadosHabitacion
   precio_por_noche  Float
   reservas          Reserva[]
 

@@ -1,4 +1,4 @@
-import { TipoDoc } from 'src/huespedes/entities/tipoDoc.enum';
+import { TipoDoc } from 'src/common/enums/tipoDoc.enum';
 import {
   ValidatorConstraint,
   ValidatorConstraintInterface,

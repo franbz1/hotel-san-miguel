@@ -2,7 +2,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { EstadosReserva } from 'src/reservas/entities/estadosReserva.enum';
+import { EstadosReserva } from 'src/common/enums/estadosReserva.enum';
 
 const TIPOS_RESERVA_VALIDOS = new Set(
   Object.values(EstadosReserva).map(String),

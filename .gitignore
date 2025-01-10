@@ -66,4 +66,5 @@ prisma/*.sqlite
 *.db
 *.sqlite
 
+# Ignorar archivos de archivos de base de datos de desarrollo de PostgreSQL
 postgres/

@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsDate,
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -8,9 +9,8 @@ import {
   IsString,
   MaxLength,
   MinLength,
-  Validate,
 } from 'class-validator';
-import { IsValidEstadoReserva } from 'src/common/validators/IsValidEstadoReserva';
+import { EstadosReserva } from 'src/common/enums/estadosReserva.enum';
 
 export class CreateReservaDto {
   @IsDate({
@@ -27,11 +27,12 @@ export class CreateReservaDto {
   @Type(() => Date)
   fecha_fin: Date;
 
-  @IsString({
-    message: 'El estado de la reserva es obligatorio y debe ser una cadena',
+  @IsEnum(EstadosReserva, {
+    message: `El estado de la reserva es obligatorio y debe ser uno de los siguientes: ${Object.values(
+      EstadosReserva,
+    ).join(', ')}`,
   })
-  @Validate(IsValidEstadoReserva)
-  estado: string;
+  estado: EstadosReserva;
 
   @IsString({
     message: 'El pais de la procedencia es obligatorio y debe ser una cadena',
