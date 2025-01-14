@@ -1,0 +1,119 @@
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { CreateRegistroFormularioDto } from './dto/createRegistroFormularioDto';
+import { CreateHuespedDto } from 'src/huespedes/dto/create-huesped.dto';
+import { EstadosReserva } from 'src/common/enums/estadosReserva.enum';
+import { PrismaService } from 'src/common/prisma/prisma.service';
+
+@Injectable()
+export class RegistroFormularioService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(createRegistroFormularioDto: CreateRegistroFormularioDto) {
+    const {
+      tipo_documento,
+      numero_documento,
+      primer_apellido,
+      segundo_apellido,
+      nombres,
+      pais_residencia,
+      departamento_residencia,
+      ciudad_residencia,
+      fecha_nacimiento,
+      nacionalidad,
+      ocupacion,
+      genero,
+      telefono,
+      correo,
+      fecha_inicio,
+      fecha_fin,
+      motivo_viaje,
+      costo,
+      habitacionId,
+      numero_acompaniantes,
+    } = createRegistroFormularioDto;
+
+    const huesped: CreateHuespedDto = {
+      tipo_documento,
+      numero_documento,
+      primer_apellido,
+      segundo_apellido,
+      nombres,
+      pais_residencia,
+      departamento_residencia,
+      ciudad_residencia,
+      fecha_nacimiento,
+      nacionalidad,
+      ocupacion,
+      genero,
+      telefono,
+      correo,
+      lugar_nacimiento: nacionalidad,
+    };
+
+    const reserva = {
+      fecha_inicio,
+      fecha_fin,
+      estado: EstadosReserva.RESERVADO,
+      pais_procedencia: pais_residencia,
+      departamento_procedencia: departamento_residencia,
+      ciudad_procedencia: ciudad_residencia,
+      pais_destino: pais_residencia,
+      motivo_viaje,
+      check_in: fecha_inicio,
+      check_out: fecha_fin,
+      costo,
+      numero_acompaniantes,
+      habitacionId,
+    };
+
+    try {
+      const existingHuesped = await this.prisma.huesped.findUnique({
+        where: { numero_documento },
+      });
+
+      let huespedId: number;
+
+      if (existingHuesped) {
+        huespedId = existingHuesped.id;
+      } else {
+        const newHuesped = await this.prisma.huesped.create({
+          data: huesped,
+        });
+        huespedId = newHuesped.id;
+      }
+
+      const result = await this.prisma.$transaction(async (tx) => {
+        const facturaCreated = await tx.factura.create({
+          data: {
+            total: costo,
+            fecha_factura: new Date(),
+            huespedId,
+          },
+        });
+
+        const reservaCreated = await tx.reserva.create({
+          data: {
+            ...reserva,
+            huespedId,
+            facturaId: facturaCreated.id,
+          },
+        });
+
+        return {
+          success: true,
+          huespedId,
+          facturaCreated,
+          reservaCreated,
+        };
+      });
+
+      return result;
+    } catch (error) {
+      if (error.code === 'P2003') {
+        throw new BadRequestException('La habitación no existe');
+      }
+      console.error(error);
+      throw error;
+    }
+  }
+}
