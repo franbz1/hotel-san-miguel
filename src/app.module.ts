@@ -7,6 +7,7 @@ import { HuespedesSecundariosModule } from './huespedes-secundarios/huespedes-se
 import { FacturasModule } from './facturas/facturas.module';
 import { ReservasModule } from './reservas/reservas.module';
 import { RegistroFormularioModule } from './registro-formulario/registro-formulario.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RegistroFormularioModule } from './registro-formulario/registro-formula
     FacturasModule,
     ReservasModule,
     RegistroFormularioModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],
