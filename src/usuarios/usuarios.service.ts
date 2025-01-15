@@ -10,6 +10,7 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import notFoundError from 'src/common/errors/notfoundError';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
+import * as bcrypt from 'bcryptjs';
 
 /**
  * Service CRUD para manejar usuarios
@@ -25,7 +26,11 @@ export class UsuariosService {
    */
   async create(createUsuarioDto: CreateUsuarioDto) {
     return await this.prisma.usuario.create({
-      data: createUsuarioDto,
+      data: {
+        nombre: createUsuarioDto.nombre,
+        rol: createUsuarioDto.rol,
+        password: await bcrypt.hash(createUsuarioDto.password, 10),
+      },
       select: this.defaultUserSelection(),
     });
   }
