@@ -13,4 +13,6 @@ export class Usuario {
    * El rol del usuario es el rol que tiene el usuario dentro de la compañía
    */
   public rol: Role;
+
+  public password: string;
 }

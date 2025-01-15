@@ -17,6 +17,8 @@ model Usuario {
   id        Int      @id @default(autoincrement())
   nombre    String
   rol       Role     @default(CAJERO)
+  password  String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)

@@ -31,6 +31,20 @@ export class CreateUsuarioDto {
   })
   public rol: Role;
 
+  @IsString({
+    message: 'La contraseña es obligatoria y debe ser un texto',
+    always: true,
+  })
+  @MinLength(6, {
+    message: 'La contraseña debe tener al menos 6 caracteres',
+    always: true,
+  })
+  @MaxLength(50, {
+    message: 'La contraseña no puede tener más de 50 caracteres',
+    always: true,
+  })
+  public password: string;
+
   /**
   @IsString()
   @Validate(IsValidRolConstraint)
