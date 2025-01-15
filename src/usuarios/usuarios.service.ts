@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -93,13 +88,12 @@ export class UsuariosService {
    */
   async findByNombre(nombre: string) {
     try {
-      return await this.prisma.usuario.findFirst({
+      return await this.prisma.usuario.findFirstOrThrow({
         where: { nombre, deleted: false },
-        select: this.defaultUserSelection(),
+        select: this.loginUserSelection(),
       });
     } catch (error) {
-      Logger.error(error);
-      throw new NotFoundException('Usuario no encontrado');
+      throw error;
     }
   }
 
@@ -159,6 +153,17 @@ export class UsuariosService {
       id: true,
       nombre: true,
       rol: true,
+      createdAt: true,
+      updatedAt: true,
+    };
+  }
+
+  private loginUserSelection() {
+    return {
+      id: true,
+      nombre: true,
+      rol: true,
+      password: true,
       createdAt: true,
       updatedAt: true,
     };
