@@ -8,18 +8,18 @@ import {
   Delete,
   Query,
   ParseIntPipe,
-  UseGuards,
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
-import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { Role } from './entities/rol.enum';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 /**
  * Controller CRUD para manejar usuarios
  */
-@UseGuards(AuthGuard)
+@Auth(Role.ADMINISTRADOR)
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
