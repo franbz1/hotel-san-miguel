@@ -11,6 +11,7 @@ enum Role {
   ADMINISTRADOR
   CAJERO
   ASEO
+  REGISTRO_FORMULARIO
 }
 
 model Usuario {
