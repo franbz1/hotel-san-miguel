@@ -8,15 +8,15 @@ import {
   Delete,
   Query,
   ParseIntPipe,
-  UseGuards,
 } from '@nestjs/common';
 import { HuespedesSecundariosService } from './huespedes-secundarios.service';
 import { CreateHuespedSecundarioDto } from './dto/create-huesped-secundario.dto';
 import { UpdateHuespedSecundarioDto } from './dto/update-huesped-secundario.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
-import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { Auth } from 'src/auth/decorators/auth.decorator';
+import { Role } from 'src/usuarios/entities/rol.enum';
 
-@UseGuards(AuthGuard)
+@Auth(Role.ADMINISTRADOR, Role.CAJERO)
 @Controller('huespedes-secundarios')
 export class HuespedesSecundariosController {
   constructor(
