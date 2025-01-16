@@ -70,6 +70,7 @@ model Huesped {
 
   @@index([numero_documento])
   @@index([deleted])
+  Formulario Formulario[]
 }
 
 model HuespedSecundario {
@@ -152,6 +153,7 @@ model Reserva {
 
   @@index([huespedId])
   @@index([deleted])
+  Formulario Formulario[]
 }
 
 enum TiposHabitacion {
@@ -193,6 +195,39 @@ model Factura {
 
   reserva Reserva?
   huesped Huesped  @relation(fields: [huespedId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([deleted])
+}
+
+model LinkFormulario {
+  id        Int      @id @default(autoincrement())
+  url       String
+  completado Boolean @default(false)
+  expirado Boolean @default(false)
+  vencimiento DateTime
+  formularioId Int? @unique
+
+  formulario Formulario? @relation(fields: [formularioId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([deleted])
+}
+
+model Formulario {
+  id        Int      @id @default(autoincrement())
+  huespedId Int
+  reservaId Int
+
+  LinkFormulario LinkFormulario?
+  Huesped Huesped @relation(fields: [huespedId], references: [id])
+  Reserva Reserva @relation(fields: [reservaId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
