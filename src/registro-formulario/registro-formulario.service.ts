@@ -5,6 +5,7 @@ import { EstadosReserva } from 'src/common/enums/estadosReserva.enum';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { DOMAIN_URL } from 'src/common/constants/domain';
 import { JwtService } from '@nestjs/jwt';
+import { Role } from 'src/usuarios/entities/rol.enum';
 
 @Injectable()
 export class RegistroFormularioService {
@@ -140,6 +141,7 @@ export class RegistroFormularioService {
 
     const payload = {
       id: link.id,
+      rol: Role.REGISTRO_FORMULARIO,
     };
 
     const token = await this.jwtService.signAsync(payload, {
