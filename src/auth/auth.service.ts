@@ -30,7 +30,7 @@ export class AuthService {
       const payload = { id: usuario.id, rol: usuario.rol };
 
       return {
-        token: await this.jwtService.signAsync(payload),
+        token: await this.jwtService.signAsync(payload, { expiresIn: '1d' }),
         usuarioId: usuario.id,
         nombre: usuario.nombre,
         rol: usuario.rol,
