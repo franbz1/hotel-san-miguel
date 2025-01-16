@@ -3,10 +3,15 @@ import { CreateRegistroFormularioDto } from './dto/createRegistroFormularioDto';
 import { CreateHuespedDto } from 'src/huespedes/dto/create-huesped.dto';
 import { EstadosReserva } from 'src/common/enums/estadosReserva.enum';
 import { PrismaService } from 'src/common/prisma/prisma.service';
+import { DOMAIN_URL } from 'src/common/constants/domain';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class RegistroFormularioService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async create(createRegistroFormularioDto: CreateRegistroFormularioDto) {
     const {
@@ -115,5 +120,39 @@ export class RegistroFormularioService {
       console.error(error);
       throw error;
     }
+  }
+
+  /**
+   * Crea un link temporal para el formulario de reserva, el cual contiene un jwt valido
+   * @returns Link temporal
+   */
+  async createLinkTemporal() {
+    const ruta = `${DOMAIN_URL}/registro-formulario/`;
+
+    const vencimiento = new Date(Date.now() + 3600 * 1000);
+
+    const link = await this.prisma.linkFormulario.create({
+      data: {
+        url: '',
+        vencimiento: vencimiento,
+      },
+    });
+
+    const payload = {
+      id: link.id,
+    };
+
+    const token = await this.jwtService.signAsync(payload, {
+      expiresIn: '1h',
+    });
+
+    const updatedLink = await this.prisma.linkFormulario.update({
+      where: { id: link.id },
+      data: {
+        url: `${ruta}?token=${token}`,
+      },
+    });
+
+    return updatedLink.url;
   }
 }
