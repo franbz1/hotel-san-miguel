@@ -35,8 +35,8 @@ export class AuthService {
         nombre: usuario.nombre,
         rol: usuario.rol,
       };
-    } catch (error) {
-      throw new UnauthorizedException(error.code);
+    } catch {
+      throw new UnauthorizedException();
     }
   }
 
