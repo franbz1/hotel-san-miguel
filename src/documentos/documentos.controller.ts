@@ -8,15 +8,12 @@ import {
   Delete,
   ParseIntPipe,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { DocumentosService } from './documentos.service';
 import { CreateDocumentoDto } from './dto/create-documento.dto';
 import { UpdateDocumentoDto } from './dto/update-documento.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
-import { AuthGuard } from 'src/auth/guards/auth.guard';
 
-@UseGuards(AuthGuard)
 @Controller('documentos')
 export class DocumentosController {
   constructor(private readonly documentosService: DocumentosService) {}
