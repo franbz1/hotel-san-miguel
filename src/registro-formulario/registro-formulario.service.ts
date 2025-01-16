@@ -6,6 +6,8 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { DOMAIN_URL } from 'src/common/constants/domain';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from 'src/usuarios/entities/rol.enum';
+import { UpdateLinkFormularioDto } from './dto/UpdateLinkFormularioDto';
+import notFoundError from 'src/common/errors/notfoundError';
 
 @Injectable()
 export class RegistroFormularioService {
@@ -156,5 +158,36 @@ export class RegistroFormularioService {
     });
 
     return updatedLink.url;
+  }
+
+  /**
+   * Busca un link temporal para el formulario de reserva por su ID
+   * @param id ID del link
+   * @returns Link temporal
+   * @throws BadRequestException si el link no existe
+   */
+  async findOne(id: number) {
+    try {
+      const link = await this.prisma.linkFormulario.findFirstOrThrow({
+        where: { id },
+      });
+
+      if (!link) throw new BadRequestException('Link no encontrado');
+
+      return link;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async update(id: number, updateLinkFormularioDto: UpdateLinkFormularioDto) {
+    try {
+      return await this.prisma.linkFormulario.update({
+        where: { id },
+        data: updateLinkFormularioDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+    }
   }
 }
