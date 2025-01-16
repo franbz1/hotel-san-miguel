@@ -4,7 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { Request } from 'express';
 
 import { envs } from 'src/config/envs';
@@ -23,8 +23,12 @@ export class LinkFormularioGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: envs.jwtSecret,
       });
+
       request['usuario'] = payload;
-    } catch {
+    } catch (e) {
+      if (e instanceof TokenExpiredError) {
+        throw new UnauthorizedException('Token expirado');
+      }
       throw new UnauthorizedException();
     }
     return Promise.resolve(true);
