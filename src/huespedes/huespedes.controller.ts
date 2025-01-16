@@ -8,15 +8,15 @@ import {
   Delete,
   ParseIntPipe,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { HuespedesService } from './huespedes.service';
 import { CreateHuespedDto } from './dto/create-huesped.dto';
 import { UpdateHuespedDto } from './dto/update-huesped.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
-import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { Auth } from 'src/auth/decorators/auth.decorator';
+import { Role } from 'src/usuarios/entities/rol.enum';
 
-@UseGuards(AuthGuard)
+@Auth(Role.ADMINISTRADOR, Role.CAJERO)
 @Controller('huespedes')
 export class HuespedesController {
   constructor(private readonly huespedesService: HuespedesService) {}
