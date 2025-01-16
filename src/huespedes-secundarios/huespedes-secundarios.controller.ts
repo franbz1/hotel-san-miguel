@@ -13,7 +13,10 @@ import { HuespedesSecundariosService } from './huespedes-secundarios.service';
 import { CreateHuespedSecundarioDto } from './dto/create-huesped-secundario.dto';
 import { UpdateHuespedSecundarioDto } from './dto/update-huesped-secundario.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
+import { Role } from 'src/usuarios/entities/rol.enum';
 
+@Auth(Role.ADMINISTRADOR, Role.CAJERO)
 @Controller('huespedes-secundarios')
 export class HuespedesSecundariosController {
   constructor(

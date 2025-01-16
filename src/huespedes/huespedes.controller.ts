@@ -13,7 +13,10 @@ import { HuespedesService } from './huespedes.service';
 import { CreateHuespedDto } from './dto/create-huesped.dto';
 import { UpdateHuespedDto } from './dto/update-huesped.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
+import { Role } from 'src/usuarios/entities/rol.enum';
 
+@Auth(Role.ADMINISTRADOR, Role.CAJERO)
 @Controller('huespedes')
 export class HuespedesController {
   constructor(private readonly huespedesService: HuespedesService) {}

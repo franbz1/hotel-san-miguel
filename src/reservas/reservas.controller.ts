@@ -13,7 +13,10 @@ import { ReservasService } from './reservas.service';
 import { CreateReservaDto } from './dto/create-reserva.dto';
 import { UpdateReservaDto } from './dto/update-reserva.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
+import { Auth } from 'src/auth/decorators/auth.decorator';
+import { Role } from 'src/usuarios/entities/rol.enum';
 
+@Auth(Role.CAJERO, Role.ADMINISTRADOR)
 @Controller('reservas')
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
