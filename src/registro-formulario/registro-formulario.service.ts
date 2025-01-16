@@ -151,7 +151,7 @@ export class RegistroFormularioService {
     const updatedLink = await this.prisma.linkFormulario.update({
       where: { id: link.id },
       data: {
-        url: `${ruta}?token=${token}`,
+        url: `${ruta}${token}`,
       },
     });
 
