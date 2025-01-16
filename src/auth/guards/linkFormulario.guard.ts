@@ -23,7 +23,7 @@ export class LinkFormularioGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: envs.jwtSecret,
       });
-      request['user'] = payload;
+      request['usuario'] = payload;
     } catch {
       throw new UnauthorizedException();
     }
