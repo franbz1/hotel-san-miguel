@@ -19,7 +19,10 @@ export class RegistroFormularioService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async create(createRegistroFormularioDto: CreateRegistroFormularioDto) {
+  async create(
+    createRegistroFormularioDto: CreateRegistroFormularioDto,
+    tokenId: number,
+  ) {
     const huespedDto = this.createHuespedDto(createRegistroFormularioDto);
 
     const huesped = await this.findOrCreateHuesped(huespedDto);
@@ -44,11 +47,28 @@ export class RegistroFormularioService {
           data: { ...reserva, facturaId: facturaCreated.id },
         });
 
+        const formulario = await tx.formulario.create({
+          data: {
+            huespedId: huesped.id,
+            reservaId: reservaCreated.id,
+          },
+        });
+
+        const linkFormulario = await tx.linkFormulario.update({
+          where: { id: tokenId },
+          data: {
+            completado: true,
+            formularioId: formulario.id,
+          },
+        });
+
         return {
           success: true,
           huesped,
           facturaCreated,
           reservaCreated,
+          formulario,
+          linkFormulario,
         };
       });
 
