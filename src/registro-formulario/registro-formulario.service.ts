@@ -180,6 +180,11 @@ export class RegistroFormularioService {
     }
   }
 
+  /**
+   * Actualiza el estado de un linkFormulario con su id en su complecion o expiracion
+   * @param id
+   * @param updateLinkFormularioDto
+   */
   async update(id: number, updateLinkFormularioDto: UpdateLinkFormularioDto) {
     try {
       return await this.prisma.linkFormulario.update({
