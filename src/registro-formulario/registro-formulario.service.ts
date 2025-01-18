@@ -37,6 +37,8 @@ export class RegistroFormularioService {
       huesped.id,
     );
 
+    const { huespedes_secundarios } = createRegistroFormularioDto;
+
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         const facturaCreated = await tx.factura.create({
@@ -61,6 +63,20 @@ export class RegistroFormularioService {
             formularioId: formulario.id,
           },
         });
+
+        if (huespedes_secundarios?.length) {
+          const huespedesSecundariosConHuespedId = huespedes_secundarios.map(
+            (huespedSecundario) => ({
+              ...huespedSecundario,
+              huespedId: huesped.id,
+            }),
+          );
+
+          await tx.huespedSecundario.createManyAndReturn({
+            data: huespedesSecundariosConHuespedId,
+            skipDuplicates: true,
+          });
+        }
 
         return {
           success: true,
@@ -121,7 +137,7 @@ export class RegistroFormularioService {
    */
   async findOne(id: number) {
     try {
-      const link = await this.prisma.linkFormulario.findFirstOrThrow({
+      const link = await this.prisma.linkFormulario.findFirst({
         where: { id },
       });
 
