@@ -10,9 +10,11 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 import { Genero } from 'src/common/enums/generos.enum';
 import { TipoDoc } from 'src/common/enums/tipoDoc.enum';
+import { CreateHuespedSecundarioWithoutIdDto } from './CreateHuespedSecundarioWithoutIdDto';
 
 export class CreateRegistroFormularioDto {
   //Datos de la reserva
@@ -106,4 +108,10 @@ export class CreateRegistroFormularioDto {
   @IsEmail()
   correo?: string;
   //Fin de datos del Huesped
+
+  //Datos de huespedes secundarios
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateHuespedSecundarioWithoutIdDto)
+  huespedes_secundarios?: CreateHuespedSecundarioWithoutIdDto[];
 }
