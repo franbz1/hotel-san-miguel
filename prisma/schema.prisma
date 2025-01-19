@@ -15,10 +15,10 @@ enum Role {
 }
 
 model Usuario {
-  id        Int      @id @default(autoincrement())
-  nombre    String
-  rol       Role     @default(CAJERO)
-  password  String
+  id       Int    @id @default(autoincrement())
+  nombre   String
+  rol      Role   @default(CAJERO)
+  password String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -44,9 +44,9 @@ enum Genero {
 }
 
 model Huesped {
-  id                      Int      @id @default(autoincrement())
+  id                      Int           @id @default(autoincrement())
   tipo_documento          TipoDocumento
-  numero_documento        String   @unique
+  numero_documento        String        @unique
   primer_apellido         String
   segundo_apellido        String?
   nombres                 String
@@ -66,19 +66,19 @@ model Huesped {
   documentos_subidos    Documento[]
   facturas              Factura[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deleted   Boolean  @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  deleted    Boolean      @default(false)
+  Formulario Formulario[]
 
   @@index([numero_documento])
   @@index([deleted])
-  Formulario Formulario[]
 }
 
 model HuespedSecundario {
-  id                      Int         @id @default(autoincrement())
+  id                      Int           @id @default(autoincrement())
   tipo_documento          TipoDocumento
-  numero_documento        String   @unique
+  numero_documento        String        @unique
   primer_apellido         String
   segundo_apellido        String?
   nombres                 String
@@ -93,7 +93,8 @@ model HuespedSecundario {
   telefono                String?
   correo                  String?
   huespedId               Int?
-  huesped                 Huesped?     @relation(fields: [huespedId], references: [id])
+  huesped                 Huesped?      @relation(fields: [huespedId], references: [id])
+  Reserva                 Reserva[]
   documentos_subidos      Documento[]
 
   createdAt DateTime @default(now())
@@ -140,7 +141,7 @@ enum MotivosViajes {
 }
 
 model Reserva {
-  id                       Int        @id @default(autoincrement())
+  id                       Int                 @id @default(autoincrement())
   fecha_inicio             DateTime
   fecha_fin                DateTime
   estado                   EstadosReserva
@@ -155,19 +156,20 @@ model Reserva {
   numero_acompaniantes     Int
   habitacionId             Int
   huespedId                Int
-  facturaId                Int?       @unique
+  huespedes_secundarios    HuespedSecundario[]
+  facturaId                Int?                @unique
 
-  huesped                  Huesped    @relation(fields: [huespedId], references: [id])
-  habitacion               Habitacion @relation(fields: [habitacionId], references: [id])
-  factura                  Factura?   @relation(fields: [facturaId], references: [id])
+  huesped    Huesped    @relation(fields: [huespedId], references: [id])
+  habitacion Habitacion @relation(fields: [habitacionId], references: [id])
+  factura    Factura?   @relation(fields: [facturaId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deleted   Boolean  @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  deleted    Boolean      @default(false)
+  Formulario Formulario[]
 
   @@index([huespedId])
   @@index([deleted])
-  Formulario Formulario[]
 }
 
 enum TiposHabitacion {
@@ -195,8 +197,8 @@ enum EstadosHabitacion {
 }
 
 model Habitacion {
-  id                Int       @id @default(autoincrement())
-  numero_habitacion Int       @unique
+  id                Int               @id @default(autoincrement())
+  numero_habitacion Int               @unique
   tipo              TiposHabitacion
   estado            EstadosHabitacion
   precio_por_noche  Float
@@ -226,12 +228,12 @@ model Factura {
 }
 
 model LinkFormulario {
-  id        Int      @id @default(autoincrement())
-  url       String
-  completado Boolean @default(false)
-  expirado Boolean @default(false)
-  vencimiento DateTime
-  formularioId Int? @unique
+  id           Int      @id @default(autoincrement())
+  url          String
+  completado   Boolean  @default(false)
+  expirado     Boolean  @default(false)
+  vencimiento  DateTime
+  formularioId Int?     @unique
 
   formulario Formulario? @relation(fields: [formularioId], references: [id])
 
@@ -243,13 +245,16 @@ model LinkFormulario {
 }
 
 model Formulario {
-  id        Int      @id @default(autoincrement())
-  huespedId Int
-  reservaId Int
+  id           Int     @id @default(autoincrement())
+  huespedId    Int
+  reservaId    Int
+  SubidoATra   Boolean @default(false)
+  traId        Int?
+  SubidoASubir Boolean @default(false)
 
   LinkFormulario LinkFormulario?
-  Huesped Huesped @relation(fields: [huespedId], references: [id])
-  Reserva Reserva @relation(fields: [reservaId], references: [id])
+  Huesped        Huesped         @relation(fields: [huespedId], references: [id])
+  Reserva        Reserva         @relation(fields: [reservaId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
