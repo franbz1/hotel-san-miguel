@@ -5,12 +5,18 @@ interface TraCredenciales {
   TOKEN_ESTABLECIMIENTO: string;
   ENDPOINT_TRA_PRINCIPAL: string;
   ENDPOINT_TRA_SECUNDARIO: string;
+  NUMERO_HABITACIONES: string;
+  MEDIO_PAGO: string;
+  MEDIO_RESERVA: string;
 }
 
 const NOMBRE_ESTABLECIMIENTO = 'Hotel San Miguel';
 const NIT_ESTABLECIMIENTO = '123456789';
 const RNT_ESTABLECIMIENTO = '123456789';
 const TOKEN_ESTABLECIMIENTO = '123456789';
+const NUMERO_HABITACIONES = '1';
+const MEDIO_PAGO = 'EFECTIVO';
+const MEDIO_RESERVA = 'NINGUNO';
 
 const ENDPOINT_TRA_PRINCIPAL = 'https://traapi.mincit.gov.co/api/';
 const ENDPOINT_TRA_SECUNDARIO = 'https://traapi.mincit.gov.co/apitwo/';
@@ -22,4 +28,7 @@ export const TRA_CREDENCIALES: TraCredenciales = {
   TOKEN_ESTABLECIMIENTO,
   ENDPOINT_TRA_PRINCIPAL,
   ENDPOINT_TRA_SECUNDARIO,
+  NUMERO_HABITACIONES,
+  MEDIO_PAGO,
+  MEDIO_RESERVA,
 };
