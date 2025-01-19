@@ -47,11 +47,16 @@ export class TraService {
         //}),
       //);
 
+      //mock de la respuesta
+      const data = {
+        code: '1222',
+      };
+
       this.logger.debug(payload);
       this.logger.debug(headers);
       this.logger.debug(endpoint);
 
-      //return data;
+      return data;
     } catch (error) {
       console.log(error);
       throw error;
@@ -117,7 +122,7 @@ export class TraService {
       check_out: fecha_fin,
       costo: costo.toString(),
       numero_acompanantes: numero_acompaniantes.toString(),
-      tipo_acomodacion: 'Ninguna',
+      tipo_acomodacion: habitacion.tipo.toString(),
       numero_habitacion: habitacion.id.toString(),
     };
   }
