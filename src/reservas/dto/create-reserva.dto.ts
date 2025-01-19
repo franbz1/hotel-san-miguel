@@ -11,6 +11,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { EstadosReserva } from 'src/common/enums/estadosReserva.enum';
+import { MotivosViajes } from 'src/common/enums/motivosViajes.enum';
 
 export class CreateReservaDto {
   @IsDate({
@@ -63,12 +64,12 @@ export class CreateReservaDto {
   @MaxLength(50)
   pais_destino: string;
 
-  @IsString({
-    message: 'El departamento de destino es obligatorio y debe ser una cadena',
+  @IsEnum(MotivosViajes, {
+    message: `El motivo de viaje es obligatorio y debe ser uno de los siguientes: ${Object.values(
+      MotivosViajes,
+    ).join(', ')}`,
   })
-  @MinLength(2)
-  @MaxLength(50)
-  motivo_viaje: string;
+  motivo_viaje: MotivosViajes;
 
   @IsDate({
     message: 'La fecha de llegada es obligatoria y debe ser una fecha',

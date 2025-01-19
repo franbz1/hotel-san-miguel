@@ -8,7 +8,6 @@ import { FacturasModule } from './facturas/facturas.module';
 import { ReservasModule } from './reservas/reservas.module';
 import { RegistroFormularioModule } from './registro-formulario/registro-formulario.module';
 import { AuthModule } from './auth/auth.module';
-import { AuthGuard } from './auth/guards/auth.guard';
 
 @Module({
   imports: [
@@ -23,11 +22,6 @@ import { AuthGuard } from './auth/guards/auth.guard';
     AuthModule,
   ],
   controllers: [],
-  providers: [
-    {
-      provide: 'APP_GUARD',
-      useClass: AuthGuard,
-    },
-  ],
+  providers: [],
 })
 export class AppModule {}

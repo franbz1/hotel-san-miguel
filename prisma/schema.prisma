@@ -11,6 +11,7 @@ enum Role {
   ADMINISTRADOR
   CAJERO
   ASEO
+  REGISTRO_FORMULARIO
 }
 
 model Usuario {
@@ -70,6 +71,7 @@ model Huesped {
 
   @@index([numero_documento])
   @@index([deleted])
+  Formulario Formulario[]
 }
 
 model HuespedSecundario {
@@ -124,6 +126,18 @@ enum EstadosReserva {
   PENDIENTE
 }
 
+enum MotivosViajes {
+  NEGOCIOS_Y_MOTIVOS_PROFESIONALES
+  VACACIONES_RECREO_Y_OCIO
+  VISITAS_A_FAMILIARES_Y_AMIGOS
+  EDUCACION_Y_FORMACION
+  SALUD_Y_ATENCION_MEDICA
+  RELIGION_Y_PEREGRINACIONES
+  COMPRAS
+  TRANSITO
+  OTROS_MOTIVOS
+}
+
 model Reserva {
   id                       Int        @id @default(autoincrement())
   fecha_inicio             DateTime
@@ -133,7 +147,7 @@ model Reserva {
   departamento_procedencia String
   ciudad_procedencia       String
   pais_destino             String
-  motivo_viaje             String
+  motivo_viaje             MotivosViajes
   check_in                 DateTime
   check_out                DateTime
   costo                    Float
@@ -152,6 +166,7 @@ model Reserva {
 
   @@index([huespedId])
   @@index([deleted])
+  Formulario Formulario[]
 }
 
 enum TiposHabitacion {
@@ -193,6 +208,39 @@ model Factura {
 
   reserva Reserva?
   huesped Huesped  @relation(fields: [huespedId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([deleted])
+}
+
+model LinkFormulario {
+  id        Int      @id @default(autoincrement())
+  url       String
+  completado Boolean @default(false)
+  expirado Boolean @default(false)
+  vencimiento DateTime
+  formularioId Int? @unique
+
+  formulario Formulario? @relation(fields: [formularioId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([deleted])
+}
+
+model Formulario {
+  id        Int      @id @default(autoincrement())
+  huespedId Int
+  reservaId Int
+
+  LinkFormulario LinkFormulario?
+  Huesped Huesped @relation(fields: [huespedId], references: [id])
+  Reserva Reserva @relation(fields: [reservaId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
