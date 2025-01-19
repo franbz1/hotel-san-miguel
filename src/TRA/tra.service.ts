@@ -49,7 +49,7 @@ export class TraService {
 
       //mock de la respuesta
       const data = {
-        code: '1222',
+        code: 1222,
       };
 
       this.logger.debug(payload);
