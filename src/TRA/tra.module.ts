@@ -7,5 +7,6 @@ import { HabitacionesModule } from 'src/habitaciones/habitaciones.module';
   imports: [HttpModule, HabitacionesModule],
   providers: [TraService],
   exports: [TraService],
+  controllers: [],
 })
 export class TraModule {}

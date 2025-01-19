@@ -7,5 +7,6 @@ import { PrismaModule } from 'src/common/prisma/prisma.module';
   controllers: [HabitacionesController],
   providers: [HabitacionesService],
   imports: [PrismaModule],
+  exports: [HabitacionesService],
 })
 export class HabitacionesModule {}
