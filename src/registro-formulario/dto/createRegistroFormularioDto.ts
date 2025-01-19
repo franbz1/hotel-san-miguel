@@ -15,6 +15,7 @@ import {
 import { Genero } from 'src/common/enums/generos.enum';
 import { TipoDoc } from 'src/common/enums/tipoDoc.enum';
 import { CreateHuespedSecundarioWithoutIdDto } from './CreateHuespedSecundarioWithoutIdDto';
+import { MotivosViajes } from 'src/common/enums/motivosViajes.enum';
 
 export class CreateRegistroFormularioDto {
   //Datos de la reserva
@@ -26,10 +27,8 @@ export class CreateRegistroFormularioDto {
   @Type(() => Date)
   fecha_fin: Date;
 
-  @IsString()
-  @MinLength(2)
-  @MaxLength(50)
-  motivo_viaje: string;
+  @IsEnum(MotivosViajes)
+  motivo_viaje: MotivosViajes;
 
   @IsPositive()
   @IsNumber({ maxDecimalPlaces: 2 })

@@ -126,6 +126,18 @@ enum EstadosReserva {
   PENDIENTE
 }
 
+enum MotivosViajes {
+  NEGOCIOS_Y_MOTIVOS_PROFESIONALES
+  VACACIONES_RECREO_Y_OCIO
+  VISITAS_A_FAMILIARES_Y_AMIGOS
+  EDUCACION_YFORMACION
+  SALUD_Y_ATENCION_MEDICA
+  RELIGION_Y_PEREGRINACIONES
+  COMPRAS
+  TRANSITO
+  OTROS_MOTIVOS
+}
+
 model Reserva {
   id                       Int        @id @default(autoincrement())
   fecha_inicio             DateTime
@@ -135,7 +147,7 @@ model Reserva {
   departamento_procedencia String
   ciudad_procedencia       String
   pais_destino             String
-  motivo_viaje             String
+  motivo_viaje             MotivosViajes
   check_in                 DateTime
   check_out                DateTime
   costo                    Float
