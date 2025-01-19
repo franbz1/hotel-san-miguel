@@ -11,15 +11,15 @@ interface TraCredenciales {
 }
 
 const NOMBRE_ESTABLECIMIENTO = 'Hotel San Miguel';
-const NIT_ESTABLECIMIENTO = '123456789';
-const RNT_ESTABLECIMIENTO = '123456789';
-const TOKEN_ESTABLECIMIENTO = '123456789';
-const NUMERO_HABITACIONES = '1';
+const NIT_ESTABLECIMIENTO = '12991769';
+const RNT_ESTABLECIMIENTO = '11917';
+const TOKEN_ESTABLECIMIENTO = 'KQKjGuSFBx05g4LReq3Ey5lGiS5DIN2q3JDzwpLX';
+const NUMERO_HABITACIONES = '9';
 const MEDIO_PAGO = 'EFECTIVO';
-const MEDIO_RESERVA = 'NINGUNO';
+const MEDIO_RESERVA = 'Ninguno';
 
-const ENDPOINT_TRA_PRINCIPAL = 'https://traapi.mincit.gov.co/api/';
-const ENDPOINT_TRA_SECUNDARIO = 'https://traapi.mincit.gov.co/apitwo/';
+const ENDPOINT_TRA_PRINCIPAL = 'https://pms.mincit.gov.co/one/';
+const ENDPOINT_TRA_SECUNDARIO = 'https://pms.mincit.gov.co/two/';
 
 export const TRA_CREDENCIALES: TraCredenciales = {
   NOMBRE_ESTABLECIMIENTO,
