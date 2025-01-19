@@ -171,10 +171,18 @@ model Reserva {
 }
 
 enum TiposHabitacion {
-  UNA_CAMA
-  DOS_CAMAS
-  TRES_CAMAS
-  CUATRO_CAMAS
+  APARTAMENTO
+  HAMACA
+  CAMPING
+  MÚLTIPLE
+  CASA
+  FINCA
+  CAMA
+  PLAZA
+  SENCILLA
+  SUITE
+  DOBLE
+  OTRO
 }
 
 enum EstadosHabitacion {
