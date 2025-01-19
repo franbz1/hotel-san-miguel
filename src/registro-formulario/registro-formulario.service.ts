@@ -11,12 +11,14 @@ import notFoundError from 'src/common/errors/notfoundError';
 import { CreateReservaDto } from 'src/reservas/dto/create-reserva.dto';
 import { Huesped } from '@prisma/client';
 import { CreateFacturaDto } from 'src/facturas/dto/create-factura.dto';
+import { TraService } from 'src/TRA/tra.service';
 
 @Injectable()
 export class RegistroFormularioService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly traService: TraService,
   ) {}
 
   async create(
@@ -87,6 +89,12 @@ export class RegistroFormularioService {
           linkFormulario,
         };
       });
+
+      const responseTra = await this.traService.postTraHuespedPrincipalFromForm(
+        createRegistroFormularioDto,
+      );
+
+      console.log(responseTra);
 
       return result;
     } catch (error) {
