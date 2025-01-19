@@ -8,6 +8,7 @@ import { FacturasModule } from './facturas/facturas.module';
 import { ReservasModule } from './reservas/reservas.module';
 import { RegistroFormularioModule } from './registro-formulario/registro-formulario.module';
 import { AuthModule } from './auth/auth.module';
+import { TraModule } from './TRA/tra.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AuthModule } from './auth/auth.module';
     ReservasModule,
     RegistroFormularioModule,
     AuthModule,
+    TraModule,
   ],
   controllers: [],
   providers: [],
