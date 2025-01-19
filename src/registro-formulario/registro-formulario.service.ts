@@ -89,13 +89,6 @@ export class RegistroFormularioService {
           linkFormulario,
         };
       });
-
-      const responseTra = await this.traService.postTraHuespedPrincipalFromForm(
-        createRegistroFormularioDto,
-      );
-
-      console.log(responseTra);
-
       return result;
     } catch (error) {
       this.handleDatabaseError(error);
