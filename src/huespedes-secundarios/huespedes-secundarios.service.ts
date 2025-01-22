@@ -5,6 +5,7 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 import notFoundError from 'src/common/errors/notfoundError';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class HuespedesSecundariosService {
@@ -190,6 +191,20 @@ export class HuespedesSecundariosService {
       });
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
+  }
+
+  async createManyTransaction(
+    huespedesSecundarios: CreateHuespedSecundarioDto[],
+    tx: Prisma.TransactionClient,
+  ) {
+    try {
+      return await tx.huespedSecundario.createManyAndReturn({
+        data: huespedesSecundarios,
+        skipDuplicates: true,
+      });
+    } catch (error) {
       throw error;
     }
   }

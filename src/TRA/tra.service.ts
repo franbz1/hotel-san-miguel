@@ -5,7 +5,7 @@ import { TRA_CREDENCIALES } from 'src/common/constants/TraCredenciales';
 import { PostHuespedPrincipalDto } from './dto/postHuespedPrincipal';
 import { CreateRegistroFormularioDto } from 'src/registro-formulario/dto/createRegistroFormularioDto';
 import { HabitacionesService } from 'src/habitaciones/habitaciones.service';
-import { firstValueFrom } from 'rxjs';
+//import { firstValueFrom } from 'rxjs';
 import { MotivosViajes } from 'src/common/enums/motivosViajes.enum';
 
 /**
@@ -42,9 +42,9 @@ export class TraService {
 
     try {
       //const { data } = await firstValueFrom(
-        //this.httpService.post(endpoint, payload, {
-          //headers,
-        //}),
+      //this.httpService.post(endpoint, payload, {
+      //headers,
+      //}),
       //);
 
       //mock de la respuesta

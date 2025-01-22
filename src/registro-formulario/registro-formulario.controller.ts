@@ -7,11 +7,13 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/usuarios/entities/rol.enum';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import RequestReturnJWT from 'src/auth/interfaces/requestReturnJWT';
+import { LinkFormularioService } from './link-formulario/linkFormulario.service';
 
 @Controller('registro-formulario')
 export class RegistroFormularioController {
   constructor(
     private readonly registroFormularioService: RegistroFormularioService,
+    private readonly linkFormularioService: LinkFormularioService,
   ) {}
 
   @Post(':token')
@@ -27,9 +29,9 @@ export class RegistroFormularioController {
     );
   }
 
-  @Auth(Role.ADMINISTRADOR, Role.CAJERO)
+  //@Auth(Role.ADMINISTRADOR, Role.CAJERO)
   @Get()
   createLinkTemporal() {
-    return this.registroFormularioService.createLinkTemporal();
+    return this.linkFormularioService.createLinkTemporal();
   }
 }

@@ -8,13 +8,13 @@ import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { Request } from 'express';
 
 import { envs } from 'src/config/envs';
-import { RegistroFormularioService } from 'src/registro-formulario/registro-formulario.service';
+import { LinkFormularioService } from 'src/registro-formulario/link-formulario/linkFormulario.service';
 
 @Injectable()
 export class LinkFormularioGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly registroFormularioService: RegistroFormularioService,
+    private readonly linkFormularioService: LinkFormularioService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -63,7 +63,7 @@ export class LinkFormularioGuard implements CanActivate {
     });
 
     if (payload?.id) {
-      await this.registroFormularioService.update(payload.id, {
+      await this.linkFormularioService.update(payload.id, {
         expirado: true,
       });
     }
@@ -72,7 +72,7 @@ export class LinkFormularioGuard implements CanActivate {
   }
 
   private async validateFormulario(id: number): Promise<void> {
-    const formulario = await this.registroFormularioService.findOne(id);
+    const formulario = await this.linkFormularioService.findOne(id);
     if (!formulario) {
       throw new UnauthorizedException('Formulario no encontrado');
     }

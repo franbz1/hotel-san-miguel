@@ -5,6 +5,8 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 import notFoundError from 'src/common/errors/notfoundError';
+import { Prisma } from '@prisma/client';
+import { UpdateReservaWithHuespedesSecundariosDto } from './dto/updateReservaWithHuespedesSecundariosDto';
 
 @Injectable()
 export class ReservasService {
@@ -20,6 +22,27 @@ export class ReservasService {
     try {
       return await this.prisma.reserva.create({
         data: createReservaDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2003')
+        throw new BadRequestException(
+          'El huesped no existe o no se encontró la habitación',
+        );
+      throw error;
+    }
+  }
+
+  async createTransaction(
+    createReservaDto: CreateReservaDto,
+    facturaId: number,
+    tx: Prisma.TransactionClient,
+  ) {
+    try {
+      return await tx.reserva.create({
+        data: {
+          ...createReservaDto,
+          facturaId,
+        },
       });
     } catch (error) {
       if (error.code === 'P2003')
@@ -98,6 +121,28 @@ export class ReservasService {
       return await this.prisma.reserva.update({
         where: { id, deleted: false },
         data: updateReservaDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
+  }
+
+  async UpdateTransaction(
+    updateReservaDto: UpdateReservaWithHuespedesSecundariosDto,
+    tx: Prisma.TransactionClient,
+    id: number,
+  ) {
+    const { huespedes_secundarios, ...rest } = updateReservaDto;
+    try {
+      return await tx.reserva.update({
+        where: { id: id },
+        data: {
+          ...rest,
+          huespedes_secundarios: {
+            connect: huespedes_secundarios,
+          },
+        },
       });
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);

@@ -10,6 +10,7 @@ import notFoundError from 'src/common/errors/notfoundError';
 import { DocumentosService } from 'src/documentos/documentos.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
+import { Huesped, Prisma } from '@prisma/client';
 
 @Injectable()
 export class HuespedesService {
@@ -149,5 +150,41 @@ export class HuespedesService {
       if (error.code === 'P2025') throw notFoundError(id);
       throw error;
     }
+  }
+
+  /**
+   * Busca y devuelve el huesped de la base de datos, si no lo encuentra lo crea
+   * @param dto Dto del huesped a crear
+   * @returns El huesped creado
+   */
+  async findOrCreateHuesped(dto: CreateHuespedDto): Promise<Huesped> {
+    const huesped = await this.prisma.huesped.findFirst({
+      where: { numero_documento: dto.numero_documento, deleted: false },
+    });
+
+    if (!huesped) {
+      return await this.prisma.huesped.create({
+        data: dto,
+      });
+    }
+
+    return huesped;
+  }
+
+  async findOrCreateHuespedTransaction(
+    dto: CreateHuespedDto,
+    tx: Prisma.TransactionClient,
+  ) {
+    const huesped = await tx.huesped.findFirst({
+      where: { numero_documento: dto.numero_documento, deleted: false },
+    });
+
+    if (!huesped) {
+      return await tx.huesped.create({
+        data: dto,
+      });
+    }
+
+    return huesped;
   }
 }
