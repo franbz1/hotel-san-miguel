@@ -7,6 +7,8 @@ import { CreateRegistroFormularioDto } from 'src/registro-formulario/dto/createR
 import { HabitacionesService } from 'src/habitaciones/habitaciones.service';
 //import { firstValueFrom } from 'rxjs';
 import { DtoFactoryService } from 'src/common/factories/dto_Factory/dtoFactoryService.service';
+import { Huesped } from '@prisma/client';
+import { CreateHuespedSecundarioTraDto } from './dto/huespedSecundarioTraDto';
 
 /**
  * Servicio para conectarse a la API de TRA
@@ -67,5 +69,16 @@ export class TraService {
       console.log(error);
       throw error;
     }
+  }
+
+  async postTraHuespedesSecundariosFromForm(
+    huespedesSecundarios: Huesped[],
+    padreId: number,
+  ) {
+    const huespedesSecundariosTraDto = huespedesSecundarios.map((huesped) =>
+      this.dtoFactoryService
+        .getFactory<Huesped, CreateHuespedSecundarioTraDto>('huespedSecundario')
+        .create(huesped),
+    );
   }
 }
