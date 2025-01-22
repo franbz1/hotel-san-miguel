@@ -52,10 +52,6 @@ export class TraService {
         code: 1222,
       };
 
-      this.logger.debug(payload);
-      this.logger.debug(headers);
-      this.logger.debug(endpoint);
-
       return data;
     } catch (error) {
       console.log(error);
