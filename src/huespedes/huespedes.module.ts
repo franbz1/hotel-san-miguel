@@ -8,5 +8,6 @@ import { DocumentosModule } from 'src/documentos/documentos.module';
   controllers: [HuespedesController],
   providers: [HuespedesService],
   imports: [PrismaModule, DocumentosModule],
+  exports: [HuespedesService],
 })
 export class HuespedesModule {}
