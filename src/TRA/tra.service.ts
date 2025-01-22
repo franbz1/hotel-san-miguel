@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CreateHuespedPrincipalTraDto } from './dto/huespedPrincipalDto';
+import { CreateHuespedPrincipalTraDto } from './dto/huespedPrincipalTraDto';
 import { HttpService } from '@nestjs/axios';
 import { TRA_CREDENCIALES } from 'src/common/constants/TraCredenciales';
 import { PostHuespedPrincipalDto } from './dto/postHuespedPrincipal';
