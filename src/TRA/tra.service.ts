@@ -74,11 +74,14 @@ export class TraService {
   async postTraHuespedesSecundariosFromForm(
     huespedesSecundarios: Huesped[],
     padreId: number,
+    numero_habitacion: number,
+    check_in: Date,
+    check_out: Date,
   ) {
     const huespedesSecundariosTraDto = huespedesSecundarios.map((huesped) =>
       this.dtoFactoryService
         .getFactory<Huesped, CreateHuespedSecundarioTraDto>('huespedSecundario')
-        .create(huesped),
+        .create(huesped, numero_habitacion, padreId, check_in, check_out),
     );
   }
 }

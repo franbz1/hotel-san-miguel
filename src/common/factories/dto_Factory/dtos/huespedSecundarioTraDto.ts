@@ -1,15 +1,18 @@
-import { CreateHuespedPrincipalTraDto } from 'src/TRA/dto/huespedPrincipalTraDto';
 import { DtoFactoryInterface } from '../dtoFactoryInterface';
 import { HuespedSecundario } from '@prisma/client';
+import { CreateHuespedSecundarioTraDto } from 'src/TRA/dto/huespedSecundarioTraDto';
 
 export class HuespedSecundarioTraFactoryDto
   implements
-    DtoFactoryInterface<HuespedSecundario, CreateHuespedPrincipalTraDto>
+    DtoFactoryInterface<HuespedSecundario, CreateHuespedSecundarioTraDto>
 {
   create(
     inputDto: HuespedSecundario,
-    ...args: any[]
-  ): CreateHuespedPrincipalTraDto {
+    numero_habitacion: number,
+    padreId: number,
+    check_in: Date,
+    check_out: Date,
+  ): CreateHuespedSecundarioTraDto {
     const {
       numero_documento,
       tipo_documento,
@@ -19,5 +22,18 @@ export class HuespedSecundarioTraFactoryDto
       ciudad_residencia,
       ciudad_procedencia,
     } = inputDto;
+
+    return {
+      tipo_identificacion: tipo_documento,
+      numero_identificacion: numero_documento,
+      nombres,
+      apellidos: `${primer_apellido} ${segundo_apellido}`,
+      cuidad_residencia: ciudad_residencia,
+      cuidad_procedencia: ciudad_procedencia,
+      numero_habitacion: numero_habitacion.toString(),
+      check_in,
+      check_out,
+      padre: padreId.toString(),
+    };
   }
 }
