@@ -6,7 +6,7 @@ import { PostHuespedPrincipalDto } from './dto/postHuespedPrincipal';
 import { CreateRegistroFormularioDto } from 'src/registro-formulario/dto/createRegistroFormularioDto';
 import { HabitacionesService } from 'src/habitaciones/habitaciones.service';
 //import { firstValueFrom } from 'rxjs';
-import { MotivosViajes } from 'src/common/enums/motivosViajes.enum';
+import { DtoFactoryService } from 'src/common/factories/dto_Factory/dtoFactoryService.service';
 
 /**
  * Servicio para conectarse a la API de TRA
@@ -16,6 +16,7 @@ export class TraService {
   constructor(
     private readonly httpService: HttpService,
     private readonly habitacionesService: HabitacionesService,
+    private readonly dtoFactoryService: DtoFactoryService,
   ) {}
 
   private readonly logger = new Logger(TraService.name);
@@ -23,9 +24,18 @@ export class TraService {
   async postTraHuespedPrincipalFromForm(
     registroFormularioDto: CreateRegistroFormularioDto,
   ) {
-    const huespedPrincipalDto = await this.traHuespedPrincipalAdapter(
-      registroFormularioDto,
-    );
+    const { habitacionId } = registroFormularioDto;
+
+    const habitacion = await this.habitacionesService.findOne(habitacionId);
+
+    if (!habitacion) throw new Error('no se encontró la habitación');
+
+    const huespedPrincipalDto = this.dtoFactoryService
+      .getFactory<
+        CreateRegistroFormularioDto,
+        CreateHuespedPrincipalTraDto
+      >('huespedPrincipal')
+      .create(registroFormularioDto, habitacion);
 
     const payload: PostHuespedPrincipalDto = {
       ...huespedPrincipalDto,
@@ -57,69 +67,5 @@ export class TraService {
       console.log(error);
       throw error;
     }
-  }
-
-  private async traHuespedPrincipalAdapter(
-    registroFormularioDto: CreateRegistroFormularioDto,
-  ): Promise<CreateHuespedPrincipalTraDto> {
-    const {
-      tipo_documento,
-      numero_documento,
-      primer_apellido,
-      segundo_apellido,
-      nombres,
-      motivo_viaje,
-      habitacionId,
-      ciudad_residencia,
-      fecha_inicio,
-      fecha_fin,
-      costo,
-      numero_acompaniantes,
-    } = registroFormularioDto;
-
-    const habitacion = await this.habitacionesService.findOne(habitacionId);
-
-    if (!habitacion) throw new Error('no se encontró la habitación');
-
-    const motivoViajeText = () => {
-      switch (motivo_viaje) {
-        case MotivosViajes.NEGOCIOS_Y_MOTIVOS_PROFESIONALES:
-          return 'Negocios y motivos profesionales';
-        case MotivosViajes.VACACIONES_RECREO_Y_OCIO:
-          return 'Vacaciones, recreo y ocio';
-        case MotivosViajes.VISITAS_A_FAMILIARES_Y_AMIGOS:
-          return 'Visitas a familiares y amigos';
-        case MotivosViajes.EDUCACION_Y_FORMACION:
-          return 'Educación y formación';
-        case MotivosViajes.SALUD_Y_ATENCION_MEDICA:
-          return 'Salud y atención medica';
-        case MotivosViajes.RELIGION_Y_PEREGRINACIONES:
-          return 'Religion y peregrinaciones';
-        case MotivosViajes.COMPRAS:
-          return 'Compras';
-        case MotivosViajes.TRANSITO:
-          return 'Transito';
-        case MotivosViajes.OTROS_MOTIVOS:
-          return 'Otros motivos';
-        default:
-          return 'Otros motivos';
-      }
-    };
-
-    return {
-      numero_identificacion: numero_documento,
-      tipo_identificacion: tipo_documento,
-      nombres,
-      apellidos: `${primer_apellido} ${segundo_apellido}`,
-      motivo: motivoViajeText().toString(),
-      cuidad_residencia: ciudad_residencia,
-      cuidad_procedencia: ciudad_residencia,
-      check_in: fecha_inicio,
-      check_out: fecha_fin,
-      costo: costo.toString(),
-      numero_acompanantes: numero_acompaniantes.toString(),
-      tipo_acomodacion: habitacion.tipo.toString(),
-      numero_habitacion: habitacion.id.toString(),
-    };
   }
 }

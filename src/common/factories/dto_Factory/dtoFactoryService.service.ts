@@ -3,6 +3,7 @@ import { DtoFactoryInterface } from './dtoFactoryInterface';
 import { HuespedTraDtoFactory } from './dtos/huespedDtoFactory';
 import { FacturaTraDtoFactory } from './dtos/facturaDtoFactory';
 import { ReservaTraDtoFactory } from './dtos/reservaDtoFactory';
+import { HuespedPrincipalTraDtoFactory } from './dtos/huespedPrincipalTraDtoFactory';
 
 /**
  * Servicio que maneja los factories de los dtos
@@ -17,6 +18,7 @@ export class DtoFactoryService {
     huesped: new HuespedTraDtoFactory(),
     factura: new FacturaTraDtoFactory(),
     reserva: new ReservaTraDtoFactory(),
+    huespedPrincipal: new HuespedPrincipalTraDtoFactory(),
   };
 
   getFactory<TInputDto, TOutputDto>(
