@@ -71,6 +71,13 @@ export class CreateHuespedSecundarioDto {
   ciudad_residencia: string;
 
   @IsString({
+    message: 'La ciudad de procedencia es obligatorio y debe ser un texto',
+  })
+  @MinLength(2)
+  @MaxLength(50)
+  ciudad_procedencia: string;
+
+  @IsString({
     message: 'El lugar de nacimiento es obligatorio y debe ser un texto',
   })
   @MinLength(2)
