@@ -4,6 +4,7 @@ import { HuespedTraDtoFactory } from './dtos/huespedDtoFactory';
 import { FacturaTraDtoFactory } from './dtos/facturaDtoFactory';
 import { ReservaTraDtoFactory } from './dtos/reservaDtoFactory';
 import { HuespedPrincipalTraDtoFactory } from './dtos/huespedPrincipalTraDtoFactory';
+import { HuespedSecundarioTraFactoryDto } from './dtos/huespedSecundarioTraDto';
 
 /**
  * Servicio que maneja los factories de los dtos
@@ -19,6 +20,7 @@ export class DtoFactoryService {
     factura: new FacturaTraDtoFactory(),
     reserva: new ReservaTraDtoFactory(),
     huespedPrincipal: new HuespedPrincipalTraDtoFactory(),
+    huespedSecundario: new HuespedSecundarioTraFactoryDto(),
   };
 
   getFactory<TInputDto, TOutputDto>(
