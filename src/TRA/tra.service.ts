@@ -83,5 +83,30 @@ export class TraService {
         .getFactory<Huesped, CreateHuespedSecundarioTraDto>('huespedSecundario')
         .create(huesped, numero_habitacion, padreId, check_in, check_out),
     );
+
+    for (const huesped of huespedesSecundariosTraDto) {
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `token ${TRA_CREDENCIALES.TOKEN_ESTABLECIMIENTO}`,
+      };
+      const endpoint = TRA_CREDENCIALES.ENDPOINT_TRA_SECUNDARIO;
+
+      try {
+        /*const { data } = await firstValueFrom(
+          this.httpService.post(endpoint, huesped, {
+            headers,
+          }),
+        ); */
+
+        //mock de la respuesta
+        const data = {
+          code: 1222,
+        };
+
+        return data;
+      } catch (error) {
+        throw error;
+      }
+    }
   }
 }
