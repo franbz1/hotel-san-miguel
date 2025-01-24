@@ -8,8 +8,6 @@ export class TraController {
 
   @Post('test')
   test(@Body() createRegistroFormularioDto: CreateRegistroFormularioDto) {
-    return this.traService.postTraHuespedPrincipalFromForm(
-      createRegistroFormularioDto,
-    );
+    return this.traService.postTra(createRegistroFormularioDto);
   }
 }

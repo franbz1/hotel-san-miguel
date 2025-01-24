@@ -14,6 +14,7 @@ import { FacturasService } from 'src/facturas/facturas.service';
 import { FormularioService } from './formulario/formulario.service';
 import { LinkFormularioService } from './link-formulario/linkFormulario.service';
 import { HuespedesSecundariosService } from 'src/huespedes-secundarios/huespedes-secundarios.service';
+import { HabitacionesService } from 'src/habitaciones/habitaciones.service';
 
 @Injectable()
 export class RegistroFormularioService {
@@ -24,6 +25,7 @@ export class RegistroFormularioService {
     private readonly dtoFactoryService: DtoFactoryService,
     private readonly reservaService: ReservasService,
     private readonly facturaService: FacturasService,
+    private readonly habitacionesService: HabitacionesService,
     private readonly formularioService: FormularioService,
     private readonly linkFormularioService: LinkFormularioService,
     private readonly huespedesSecundariosService: HuespedesSecundariosService,
@@ -35,74 +37,98 @@ export class RegistroFormularioService {
     createRegistroFormularioDto: CreateRegistroFormularioDto,
     tokenId: number,
   ) {
+    const huesped = await this.getOrCreateHuesped(createRegistroFormularioDto);
+
+    const reserva = this.createReservaDto(
+      createRegistroFormularioDto,
+      huesped.id,
+    );
+    const factura = this.createFacturaDto(
+      createRegistroFormularioDto,
+      huesped.id,
+      reserva,
+    );
+
+    const transactionResult = await this.executeTransaction(
+      createRegistroFormularioDto,
+      reserva,
+      factura,
+      huesped,
+      tokenId,
+    );
+
+    if (transactionResult.success) {
+      const traFormulario = await this.registerTra(
+        createRegistroFormularioDto,
+        transactionResult,
+      );
+      return { result: transactionResult, traFormulario };
+    }
+  }
+
+  private async getOrCreateHuesped(dto: CreateRegistroFormularioDto) {
     const huespedDto = this.dtoFactoryService
       .getFactory<CreateRegistroFormularioDto, CreateHuespedDto>('huesped')
-      .create(createRegistroFormularioDto);
+      .create(dto);
+    return this.huespedService.findOrCreateHuesped(huespedDto);
+  }
 
-    const huesped = await this.huespedService.findOrCreateHuesped(huespedDto);
-
-    const reserva = this.dtoFactoryService
+  private createReservaDto(
+    dto: CreateRegistroFormularioDto,
+    huespedId: number,
+  ) {
+    return this.dtoFactoryService
       .getFactory<CreateRegistroFormularioDto, CreateReservaDto>('reserva')
-      .create(createRegistroFormularioDto, huesped.id);
+      .create(dto, huespedId);
+  }
 
-    const factura = this.dtoFactoryService
+  private createFacturaDto(
+    dto: CreateRegistroFormularioDto,
+    huespedId: number,
+    reserva: CreateReservaDto,
+  ) {
+    return this.dtoFactoryService
       .getFactory<CreateRegistroFormularioDto, CreateFacturaDto>('factura')
-      .create(createRegistroFormularioDto, huesped.id, reserva);
+      .create(dto, huespedId, reserva);
+  }
 
-    const { huespedes_secundarios } = createRegistroFormularioDto;
-
+  private async executeTransaction(
+    dto: CreateRegistroFormularioDto,
+    reserva: CreateReservaDto,
+    factura: CreateFacturaDto,
+    huesped: any,
+    tokenId: number,
+  ) {
     try {
-      const result = await this.prisma.$transaction(async (tx) => {
+      return await this.prisma.$transaction(async (tx) => {
         const facturaCreated = await this.facturaService.createTransaction(
           factura,
           tx,
         );
-
         const reservaCreated = await this.reservaService.createTransaction(
           reserva,
           facturaCreated.id,
           tx,
         );
-
         const formularioCreated =
           await this.formularioService.createTransaction(
             tx,
             huesped.id,
             reservaCreated.id,
           );
-
         const linkFormulario =
           await this.linkFormularioService.UpdateTransaction(
-            {
-              completado: true,
-              formularioId: formularioCreated.id,
-            },
+            { completado: true, formularioId: formularioCreated.id },
             tx,
             tokenId,
           );
 
-        let huespedesSecundariosCreated = [];
-
-        if (huespedes_secundarios?.length) {
-          const huespedesSecundariosConHuespedId = huespedes_secundarios.map(
-            (huespedSecundario) => ({
-              ...huespedSecundario,
-              huespedId: huesped.id,
-            }),
-          );
-
-          huespedesSecundariosCreated =
-            await this.huespedesSecundariosService.createManyTransaction(
-              huespedesSecundariosConHuespedId,
-              tx,
-            );
-
-          await this.reservaService.UpdateTransaction(
-            { huespedes_secundarios: huespedesSecundariosCreated },
-            tx,
-            reservaCreated.id,
-          );
-        }
+        const huespedesSecundariosCreated = await this.handleSecondaryGuests(
+          dto.huespedes_secundarios,
+          tx,
+          huesped.id,
+          reservaCreated.id,
+        );
 
         return {
           success: true,
@@ -114,61 +140,58 @@ export class RegistroFormularioService {
           huespedesSecundariosCreated,
         };
       });
-
-      if (result.success) {
-        const traFormulario = await this.registerTra(
-          createRegistroFormularioDto,
-          result,
-        );
-
-        return {
-          result,
-          traFormulario,
-        };
-      }
     } catch (error) {
       this.handleDatabaseError(error);
     }
   }
 
-  /**
-   * hace el registro en el TRA
-   * @param createRegistroFormularioDto Datos del formulario
-   * @param result Resultado de la transacción
-   * @returns Formulario
-   */
+  private async handleSecondaryGuests(
+    huespedesSecundarios: any[],
+    tx: any,
+    huespedId: number,
+    reservaId: number,
+  ) {
+    if (!huespedesSecundarios?.length) return [];
+
+    const secondaryGuests = huespedesSecundarios.map((guest) => ({
+      ...guest,
+      huespedId,
+    }));
+
+    const createdGuests =
+      await this.huespedesSecundariosService.createManyTransaction(
+        secondaryGuests,
+        tx,
+      );
+
+    await this.reservaService.UpdateTransaction(
+      { huespedes_secundarios: createdGuests },
+      tx,
+      reservaId,
+    );
+
+    return createdGuests;
+  }
+
   private async registerTra(
     createRegistroFormularioDto: CreateRegistroFormularioDto,
     result: ProcessTransactionResult,
   ): Promise<Formulario> {
     try {
-      const padre = await this.traService.postTraHuespedPrincipalFromForm(
+      const traData = await this.traService.postTra(
         createRegistroFormularioDto,
       );
 
-      //TODO: cambiar por el traId
-      const form = await this.prisma.formulario.update({
-        where: {
-          id: result.formulario.id,
-        },
-        data: {
-          SubidoATra: true,
-          traId: padre.code,
-        },
+      return this.prisma.formulario.update({
+        where: { id: result.formulario.id },
+        data: { SubidoATra: true, traId: traData.code },
       });
-
-      return form;
     } catch (error) {
-      Logger.error(error);
+      this.logger.error(error);
       throw error;
     }
   }
 
-  /**
-   * Busca error de habitación no existente
-   * @param error error de la base de datos
-   * @returns nunca
-   */
   private handleDatabaseError(error: any): never {
     if (error.code === 'P2003') {
       throw new BadRequestException('La habitación no existe');

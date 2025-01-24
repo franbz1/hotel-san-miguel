@@ -10,6 +10,7 @@ import { ReservasModule } from 'src/reservas/reservas.module';
 import { FacturasModule } from 'src/facturas/facturas.module';
 import { HuespedesSecundariosModule } from 'src/huespedes-secundarios/huespedes-secundarios.module';
 import { FormularioService } from './formulario/formulario.service';
+import { HabitacionesModule } from 'src/habitaciones/habitaciones.module';
 
 @Module({
   controllers: [RegistroFormularioController],
@@ -26,6 +27,7 @@ import { FormularioService } from './formulario/formulario.service';
     ReservasModule,
     FacturasModule,
     HuespedesSecundariosModule,
+    HabitacionesModule,
   ],
 })
 export class RegistroFormularioModule {}

@@ -1,13 +1,16 @@
 import { DtoFactoryInterface } from '../dtoFactoryInterface';
-import { HuespedSecundario } from '@prisma/client';
+import { CreateHuespedSecundarioWithoutIdDto } from 'src/registro-formulario/dto/CreateHuespedSecundarioWithoutIdDto';
 import { CreateHuespedSecundarioTraDto } from 'src/TRA/dto/huespedSecundarioTraDto';
 
 export class HuespedSecundarioTraFactoryDto
   implements
-    DtoFactoryInterface<HuespedSecundario, CreateHuespedSecundarioTraDto>
+    DtoFactoryInterface<
+      CreateHuespedSecundarioWithoutIdDto,
+      CreateHuespedSecundarioTraDto
+    >
 {
   create(
-    inputDto: HuespedSecundario,
+    inputDto: CreateHuespedSecundarioWithoutIdDto,
     numero_habitacion: number,
     padreId: number,
     check_in: Date,

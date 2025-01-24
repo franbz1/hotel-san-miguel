@@ -6,13 +6,6 @@ import { ReservaTraDtoFactory } from './dtos/reservaDtoFactory';
 import { HuespedPrincipalTraDtoFactory } from './dtos/huespedPrincipalTraDtoFactory';
 import { HuespedSecundarioTraFactoryDto } from './dtos/huespedSecundarioTraDto';
 
-/**
- * Servicio que maneja los factories de los dtos
- * factories:
- * huesped
- * factura
- * reserva
- */
 @Injectable()
 export class DtoFactoryService {
   private readonly factories = {
