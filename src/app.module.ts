@@ -9,6 +9,7 @@ import { ReservasModule } from './reservas/reservas.module';
 import { RegistroFormularioModule } from './registro-formulario/registro-formulario.module';
 import { AuthModule } from './auth/auth.module';
 import { TraModule } from './TRA/tra.module';
+import { SireModule } from './sire/sire.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { TraModule } from './TRA/tra.module';
     RegistroFormularioModule,
     AuthModule,
     TraModule,
+    SireModule,
   ],
   controllers: [],
   providers: [],
