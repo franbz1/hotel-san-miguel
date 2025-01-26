@@ -184,7 +184,7 @@ export class RegistroFormularioService {
 
       return this.prisma.formulario.update({
         where: { id: result.formulario.id },
-        data: { SubidoATra: true, traId: traData.code },
+        data: { SubidoATra: true, traId: traData.huespedPrincipal.code },
       });
     } catch (error) {
       this.logger.error(error);

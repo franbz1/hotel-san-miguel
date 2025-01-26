@@ -37,13 +37,19 @@ export class TraService {
       habitacion,
     );
 
-    await this.postTraHuespedesSecundariosFromForm(
-      huespedes_secundarios,
-      huespedPrincipalResponse.code,
-      habitacion.numero_habitacion,
-      fecha_inicio,
-      fecha_fin,
-    );
+    const huespedesSecundariosData =
+      await this.postTraHuespedesSecundariosFromForm(
+        huespedes_secundarios,
+        huespedPrincipalResponse.code,
+        habitacion.numero_habitacion,
+        fecha_inicio,
+        fecha_fin,
+      );
+
+    return {
+      huespedPrincipal: huespedPrincipalResponse,
+      huespedesSecundarios: huespedesSecundariosData,
+    };
   }
 
   /**
@@ -74,6 +80,7 @@ export class TraService {
     check_in: Date,
     check_out: Date,
   ) {
+    const huespedesSecundariosData = [];
     const huespedesSecundariosTraDtos = huespedesSecundarios.map((huesped) =>
       this.dtoFactoryService
         .getFactory<
@@ -84,11 +91,14 @@ export class TraService {
     );
 
     for (const huesped of huespedesSecundariosTraDtos) {
-      await this.postToTraEndpoint(
-        TRA_CREDENCIALES.ENDPOINT_TRA_SECUNDARIO,
-        huesped,
+      huespedesSecundariosData.push(
+        await this.postToTraEndpoint(
+          TRA_CREDENCIALES.ENDPOINT_TRA_SECUNDARIO,
+          huesped,
+        ),
       );
     }
+    return huespedesSecundariosData;
   }
 
   /**
@@ -125,6 +135,8 @@ export class TraService {
       // Mock para entornos de desarrollo
       const data = { code: 1222 }; // Mock de respuesta
       this.logger.debug(`Mock response from TRA endpoint: ${endpoint}`);
+      this.logger.debug(headers);
+      this.logger.debug(payload);
       return data;
     } catch (error) {
       this.logger.error(`Error in TRA request to ${endpoint}:`, error.message);
