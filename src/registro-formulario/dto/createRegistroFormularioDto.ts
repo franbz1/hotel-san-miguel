@@ -3,12 +3,14 @@ import {
   IsDate,
   IsEmail,
   IsEnum,
+  IsInt,
   IsNumber,
   IsOptional,
   IsPhoneNumber,
   IsPositive,
   IsString,
   MaxLength,
+  Min,
   MinLength,
   ValidateNested,
 } from 'class-validator';
@@ -39,7 +41,8 @@ export class CreateRegistroFormularioDto {
   @Type(() => Number)
   habitacionId: number;
 
-  @IsPositive()
+  @IsInt()
+  @Min(0)
   @Type(() => Number)
   numero_acompaniantes: number;
   //Fin de datos de la reserva
@@ -102,9 +105,11 @@ export class CreateRegistroFormularioDto {
   genero: Genero;
 
   @IsPhoneNumber()
+  @IsOptional()
   telefono?: string;
 
   @IsEmail()
+  @IsOptional()
   correo?: string;
   //Fin de datos del Huesped
 

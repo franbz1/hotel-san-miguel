@@ -1,3 +1,4 @@
+import { $Enums, TipoDocumento } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsDate,
@@ -18,7 +19,7 @@ export class CreateHuespedSecundarioDto {
       TipoDoc,
     ).join(', ')}`,
   })
-  tipo_documento: TipoDoc;
+  tipo_documento: TipoDoc | TipoDocumento;
 
   @IsString({
     message: 'El numero de documento es obligatorio y debe ser un texto',
@@ -71,6 +72,13 @@ export class CreateHuespedSecundarioDto {
   ciudad_residencia: string;
 
   @IsString({
+    message: 'La ciudad de procedencia es obligatorio y debe ser un texto',
+  })
+  @MinLength(2)
+  @MaxLength(50)
+  ciudad_procedencia: string;
+
+  @IsString({
     message: 'El lugar de nacimiento es obligatorio y debe ser un texto',
   })
   @MinLength(2)
@@ -102,7 +110,7 @@ export class CreateHuespedSecundarioDto {
       Genero,
     ).join(', ')}`,
   })
-  genero: Genero;
+  genero: Genero | $Enums.Genero;
 
   @IsString({
     message: 'El telefono es opcional y debe ser un texto',

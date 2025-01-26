@@ -5,6 +5,7 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 import notFoundError from 'src/common/errors/notfoundError';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class FacturasService {
@@ -18,6 +19,21 @@ export class FacturasService {
   async create(createFacturaDto: CreateFacturaDto) {
     try {
       return await this.prisma.factura.create({
+        data: createFacturaDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2003')
+        throw notFoundError(createFacturaDto.huespedId);
+      throw error;
+    }
+  }
+
+  async createTransaction(
+    createFacturaDto: CreateFacturaDto,
+    tx: Prisma.TransactionClient,
+  ) {
+    try {
+      return await tx.factura.create({
         data: createFacturaDto,
       });
     } catch (error) {

@@ -8,5 +8,6 @@ import { PrismaModule } from 'src/common/prisma/prisma.module';
   controllers: [HuespedesSecundariosController],
   providers: [HuespedesSecundariosService],
   imports: [HuespedesModule, PrismaModule],
+  exports: [HuespedesSecundariosService],
 })
 export class HuespedesSecundariosModule {}
