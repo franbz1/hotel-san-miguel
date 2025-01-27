@@ -5,7 +5,7 @@ export class SireService {
   constructor() {}
 
   async uploadToSire(file: any) {
-
+    
   }
 
   async uploadOneToSire(huespedTraDto: any) {
