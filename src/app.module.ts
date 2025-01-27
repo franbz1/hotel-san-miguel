@@ -10,6 +10,8 @@ import { RegistroFormularioModule } from './registro-formulario/registro-formula
 import { AuthModule } from './auth/auth.module';
 import { TraModule } from './TRA/tra.module';
 import { SireModule } from './sire/sire.module';
+import { CreateDocModule } from './common/create-doc/create-doc.module';
+import { CreateDocService } from './common/create-doc/create-doc.service';
 
 @Module({
   imports: [
@@ -24,8 +26,9 @@ import { SireModule } from './sire/sire.module';
     AuthModule,
     TraModule,
     SireModule,
+    CreateDocModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [CreateDocService],
 })
 export class AppModule {}
