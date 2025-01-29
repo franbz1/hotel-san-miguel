@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { CreateDocService } from './create-doc.service';
 
-@Module({})
+@Module({
+  providers: [CreateDocService],
+  exports: [CreateDocService],
+})
 export class CreateDocModule {}
