@@ -1,6 +1,6 @@
 import { IsInt, IsString } from 'class-validator';
 
-export class huespedesSireDto {
+export class HuespedesSireDto {
   @IsInt()
   tipoDeDocumento: number;
   @IsString()
