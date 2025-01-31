@@ -3,6 +3,7 @@ import { HuespedesSireDto } from './dtos/HuespedSireDto';
 import { SIRE_CREDENCIALES } from 'src/common/constants/SireCredenciales';
 import puppeteer from 'puppeteer-core';
 import { CreateDocService } from 'src/common/create-doc/create-doc.service';
+import { TipoDocumentoSireUpload } from 'src/common/enums/tipoDocSireUpload';
 
 @Injectable()
 export class SireService {
@@ -53,19 +54,129 @@ export class SireService {
    * @returns
    */
   async uploadFileToSire(fileRute: string): Promise<boolean> {
-    return Promise.resolve(false);
-    //TODO: Hacer el upload de archivo a sire
-    /*     if (!fileRute) {
+    if (!fileRute) {
       throw new Error('No se pudo subir el archivo a sire');
     }
 
     try {
-      const browser = await puppeteer.launch({
-        headless: true,
-      });
-
+      return await this.trySire(
+        SIRE_CREDENCIALES.passwordSire,
+        SIRE_CREDENCIALES.usuarioSire,
+        SIRE_CREDENCIALES.tipoDocSireUpload,
+        fileRute,
+      );
     } catch (error) {
-      
-    } */
+      this.logger.error(`Error al subir el archivo a sire: ${error}`);
+    }
+  }
+
+  /**
+   * Sube un archivo al Sire mediante puppeteer
+   * @param contrasena
+   * @param documento
+   * @param tipoDocumento
+   * @returns true si se cargó correctamente, false en caso contrario
+   * @throws Error si hubo un error en el proceso
+   */
+  private async trySire(
+    contrasena: string,
+    documento: string,
+    tipoDocumento: TipoDocumentoSireUpload,
+    uriTxt: string,
+  ): Promise<boolean> {
+    let browser;
+    try {
+      console.log('🌎 Iniciando navegador...');
+      browser = await puppeteer.launch();
+      const page = await browser.newPage();
+
+      await page.goto(
+        'https://apps.migracioncolombia.gov.co/sire/pages/empresas/cargueInformacion.jsf',
+        {
+          waitUntil: 'networkidle2',
+        },
+      );
+
+      await page.waitForSelector('#formLogin\\:numeroDocumento');
+      await page.type('#formLogin\\:numeroDocumento', documento);
+
+      await page.waitForSelector('#formLogin\\:tipoDocumento');
+      await page.click('#formLogin\\:tipoDocumento');
+
+      await page.waitForSelector('#formLogin\\:tipoDocumento');
+      await page.select(
+        '#formLogin\\:tipoDocumento',
+        TipoDocumentoSireUpload[tipoDocumento],
+      );
+
+      await page.waitForResponse((response) => response.status() === 200);
+
+      await page.waitForSelector('#formLogin\\:password');
+      await page.type('#formLogin\\:password', contrasena);
+
+      await Promise.all([
+        page.waitForSelector('#formLogin\\:button1'),
+        page.click('#formLogin\\:button1'),
+        page.waitForNavigation({ waitUntil: 'networkidle2' }),
+      ]);
+
+      await page.waitForSelector('#tablehideitemCargarInformacion');
+      await page.click('#tablehideitemCargarInformacion');
+
+      await page.waitForSelector('#HOTEL_lbl');
+      await page.click('#HOTEL_lbl');
+
+      await page.waitForSelector('#cargueFormHospedaje\\:tipoCargue\\:1');
+      await page.click('#cargueFormHospedaje\\:tipoCargue\\:1');
+
+      await page.waitForSelector('#cargueFormHospedaje\\:upload\\:file');
+      const fileInput = await page.$('#cargueFormHospedaje\\:upload\\:file');
+      await fileInput.uploadFile(uriTxt);
+
+      await page.waitForSelector('#cargueFormHospedaje\\:upload\\:upload1');
+      await page.click('#cargueFormHospedaje\\:upload\\:upload1');
+
+      await page.waitForSelector('#cargueFormHospedaje\\:j_id911');
+      await page.click('#cargueFormHospedaje\\:j_id911');
+
+      // ✅ Verificar si se muestra la imagen de error
+      try {
+        await page.waitForSelector(
+          '#messagesForm\\:messagesPanelContentTable img',
+          { timeout: 5000 },
+        );
+
+        const imgError = await page.evaluate(() => {
+          const img = document.querySelector(
+            '#messagesForm\\:messagesPanelContentTable img',
+          );
+          return img
+            ? img.getAttribute('src')?.includes('/sire/imagenes/fatal.png')
+            : false;
+        });
+
+        if (imgError) {
+          throw new Error(
+            '❌ Error al cargar el archivo: Se detectó una imagen de error.',
+          );
+        }
+
+        console.log('✅ Archivo cargado correctamente.');
+        return Promise.resolve(true);
+      } catch (error) {
+        console.error(
+          `⚠️ No se encontró la imagen esperada o hubo un error: ${error.message}`,
+        );
+        return Promise.resolve(false);
+      }
+    } catch (error) {
+      console.error(`🚨 Error en el proceso: ${error.message}`);
+      return Promise.resolve(false);
+    } finally {
+      if (browser) {
+        await browser.close();
+        console.log('🛑 Navegador cerrado.');
+      }
+    }
   }
 }
