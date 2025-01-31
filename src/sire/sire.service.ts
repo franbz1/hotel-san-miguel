@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HuespedesSireDto } from './dtos/HuespedSireDto';
 import { SIRE_CREDENCIALES } from 'src/common/constants/SireCredenciales';
-import puppeteer from 'puppeteer-core';
+import puppeteer from 'puppeteer';
 import { CreateDocService } from 'src/common/create-doc/create-doc.service';
 import { TipoDocumentoSireUpload } from 'src/common/enums/tipoDocSireUpload';
 
@@ -87,7 +87,7 @@ export class SireService {
     let browser;
     try {
       console.log('🌎 Iniciando navegador...');
-      browser = await puppeteer.launch();
+      browser = await puppeteer.launch({ headless: false, slowMo: 100 });
       const page = await browser.newPage();
 
       await page.goto(
@@ -104,10 +104,7 @@ export class SireService {
       await page.click('#formLogin\\:tipoDocumento');
 
       await page.waitForSelector('#formLogin\\:tipoDocumento');
-      await page.select(
-        '#formLogin\\:tipoDocumento',
-        TipoDocumentoSireUpload[tipoDocumento],
-      );
+      await page.select('#formLogin\\:tipoDocumento', tipoDocumento);
 
       await page.waitForResponse((response) => response.status() === 200);
 
@@ -146,19 +143,29 @@ export class SireService {
           { timeout: 5000 },
         );
 
-        const imgError = await page.evaluate(() => {
+        const errorDetected = await page.evaluate(() => {
           const img = document.querySelector(
             '#messagesForm\\:messagesPanelContentTable img',
           );
-          return img
-            ? img.getAttribute('src')?.includes('/sire/imagenes/fatal.png')
-            : false;
+          const errorSpan = document.querySelector('span.rich-messages-label');
+
+          if (img?.getAttribute('src')?.includes('/sire/imagenes/fatal.png')) {
+            return {
+              isError: true,
+              message:
+                '❌ Error al cargar el archivo: Se detectó una imagen de error.',
+            };
+          }
+
+          if (errorSpan?.textContent?.includes('Error')) {
+            return { isError: true, message: errorSpan.textContent.trim() };
+          }
+
+          return { isError: false };
         });
 
-        if (imgError) {
-          throw new Error(
-            '❌ Error al cargar el archivo: Se detectó una imagen de error.',
-          );
+        if (errorDetected.isError) {
+          throw new Error(errorDetected.message);
         }
 
         console.log('✅ Archivo cargado correctamente.');
@@ -170,7 +177,7 @@ export class SireService {
         return Promise.resolve(false);
       }
     } catch (error) {
-      console.error(`🚨 Error en el proceso: ${error.message}`);
+      console.error(`🚨 Error en el proceso: ${error}`);
       return Promise.resolve(false);
     } finally {
       if (browser) {
