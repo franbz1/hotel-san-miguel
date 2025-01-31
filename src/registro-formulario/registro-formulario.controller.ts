@@ -29,7 +29,7 @@ export class RegistroFormularioController {
     );
   }
 
-  //@Auth(Role.ADMINISTRADOR, Role.CAJERO)
+  @Auth(Role.ADMINISTRADOR, Role.CAJERO)
   @Get()
   createLinkTemporal() {
     return this.linkFormularioService.createLinkTemporal();
