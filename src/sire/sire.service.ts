@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HuespedesSireDto } from './dtos/HuespedSireDto';
 import { SIRE_CREDENCIALES } from 'src/common/constants/SireCredenciales';
-import puppeteer from 'puppeteer';
+import puppeteer, { Browser, ElementHandle } from 'puppeteer';
 import { CreateDocService } from 'src/common/create-doc/create-doc.service';
 import { TipoDocumentoSireUpload } from 'src/common/enums/tipoDocSireUpload';
+import { response } from 'express';
 
 @Injectable()
 export class SireService {
@@ -59,7 +60,7 @@ export class SireService {
     }
 
     try {
-      return await this.trySire(
+      return await this.trySirePuppeteer(
         SIRE_CREDENCIALES.passwordSire,
         SIRE_CREDENCIALES.usuarioSire,
         SIRE_CREDENCIALES.tipoDocSireUpload,
@@ -78,16 +79,19 @@ export class SireService {
    * @returns true si se cargó correctamente, false en caso contrario
    * @throws Error si hubo un error en el proceso
    */
-  private async trySire(
+  private async trySirePuppeteer(
     contrasena: string,
     documento: string,
     tipoDocumento: TipoDocumentoSireUpload,
     uriTxt: string,
   ): Promise<boolean> {
-    let browser;
+    let browser: Browser;
     try {
       console.log('🌎 Iniciando navegador...');
-      browser = await puppeteer.launch({ headless: false, slowMo: 100 });
+      browser = await puppeteer.launch({
+        headless: false,
+        args: ['--no-sandbox'],
+      });
       const page = await browser.newPage();
 
       await page.goto(
@@ -127,11 +131,15 @@ export class SireService {
       await page.click('#cargueFormHospedaje\\:tipoCargue\\:1');
 
       await page.waitForSelector('#cargueFormHospedaje\\:upload\\:file');
-      const fileInput = await page.$('#cargueFormHospedaje\\:upload\\:file');
+      const fileInput = (await page.$(
+        '#cargueFormHospedaje\\:upload\\:file',
+      )) as ElementHandle<HTMLInputElement>;
       await fileInput.uploadFile(uriTxt);
 
       await page.waitForSelector('#cargueFormHospedaje\\:upload\\:upload1');
       await page.click('#cargueFormHospedaje\\:upload\\:upload1');
+
+      //Todo: Validar que el archivo se subio correctamente con response de sire
 
       await page.waitForSelector('#cargueFormHospedaje\\:j_id911');
       await page.click('#cargueFormHospedaje\\:j_id911');
@@ -140,7 +148,6 @@ export class SireService {
       try {
         await page.waitForSelector(
           '#messagesForm\\:messagesPanelContentTable img',
-          { timeout: 5000 },
         );
 
         const errorDetected = await page.evaluate(() => {
