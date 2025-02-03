@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HuespedesSireDto } from './dtos/HuespedSireDto';
 import { SIRE_CREDENCIALES } from 'src/common/constants/SireCredenciales';
-import puppeteer, { Browser, ElementHandle } from 'puppeteer';
+import puppeteer, { Browser, ElementHandle, PredefinedNetworkConditions } from 'puppeteer';
 import { CreateDocService } from 'src/common/create-doc/create-doc.service';
 import { TipoDocumentoSireUpload } from 'src/common/enums/tipoDocSireUpload';
-import { response } from 'express';
 
 @Injectable()
 export class SireService {
@@ -94,15 +93,16 @@ export class SireService {
       });
       const page = await browser.newPage();
 
+      const slow3G = PredefinedNetworkConditions['Slow 3G'];
+
+      page.emulateNetworkConditions(slow3G);
+
       await page.goto(
         'https://apps.migracioncolombia.gov.co/sire/pages/empresas/cargueInformacion.jsf',
         {
-          waitUntil: 'networkidle2',
+          waitUntil: 'domcontentloaded',
         },
       );
-
-      await page.waitForSelector('#formLogin\\:numeroDocumento');
-      await page.type('#formLogin\\:numeroDocumento', documento);
 
       await page.waitForSelector('#formLogin\\:tipoDocumento');
       await page.click('#formLogin\\:tipoDocumento');
@@ -110,7 +110,10 @@ export class SireService {
       await page.waitForSelector('#formLogin\\:tipoDocumento');
       await page.select('#formLogin\\:tipoDocumento', tipoDocumento);
 
-      await page.waitForResponse((response) => response.status() === 200);
+      await page.waitForNavigation({ waitUntil: 'domcontentloaded' });
+
+      await page.waitForSelector('#formLogin\\:numeroDocumento');
+      await page.type('#formLogin\\:numeroDocumento', documento);
 
       await page.waitForSelector('#formLogin\\:password');
       await page.type('#formLogin\\:password', contrasena);
@@ -118,7 +121,7 @@ export class SireService {
       await Promise.all([
         page.waitForSelector('#formLogin\\:button1'),
         page.click('#formLogin\\:button1'),
-        page.waitForNavigation({ waitUntil: 'networkidle2' }),
+        page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
       ]);
 
       await page.waitForSelector('#tablehideitemCargarInformacion');
@@ -146,9 +149,7 @@ export class SireService {
 
       // ✅ Verificar si se muestra la imagen de error
       try {
-        await page.waitForSelector(
-          '#messagesForm\\:messagesPanelContentTable img',
-        );
+        await page.waitForSelector('#messagesForm\\:messagesPanelContentTable');
 
         const errorDetected = await page.evaluate(() => {
           const img = document.querySelector(
