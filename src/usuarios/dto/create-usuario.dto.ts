@@ -1,14 +1,12 @@
-import {
-  IsString,
-  MinLength,
-  MaxLength,
-  IsEnum,
-  //Validate,
-} from 'class-validator';
-//import { IsValidRolConstraint } from 'src/common/validators/IsValidRol';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsString, MinLength, MaxLength, IsEnum } from 'class-validator';
 import { Role } from '../entities/rol.enum';
 
 export class CreateUsuarioDto {
+  @ApiProperty({
+    description: 'El nombre del usuario. Debe ser un texto sencillo y corto.',
+    example: 'Juan Pérez',
+  })
   @IsString({
     message: 'El nombre es obligatorio y debe ser un texto',
     always: true,
@@ -23,6 +21,13 @@ export class CreateUsuarioDto {
   })
   public nombre: string;
 
+  @ApiProperty({
+    description: `El rol del usuario. Debe ser uno de los siguientes: ${Object.values(
+      Role,
+    ).join(', ')}`,
+    example: Role.ADMINISTRADOR,
+    enum: Role,
+  })
   @IsEnum(Role, {
     message: `El rol es obligatorio y debe ser uno de los siguientes: ${Object.values(
       Role,
@@ -31,6 +36,11 @@ export class CreateUsuarioDto {
   })
   public rol: Role;
 
+  @ApiProperty({
+    description:
+      'La contraseña del usuario. Debe ser un texto con una longitud mínima de 6 caracteres.',
+    example: 'contraseña123',
+  })
   @IsString({
     message: 'La contraseña es obligatoria y debe ser un texto',
     always: true,
@@ -44,10 +54,4 @@ export class CreateUsuarioDto {
     always: true,
   })
   public password: string;
-
-  /**
-  @IsString()
-  @Validate(IsValidRolConstraint)
-  public rol: string;
-   */
 }
