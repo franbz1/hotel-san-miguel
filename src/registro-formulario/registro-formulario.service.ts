@@ -15,6 +15,7 @@ import { FormularioService } from './formulario/formulario.service';
 import { LinkFormularioService } from './link-formulario/linkFormulario.service';
 import { HuespedesSecundariosService } from 'src/huespedes-secundarios/huespedes-secundarios.service';
 import { HabitacionesService } from 'src/habitaciones/habitaciones.service';
+import { SireService } from 'src/sire/sire.service';
 
 @Injectable()
 export class RegistroFormularioService {
@@ -29,6 +30,7 @@ export class RegistroFormularioService {
     private readonly formularioService: FormularioService,
     private readonly linkFormularioService: LinkFormularioService,
     private readonly huespedesSecundariosService: HuespedesSecundariosService,
+    private readonly sireService: SireService,
   ) {}
 
   private readonly logger = new Logger(RegistroFormularioService.name);
@@ -62,6 +64,8 @@ export class RegistroFormularioService {
         createRegistroFormularioDto,
         transactionResult,
       );
+
+      // TODO: Registrar en Sire pendiente
       return { result: transactionResult, traFormulario };
     }
   }
