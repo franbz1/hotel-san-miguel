@@ -48,6 +48,7 @@ export class RegistroFormularioController {
     );
   }
 
+  @Auth(Role.ADMINISTRADOR, Role.CAJERO)
   @Get()
   //@Auth(Role.ADMINISTRADOR, Role.CAJERO)
   @ApiOperation({ summary: 'Crear enlace temporal para formulario' })
