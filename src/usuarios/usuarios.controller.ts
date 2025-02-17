@@ -15,10 +15,20 @@ import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import { Role } from './entities/rol.enum';
 import { Auth } from 'src/auth/decorators/auth.decorator';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { Usuario } from './entities/usuario.entity'; // Importa la entidad Usuario
 
 /**
  * Controller CRUD para manejar usuarios
  */
+@ApiTags('usuarios') // Agrupa las rutas bajo el tag "usuarios"
 @Auth(Role.ADMINISTRADOR)
 @Controller('usuarios')
 export class UsuariosController {
@@ -31,6 +41,10 @@ export class UsuariosController {
    * @returns Usuario
    */
   @Post()
+  @ApiOperation({ summary: 'Crear un usuario' }) // Resumen de la operación
+  @ApiBody({ type: CreateUsuarioDto }) // Describe el cuerpo de la solicitud (DTO)
+  @ApiResponse({ status: 201, description: 'Usuario creado', type: Usuario }) // Describe la respuesta exitosa (código 201)
+  @ApiResponse({ status: 400, description: 'Bad Request' }) // Ejemplo de otra respuesta (código 400)
   create(@Body() createUsuarioDto: CreateUsuarioDto) {
     return this.usuariosService.create(createUsuarioDto);
   }
@@ -42,6 +56,24 @@ export class UsuariosController {
    * @returns Objeto con los usuarios y metadatos de paginación
    */
   @Get()
+  @ApiOperation({ summary: 'Listar todos los usuarios' })
+  @ApiQuery({
+    name: 'page',
+    description: 'Número de página',
+    required: false,
+    type: Number,
+  }) // Documenta el parámetro 'page'
+  @ApiQuery({
+    name: 'limit',
+    description: 'Límite de resultados por página',
+    required: false,
+    type: Number,
+  }) // Documenta el parámetro 'limit'
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usuarios',
+    type: [Usuario],
+  })
   findAll(@Query() paginationDto: PaginationDto) {
     return this.usuariosService.findAll(paginationDto);
   }
@@ -53,6 +85,14 @@ export class UsuariosController {
    * @returns Usuario
    */
   @Get(':id')
+  @ApiOperation({ summary: 'Obtener un usuario por ID' })
+  @ApiParam({ name: 'id', description: 'ID del usuario', type: Number }) // Documenta el parámetro 'id'
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario encontrado',
+    type: Usuario,
+  })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' }) // Ejemplo de otra respuesta (código 404)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usuariosService.findOne(id);
   }
@@ -65,6 +105,15 @@ export class UsuariosController {
    * @returns Usuario actualizado
    */
   @Patch(':id')
+  @ApiOperation({ summary: 'Actualizar un usuario por ID' })
+  @ApiParam({ name: 'id', description: 'ID del usuario', type: Number })
+  @ApiBody({ type: UpdateUsuarioDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario actualizado',
+    type: Usuario,
+  })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUsuarioDto: UpdateUsuarioDto,
@@ -79,6 +128,10 @@ export class UsuariosController {
    * @returns Usuario eliminado
    */
   @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar un usuario por ID' })
+  @ApiParam({ name: 'id', description: 'ID del usuario', type: Number })
+  @ApiResponse({ status: 200, description: 'Usuario eliminado', type: Usuario })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usuariosService.remove(id);
   }

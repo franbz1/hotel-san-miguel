@@ -8,7 +8,16 @@ import { Role } from 'src/usuarios/entities/rol.enum';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import RequestReturnJWT from 'src/auth/interfaces/requestReturnJWT';
 import { LinkFormularioService } from './link-formulario/linkFormulario.service';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger'; // Importa solo lo necesario
 
+@ApiTags('registro-formulario')
 @Controller('registro-formulario')
 export class RegistroFormularioController {
   constructor(
@@ -19,6 +28,16 @@ export class RegistroFormularioController {
   @Post(':token')
   @Roles(Role.REGISTRO_FORMULARIO)
   @UseGuards(LinkFormularioGuard, RolesGuard)
+  @ApiOperation({ summary: 'Crear un registro de formulario' })
+  @ApiParam({
+    name: 'token',
+    description: 'Token del formulario',
+    type: String,
+  })
+  @ApiBody({ type: CreateRegistroFormularioDto })
+  @ApiResponse({ status: 201, description: 'Registro de formulario creado' }) // No se especifica el tipo porque no se importa la entidad
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @ApiBearerAuth()
   create(
     @Body() createRegistroFormularioDto: CreateRegistroFormularioDto,
     @Req() req: RequestReturnJWT,
@@ -31,6 +50,13 @@ export class RegistroFormularioController {
 
   @Auth(Role.ADMINISTRADOR, Role.CAJERO)
   @Get()
+  //@Auth(Role.ADMINISTRADOR, Role.CAJERO)
+  @ApiOperation({ summary: 'Crear enlace temporal para formulario' })
+  @ApiResponse({
+    status: 200,
+    description: 'Enlace temporal creado',
+    type: String,
+  })
   createLinkTemporal() {
     return this.linkFormularioService.createLinkTemporal();
   }
