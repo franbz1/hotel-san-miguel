@@ -11,6 +11,7 @@ import { FacturasModule } from 'src/facturas/facturas.module';
 import { HuespedesSecundariosModule } from 'src/huespedes-secundarios/huespedes-secundarios.module';
 import { FormularioService } from './formulario/formulario.service';
 import { HabitacionesModule } from 'src/habitaciones/habitaciones.module';
+import { SireModule } from 'src/sire/sire.module';
 
 @Module({
   controllers: [RegistroFormularioController],
@@ -28,6 +29,7 @@ import { HabitacionesModule } from 'src/habitaciones/habitaciones.module';
     FacturasModule,
     HuespedesSecundariosModule,
     HabitacionesModule,
+    SireModule,
   ],
 })
 export class RegistroFormularioModule {}

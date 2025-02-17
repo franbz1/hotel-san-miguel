@@ -7,5 +7,6 @@ import { CreateDocModule } from 'src/common/create-doc/create-doc.module';
   providers: [SireService],
   controllers: [SireController],
   imports: [CreateDocModule],
+  exports: [SireService],
 })
 export class SireModule {}
