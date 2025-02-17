@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HuespedesSireDto } from './dtos/HuespedSireDto';
 import { SIRE_CREDENCIALES } from 'src/common/constants/SireCredenciales';
-import puppeteer, { Browser, ElementHandle, PredefinedNetworkConditions } from 'puppeteer';
+import puppeteer, {
+  ElementHandle,
+  //PredefinedNetworkConditions,
+} from 'puppeteer';
 import { CreateDocService } from 'src/common/create-doc/create-doc.service';
-import { TipoDocumentoSireUpload } from 'src/common/enums/tipoDocSireUpload';
 
 @Injectable()
 export class SireService {
@@ -59,10 +61,10 @@ export class SireService {
     }
 
     try {
-      return await this.trySirePuppeteer(
-        SIRE_CREDENCIALES.passwordSire,
-        SIRE_CREDENCIALES.usuarioSire,
+      return await this.ScrapingUploadFileSire(
         SIRE_CREDENCIALES.tipoDocSireUpload,
+        SIRE_CREDENCIALES.usuarioSire,
+        SIRE_CREDENCIALES.passwordSire,
         fileRute,
       );
     } catch (error) {
@@ -78,54 +80,93 @@ export class SireService {
    * @returns true si se cargó correctamente, false en caso contrario
    * @throws Error si hubo un error en el proceso
    */
-  private async trySirePuppeteer(
-    contrasena: string,
-    documento: string,
-    tipoDocumento: TipoDocumentoSireUpload,
-    uriTxt: string,
+  async ScrapingUploadFileSire(
+    tipoDoc: string,
+    numDoc: string,
+    password: string,
+    fileUri: string,
   ): Promise<boolean> {
-    let browser: Browser;
+    console.log('▶️ iniciando el navegador...');
+
+    const browser = await puppeteer.launch({
+      headless: false,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+
+    const page = await browser.newPage();
+
+    /* console.log('🐌 Emulando conexiones lentas...');
+    const slow = PredefinedNetworkConditions['Slow 3G'];
+    await page.emulateNetworkConditions(slow); */
     try {
-      console.log('🌎 Iniciando navegador...');
-      browser = await puppeteer.launch({
-        headless: false,
-        args: ['--no-sandbox'],
-      });
-      const page = await browser.newPage();
-
-      const slow3G = PredefinedNetworkConditions['Slow 3G'];
-
-      page.emulateNetworkConditions(slow3G);
+      console.log('🌐 navegando al sitio...');
 
       await page.goto(
-        'https://apps.migracioncolombia.gov.co/sire/pages/empresas/cargueInformacion.jsf',
-        {
-          waitUntil: 'domcontentloaded',
-        },
+        'https://apps.migracioncolombia.gov.co/sire/public/login.jsf',
+        { waitUntil: 'networkidle2' },
       );
 
-      await page.waitForSelector('#formLogin\\:tipoDocumento');
-      await page.click('#formLogin\\:tipoDocumento');
+      console.log('🔑 llenando el formulario...');
 
-      await page.waitForSelector('#formLogin\\:tipoDocumento');
-      await page.select('#formLogin\\:tipoDocumento', tipoDocumento);
+      await page.evaluate(
+        (tipoDoc, numDoc) => {
+          const tipoDocInput = document.getElementById(
+            'formLogin:tipoDocumento',
+          ) as HTMLInputElement;
+          const numDocInput = document.getElementById(
+            'formLogin:numeroDocumento',
+          ) as HTMLInputElement;
 
-      await page.waitForNavigation({ waitUntil: 'domcontentloaded' });
+          if (tipoDocInput) tipoDocInput.value = tipoDoc;
+          if (numDocInput) numDocInput.value = numDoc;
 
-      await page.waitForSelector('#formLogin\\:numeroDocumento');
-      await page.type('#formLogin\\:numeroDocumento', documento);
+          const customEvent = new Event('change', {
+            bubbles: true,
+            cancelable: false,
+            composed: false,
+          });
+          const I = document.getElementById('formLogin:numeroDocumento');
+          I?.dispatchEvent(customEvent);
+        },
+        tipoDoc,
+        numDoc,
+      );
+
+      console.log('⌛ Esperando a que se actualice...');
+
+      await page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(
+              'https://apps.migracioncolombia.gov.co/sire/public/login.jsf;jsessionid=',
+            ) && response.status() === 200,
+      );
+
+      await page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(
+              'https://apps.migracioncolombia.gov.co/sire/imagenes/inicioPresentacion4.jpg',
+            ) && response.status() === 200,
+      );
 
       await page.waitForSelector('#formLogin\\:password');
-      await page.type('#formLogin\\:password', contrasena);
+      await page.type('#formLogin\\:password', password);
 
+      await page.waitForSelector('#formLogin\\:button1');
+
+      console.log('🚀 Lanzando el login...');
       await Promise.all([
-        page.waitForSelector('#formLogin\\:button1'),
-        page.click('#formLogin\\:button1'),
-        page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+        await page.click('#formLogin\\:button1'),
+        await page.waitForNavigation({ waitUntil: 'networkidle2' }),
       ]);
 
-      await page.waitForSelector('#tablehideitemCargarInformacion');
-      await page.click('#tablehideitemCargarInformacion');
+      console.log('📄 Navegando al upload del archivo...');
+
+      await page.waitForSelector('#itemCargarInformacion');
+      await page.click('#itemCargarInformacion');
 
       await page.waitForSelector('#HOTEL_lbl');
       await page.click('#HOTEL_lbl');
@@ -133,65 +174,43 @@ export class SireService {
       await page.waitForSelector('#cargueFormHospedaje\\:tipoCargue\\:1');
       await page.click('#cargueFormHospedaje\\:tipoCargue\\:1');
 
+      console.log('📤 Subiendo el archivo...');
+
       await page.waitForSelector('#cargueFormHospedaje\\:upload\\:file');
       const fileInput = (await page.$(
         '#cargueFormHospedaje\\:upload\\:file',
       )) as ElementHandle<HTMLInputElement>;
-      await fileInput.uploadFile(uriTxt);
+      await fileInput.uploadFile(fileUri);
 
       await page.waitForSelector('#cargueFormHospedaje\\:upload\\:upload1');
       await page.click('#cargueFormHospedaje\\:upload\\:upload1');
 
-      //Todo: Validar que el archivo se subio correctamente con response de sire
+      await page.waitForResponse(
+        (response) =>
+          response
+            .url()
+            .includes(
+              'https://apps.migracioncolombia.gov.co/sire/a4j/g/3_3_3.Finalorg/richfaces/renderkit/html/images/ico_clear.gif.jsf',
+            ) && response.status() === 200,
+      );
 
       await page.waitForSelector('#cargueFormHospedaje\\:j_id911');
       await page.click('#cargueFormHospedaje\\:j_id911');
 
-      // ✅ Verificar si se muestra la imagen de error
-      try {
-        await page.waitForSelector('#messagesForm\\:messagesPanelContentTable');
+      // 🚨 Verificación Final: ¿Hubo un error?
+      console.log('🧐 Verificando si hubo errores en la carga...');
 
-        const errorDetected = await page.evaluate(() => {
-          const img = document.querySelector(
-            '#messagesForm\\:messagesPanelContentTable img',
-          );
-          const errorSpan = document.querySelector('span.rich-messages-label');
+      //TODO: Verificar si se obtiene confirmación de subida valida
 
-          if (img?.getAttribute('src')?.includes('/sire/imagenes/fatal.png')) {
-            return {
-              isError: true,
-              message:
-                '❌ Error al cargar el archivo: Se detectó una imagen de error.',
-            };
-          }
-
-          if (errorSpan?.textContent?.includes('Error')) {
-            return { isError: true, message: errorSpan.textContent.trim() };
-          }
-
-          return { isError: false };
-        });
-
-        if (errorDetected.isError) {
-          throw new Error(errorDetected.message);
-        }
-
-        console.log('✅ Archivo cargado correctamente.');
-        return Promise.resolve(true);
-      } catch (error) {
-        console.error(
-          `⚠️ No se encontró la imagen esperada o hubo un error: ${error.message}`,
-        );
-        return Promise.resolve(false);
-      }
-    } catch (error) {
-      console.error(`🚨 Error en el proceso: ${error}`);
-      return Promise.resolve(false);
+      console.log('✅ Archivo cargado correctamente.');
+      return true;
+    } catch (error: any) {
+      console.error(`💥 Error durante la ejecución: ${error.message}`);
+      return false;
     } finally {
-      if (browser) {
-        await browser.close();
-        console.log('🛑 Navegador cerrado.');
-      }
+      console.log('🛑 cierre del navegador...');
+      await page.close();
+      await browser.close();
     }
   }
 }
