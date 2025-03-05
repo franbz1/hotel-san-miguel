@@ -29,7 +29,7 @@ import { Usuario } from './entities/usuario.entity'; // Importa la entidad Usuar
  * Controller CRUD para manejar usuarios
  */
 @ApiTags('usuarios') // Agrupa las rutas bajo el tag "usuarios"
-@Auth(Role.ADMINISTRADOR)
+//@Auth(Role.ADMINISTRADOR)
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}

@@ -8,6 +8,7 @@ import { Habitacion } from '@prisma/client';
 import { CreateHuespedSecundarioWithoutIdDto } from 'src/registro-formulario/dto/CreateHuespedSecundarioWithoutIdDto';
 import { CreateHuespedPrincipalTraDto } from './dto/huespedPrincipalTraDto';
 import { CreateHuespedSecundarioTraDto } from './dto/huespedSecundarioTraDto';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class TraService {
@@ -133,16 +134,39 @@ export class TraService {
 
     try {
       // Para entornos reales, descomentar la línea siguiente
-      // const { data } = await firstValueFrom(this.httpService.post(endpoint, payload, { headers }));
+      const { data } = await firstValueFrom(
+        this.httpService.post(endpoint, JSON.stringify(payload, null, 2), { headers }),
+      );
 
-      // Mock para entornos de desarrollo
+      /*       // Mock para entornos de desarrollo
       const data = { code: 1222 }; // Mock de respuesta
       this.logger.debug(`Mock response from TRA endpoint: ${endpoint}`);
       this.logger.debug(headers);
-      this.logger.debug(payload);
+      this.logger.debug(payload); */
       return data;
     } catch (error) {
-      this.logger.error(`Error in TRA request to ${endpoint}:`, error.message);
+      this.logger.error(
+        `Error in TRA request to ${endpoint}: ${error.message}`,
+      );
+
+      if (error.response) {
+        this.logger.error(`Status: ${error.response.status}`);
+        this.logger.error(
+          `Response data: ${JSON.stringify(error.response.data, null, 2)}`,
+        );
+        this.logger.error(
+          `Response headers: ${JSON.stringify(error.response.headers, null, 2)}`,
+        );
+      } else if (error.request) {
+        // Si la petición fue hecha pero no hubo respuesta
+        this.logger.error(`No response received from ${endpoint}`);
+      } else {
+        // Errores generales
+        this.logger.error(`Unexpected error: ${error.message}`);
+      }
+
+      this.logger.debug(`payload: ${JSON.stringify(payload, null, 2)}`);
+      this.logger.debug(`headers: ${JSON.stringify(headers, null, 2)}`);
       throw new Error('Error al realizar la petición a TRA.');
     }
   }
@@ -152,7 +176,6 @@ export class TraService {
    */
   private createTraHeaders() {
     return {
-      'Content-Type': 'application/json',
       Authorization: `token ${TRA_CREDENCIALES.TOKEN_ESTABLECIMIENTO}`,
     };
   }
