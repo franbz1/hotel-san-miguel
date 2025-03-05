@@ -81,6 +81,9 @@ export class TraService {
     check_out: Date,
   ) {
     const huespedesSecundariosData = [];
+
+    if (!huespedesSecundarios?.length) return [];
+
     const huespedesSecundariosTraDtos = huespedesSecundarios.map((huesped) =>
       this.dtoFactoryService
         .getFactory<
