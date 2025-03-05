@@ -135,7 +135,7 @@ export class TraService {
     try {
       // Para entornos reales, descomentar la línea siguiente
       const { data } = await firstValueFrom(
-        this.httpService.post(endpoint, JSON.stringify(payload, null, 2), { headers }),
+        this.httpService.post(endpoint, payload, { headers }),
       );
 
       /*       // Mock para entornos de desarrollo
