@@ -35,7 +35,7 @@ export class RegistroFormularioController {
     type: String,
   })
   @ApiBody({ type: CreateRegistroFormularioDto })
-  @ApiResponse({ status: 201, description: 'Registro de formulario creado' }) // No se especifica el tipo porque no se importa la entidad
+  @ApiResponse({ status: 201, description: 'Registro de formulario creado' })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @ApiBearerAuth()
   create(
