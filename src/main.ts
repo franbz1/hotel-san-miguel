@@ -22,7 +22,7 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'],
   });
 
-  if (process.env.NODE_ENV === 'development') {
+  if (envs.NODE_ENV === 'development') {
     const config = new DocumentBuilder()
       .setTitle('Hotel San Miguel API')
       .setDescription('Documentación de la API del Hotel San Miguel')

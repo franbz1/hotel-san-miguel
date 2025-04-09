@@ -6,6 +6,7 @@ interface EnvVars {
   DATABASE_URL: string;
   JWT_SECRET: string;
   FRONT_ORIGIN: string;
+  NODE_ENV: 'development' | 'production';
 }
 
 const envSchema = joi
@@ -25,6 +26,7 @@ const envSchema = joi
     FRONT_ORIGIN: joi.string().required().messages({
       'any.required': 'FRONT_ORIGIN is required',
     }),
+    NODE_ENV: joi.string().valid('development', 'production').required(),
   })
   .unknown(true);
 
@@ -41,4 +43,5 @@ export const envs = {
   databaseUrl: envVars.DATABASE_URL,
   jwtSecret: envVars.JWT_SECRET,
   origin: envVars.FRONT_ORIGIN,
+  NODE_ENV: envVars.NODE_ENV,
 };
