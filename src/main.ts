@@ -16,6 +16,12 @@ async function bootstrap() {
     }),
   );
 
+  app.enableCors({
+    origin: envs.origin,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'],
+  });
+
   // Configurar Swagger
   const config = new DocumentBuilder()
     .setTitle('Hotel San Miguel API') // Título de la API
