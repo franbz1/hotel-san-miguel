@@ -1,5 +1,11 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { Body, Controller, Post, UseGuards, Headers } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiHeader,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/loginDto';
 import { AuthGuard } from './guards/auth.guard';
@@ -50,5 +56,52 @@ export class AuthController {
   })
   logout() {
     return this.authService.logout();
+  }
+
+  /**
+   * Método para validar un token JWT
+   * `POST /auth/validate`
+   *
+   * @param authorization - Token JWT en formato Bearer
+   * @returns Objeto con el estado de validación del token y la información del usuario
+   */
+  @Post('validate')
+  @ApiOperation({ summary: 'Validar token JWT' })
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Token JWT en formato Bearer',
+    required: true,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token válido',
+    schema: {
+      type: 'object',
+      properties: {
+        isValid: {
+          type: 'boolean',
+          description: 'Indica si el token es válido',
+        },
+        usuarioId: {
+          type: 'number',
+          description: 'ID del usuario',
+        },
+        nombre: {
+          type: 'string',
+          description: 'Nombre del usuario',
+        },
+        rol: {
+          type: 'string',
+          description: 'Rol del usuario',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token inválido o expirado',
+  })
+  validateToken(@Headers('authorization') auth: string) {
+    return this.authService.validateToken(auth);
   }
 }

@@ -3,6 +3,7 @@ import { UsuariosService } from 'src/usuarios/usuarios.service';
 import { LoginDto } from './dto/loginDto';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
+import { envs } from 'src/config/envs';
 
 @Injectable()
 export class AuthService {
@@ -42,5 +43,40 @@ export class AuthService {
 
   async logout() {
     return 'logout';
+  }
+
+  /**
+   * Valida un token JWT.
+   * @param authHeader - Header de autorización con el token Bearer
+   * @returns Objeto con el estado de validación del token y la información del usuario.
+   * @throws UnauthorizedException si el token es inválido o ha expirado.
+   */
+  async validateToken(authHeader: string) {
+    if (!authHeader) {
+      throw new UnauthorizedException('Token no proporcionado');
+    }
+
+    const [type, token] = authHeader.split(' ');
+
+    if (type !== 'Bearer' || !token) {
+      throw new UnauthorizedException('Formato de token inválido');
+    }
+
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: envs.jwtSecret,
+      });
+
+      const usuario = await this.usuariosService.findOne(payload.id);
+
+      return {
+        isValid: true,
+        usuarioId: usuario.id,
+        nombre: usuario.nombre,
+        rol: usuario.rol,
+      };
+    } catch {
+      throw new UnauthorizedException('Token inválido o expirado');
+    }
   }
 }
