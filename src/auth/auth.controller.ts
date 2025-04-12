@@ -45,17 +45,36 @@ export class AuthController {
    * Método para cerrar la sesión de un usuario autenticado
    * `POST /auth/logout`
    *
-   * @returns Mensaje de éxito o estado de cierre de sesión
+   * @param authorization - Token JWT en formato Bearer
+   * @returns Mensaje de éxito al cerrar sesión
    */
   @UseGuards(AuthGuard)
   @Post('logout')
-  @ApiOperation({ summary: 'Cerrar sesión del usuario' }) // Resumen de la operación
+  @ApiOperation({ summary: 'Cerrar sesión del usuario' })
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Token JWT en formato Bearer',
+    required: true,
+  })
   @ApiResponse({
     status: 200,
     description: 'Sesión cerrada correctamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          description: 'Mensaje de éxito',
+        },
+      },
+    },
   })
-  logout() {
-    return this.authService.logout();
+  @ApiResponse({
+    status: 401,
+    description: 'Token inválido o expirado',
+  })
+  logout(@Headers('authorization') auth: string) {
+    return this.authService.logout(auth);
   }
 
   /**

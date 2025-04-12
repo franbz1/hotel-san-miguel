@@ -4,12 +4,14 @@ import { LoginDto } from './dto/loginDto';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { envs } from 'src/config/envs';
+import { BlacklistService } from './blacklist.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usuariosService: UsuariosService,
     private readonly jwtService: JwtService,
+    private readonly blacklistService: BlacklistService,
   ) {}
 
   /**
@@ -41,8 +43,46 @@ export class AuthService {
     }
   }
 
-  async logout() {
-    return 'logout';
+  /**
+   * Invalida un token JWT agregándolo a la lista negra.
+   * @param authHeader - Header de autorización con el token Bearer
+   * @returns Mensaje de éxito
+   * @throws UnauthorizedException si el token es inválido o ya está en la lista negra
+   */
+  async logout(authHeader: string) {
+    if (!authHeader) {
+      throw new UnauthorizedException('Token no proporcionado');
+    }
+
+    const [type, token] = authHeader.split(' ');
+
+    if (type !== 'Bearer' || !token) {
+      throw new UnauthorizedException('Formato de token inválido');
+    }
+
+    try {
+      // Verificar que el token sea válido antes de invalidarlo
+      await this.jwtService.verifyAsync(token, {
+        secret: envs.jwtSecret,
+      });
+
+      // Verificar si el token ya está en la lista negra
+      const isBlacklisted =
+        await this.blacklistService.isTokenBlacklisted(token);
+      if (isBlacklisted) {
+        throw new UnauthorizedException('Token ya ha sido invalidado');
+      }
+
+      // Agregar el token a la lista negra
+      await this.blacklistService.addToBlacklist(token);
+
+      return { message: 'Sesión cerrada exitosamente' };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Token inválido o expirado');
+    }
   }
 
   /**
@@ -60,6 +100,12 @@ export class AuthService {
 
     if (type !== 'Bearer' || !token) {
       throw new UnauthorizedException('Formato de token inválido');
+    }
+
+    // Verificar si el token está en la lista negra
+    const isBlacklisted = await this.blacklistService.isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      throw new UnauthorizedException('Token ha sido invalidado');
     }
 
     try {

@@ -9,17 +9,25 @@ import { Request } from 'express';
 
 import { envs } from 'src/config/envs';
 import { LinkFormularioService } from 'src/registro-formulario/link-formulario/linkFormulario.service';
+import { BlacklistService } from '../blacklist.service';
 
 @Injectable()
 export class LinkFormularioGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private readonly linkFormularioService: LinkFormularioService,
+    private readonly blacklistService: BlacklistService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = this.getRequest(context);
     const token = this.extractTokenFromParam(request);
+
+    // Verificar si el token está en la lista negra
+    const isBlacklisted = await this.blacklistService.isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      throw new UnauthorizedException('Token ha sido invalidado');
+    }
 
     const payload = await this.validateToken(token);
     await this.validateFormulario(payload.id);
