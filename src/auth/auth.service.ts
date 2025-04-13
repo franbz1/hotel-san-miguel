@@ -1,15 +1,15 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UsuariosService } from 'src/usuarios/usuarios.service';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { LoginDto } from './dto/loginDto';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { envs } from 'src/config/envs';
 import { BlacklistService } from './blacklist.service';
+import { PrismaService } from 'src/common/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly usuariosService: UsuariosService,
+    private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly blacklistService: BlacklistService,
   ) {}
@@ -22,13 +22,31 @@ export class AuthService {
    */
   async login(loginDto: LoginDto) {
     try {
-      const usuario = await this.usuariosService.findByNombre(loginDto.nombre);
+      const usuario = await this.prisma.usuario.findFirst({
+        where: { 
+          nombre: loginDto.nombre,
+          deleted: false
+        },
+        select: {
+          id: true,
+          nombre: true,
+          password: true,
+          rol: true
+        }
+      });
+
+      if (!usuario) {
+        throw new UnauthorizedException('Credenciales inválidas');
+      }
+
       const passwordMatch = await bcrypt.compare(
         loginDto.password,
         usuario.password,
       );
 
-      if (!passwordMatch) throw new UnauthorizedException();
+      if (!passwordMatch) {
+        throw new UnauthorizedException('Credenciales inválidas');
+      }
 
       const payload = { id: usuario.id, rol: usuario.rol };
 
@@ -38,8 +56,12 @@ export class AuthService {
         nombre: usuario.nombre,
         rol: usuario.rol,
       };
-    } catch {
-      throw new UnauthorizedException();
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      console.log(error);
+      throw new BadRequestException('Error al procesar el login');
     }
   }
 
@@ -67,8 +89,7 @@ export class AuthService {
       });
 
       // Verificar si el token ya está en la lista negra
-      const isBlacklisted =
-        await this.blacklistService.isTokenBlacklisted(token);
+      const isBlacklisted = await this.blacklistService.isTokenBlacklisted(token);
       if (isBlacklisted) {
         throw new UnauthorizedException('Token ya ha sido invalidado');
       }
@@ -113,7 +134,21 @@ export class AuthService {
         secret: envs.jwtSecret,
       });
 
-      const usuario = await this.usuariosService.findOne(payload.id);
+      const usuario = await this.prisma.usuario.findFirst({
+        where: { 
+          id: payload.id,
+          deleted: false
+        },
+        select: {
+          id: true,
+          nombre: true,
+          rol: true
+        }
+      });
+
+      if (!usuario) {
+        throw new UnauthorizedException('Usuario no encontrado');
+      }
 
       return {
         isValid: true,
@@ -121,7 +156,10 @@ export class AuthService {
         nombre: usuario.nombre,
         rol: usuario.rol,
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new UnauthorizedException('Token inválido o expirado');
     }
   }
