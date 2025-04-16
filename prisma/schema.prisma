@@ -251,7 +251,7 @@ model Formulario {
   reservaId    Int
   SubidoATra   Boolean @default(false)
   traId        Int?
-  SubidoASubir Boolean @default(false)
+  SubidoASire Boolean @default(false)
 
   LinkFormulario LinkFormulario?
   Huesped        Huesped         @relation(fields: [huespedId], references: [id])

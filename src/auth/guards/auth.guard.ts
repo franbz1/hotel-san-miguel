@@ -29,7 +29,8 @@ export class AuthGuard implements CanActivate {
       }
 
       // Verificar si el token está en la lista negra
-      const isBlacklisted = await this.blacklistService.isTokenBlacklisted(token);
+      const isBlacklisted =
+        await this.blacklistService.isTokenBlacklisted(token);
       if (isBlacklisted) {
         throw new UnauthorizedException('Token ha sido invalidado');
       }
@@ -41,15 +42,15 @@ export class AuthGuard implements CanActivate {
 
         // Verificar que el usuario existe y no está eliminado
         const usuario = await this.prisma.usuario.findFirst({
-          where: { 
+          where: {
             id: payload.id,
-            deleted: false
+            deleted: false,
           },
           select: {
             id: true,
             nombre: true,
-            rol: true
-          }
+            rol: true,
+          },
         });
 
         if (!usuario) {

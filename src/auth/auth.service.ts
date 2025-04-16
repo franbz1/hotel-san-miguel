@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { LoginDto } from './dto/loginDto';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
@@ -23,16 +27,16 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     try {
       const usuario = await this.prisma.usuario.findFirst({
-        where: { 
+        where: {
           nombre: loginDto.nombre,
-          deleted: false
+          deleted: false,
         },
         select: {
           id: true,
           nombre: true,
           password: true,
-          rol: true
-        }
+          rol: true,
+        },
       });
 
       if (!usuario) {
@@ -89,7 +93,8 @@ export class AuthService {
       });
 
       // Verificar si el token ya está en la lista negra
-      const isBlacklisted = await this.blacklistService.isTokenBlacklisted(token);
+      const isBlacklisted =
+        await this.blacklistService.isTokenBlacklisted(token);
       if (isBlacklisted) {
         throw new UnauthorizedException('Token ya ha sido invalidado');
       }
@@ -135,15 +140,15 @@ export class AuthService {
       });
 
       const usuario = await this.prisma.usuario.findFirst({
-        where: { 
+        where: {
           id: payload.id,
-          deleted: false
+          deleted: false,
         },
         select: {
           id: true,
           nombre: true,
-          rol: true
-        }
+          rol: true,
+        },
       });
 
       if (!usuario) {

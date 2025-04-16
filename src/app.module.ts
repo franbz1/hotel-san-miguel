@@ -12,6 +12,7 @@ import { TraModule } from './TRA/tra.module';
 import { SireModule } from './sire/sire.module';
 import { CreateDocModule } from './common/create-doc/create-doc.module';
 import { CreateDocService } from './common/create-doc/create-doc.service';
+import { FormulariosModule } from './formularios/formularios.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { CreateDocService } from './common/create-doc/create-doc.service';
     TraModule,
     SireModule,
     CreateDocModule,
+    FormulariosModule,
   ],
   controllers: [],
   providers: [CreateDocService],

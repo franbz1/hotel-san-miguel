@@ -17,7 +17,9 @@ export class BlacklistService {
       });
       return !!blacklistedToken;
     } catch (error) {
-      throw new BadRequestException('Error al verificar el token en la lista negra');
+      throw new BadRequestException(
+        'Error al verificar el token en la lista negra',
+      );
     }
   }
 
@@ -34,7 +36,9 @@ export class BlacklistService {
       if (error.code === 'P2002') {
         throw new BadRequestException('El token ya está en la lista negra');
       }
-      throw new BadRequestException('Error al agregar el token a la lista negra');
+      throw new BadRequestException(
+        'Error al agregar el token a la lista negra',
+      );
     }
   }
 }
