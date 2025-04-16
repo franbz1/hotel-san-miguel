@@ -3,7 +3,6 @@ import { RegistroFormularioController } from './registro-formulario.controller';
 import { RegistroFormularioService } from './registro-formulario.service';
 import { PrismaModule } from 'src/common/prisma/prisma.module';
 import { TraModule } from 'src/TRA/tra.module';
-import { LinkFormularioService } from './link-formulario/linkFormulario.service';
 import { HuespedesModule } from 'src/huespedes/huespedes.module';
 import { DtoFactoryModule } from 'src/common/factories/dto_Factory/dtoFactoryModule.module';
 import { ReservasModule } from 'src/reservas/reservas.module';
@@ -13,14 +12,11 @@ import { FormularioService } from './formulario/formulario.service';
 import { HabitacionesModule } from 'src/habitaciones/habitaciones.module';
 import { SireModule } from 'src/sire/sire.module';
 import { AuthModule } from 'src/auth/auth.module';
+import { LinkFormularioModule } from 'src/link-formulario/link-formulario.module';
 
 @Module({
   controllers: [RegistroFormularioController],
-  providers: [
-    RegistroFormularioService,
-    LinkFormularioService,
-    FormularioService,
-  ],
+  providers: [RegistroFormularioService, FormularioService],
   imports: [
     PrismaModule,
     TraModule,
@@ -32,6 +28,7 @@ import { AuthModule } from 'src/auth/auth.module';
     HabitacionesModule,
     SireModule,
     AuthModule,
+    LinkFormularioModule,
   ],
 })
 export class RegistroFormularioModule {}

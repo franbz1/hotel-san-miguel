@@ -12,7 +12,7 @@ import { DtoFactoryService } from 'src/common/factories/dto_Factory/dtoFactorySe
 import { ReservasService } from 'src/reservas/reservas.service';
 import { FacturasService } from 'src/facturas/facturas.service';
 import { FormularioService } from './formulario/formulario.service';
-import { LinkFormularioService } from './link-formulario/linkFormulario.service';
+import { LinkFormularioService } from 'src/link-formulario/link-formulario.service';
 import { HuespedesSecundariosService } from 'src/huespedes-secundarios/huespedes-secundarios.service';
 import { HabitacionesService } from 'src/habitaciones/habitaciones.service';
 import { SireService } from 'src/sire/sire.service';

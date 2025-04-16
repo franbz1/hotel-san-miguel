@@ -8,7 +8,7 @@ import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { Request } from 'express';
 
 import { envs } from 'src/config/envs';
-import { LinkFormularioService } from 'src/registro-formulario/link-formulario/linkFormulario.service';
+import { LinkFormularioService } from 'src/link-formulario/link-formulario.service';
 import { BlacklistService } from '../blacklist.service';
 
 @Injectable()

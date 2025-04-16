@@ -1,13 +1,11 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { RegistroFormularioService } from './registro-formulario.service';
 import { CreateRegistroFormularioDto } from './dto/createRegistroFormularioDto';
 import { LinkFormularioGuard } from 'src/auth/guards/linkFormulario.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/usuarios/entities/rol.enum';
-import { Auth } from 'src/auth/decorators/auth.decorator';
 import RequestReturnJWT from 'src/auth/interfaces/requestReturnJWT';
-import { LinkFormularioService } from './link-formulario/linkFormulario.service';
 import {
   ApiTags,
   ApiOperation,
@@ -15,14 +13,13 @@ import {
   ApiBody,
   ApiParam,
   ApiBearerAuth,
-} from '@nestjs/swagger'; // Importa solo lo necesario
+} from '@nestjs/swagger';
 
 @ApiTags('registro-formulario')
 @Controller('registro-formulario')
 export class RegistroFormularioController {
   constructor(
     private readonly registroFormularioService: RegistroFormularioService,
-    private readonly linkFormularioService: LinkFormularioService,
   ) {}
 
   @Post(':token')
@@ -46,18 +43,5 @@ export class RegistroFormularioController {
       createRegistroFormularioDto,
       req.usuario.id,
     );
-  }
-
-  @Auth(Role.ADMINISTRADOR, Role.CAJERO)
-  @Get()
-  //@Auth(Role.ADMINISTRADOR, Role.CAJERO)
-  @ApiOperation({ summary: 'Crear enlace temporal para formulario' })
-  @ApiResponse({
-    status: 200,
-    description: 'Enlace temporal creado',
-    type: String,
-  })
-  createLinkTemporal() {
-    return this.linkFormularioService.createLinkTemporal();
   }
 }
