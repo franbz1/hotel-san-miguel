@@ -235,6 +235,10 @@ model LinkFormulario {
   expirado     Boolean  @default(false)
   vencimiento  DateTime
   formularioId Int?     @unique
+  numeroHabitacion Int
+  fechaInicio      DateTime
+  fechaFin         DateTime
+  costo            Float
 
   formulario Formulario? @relation(fields: [formularioId], references: [id])
 
@@ -246,12 +250,12 @@ model LinkFormulario {
 }
 
 model Formulario {
-  id           Int     @id @default(autoincrement())
-  huespedId    Int
-  reservaId    Int
-  SubidoATra   Boolean @default(false)
-  traId        Int?
-  SubidoASire Boolean @default(false)
+  id               Int      @id @default(autoincrement())
+  huespedId        Int
+  reservaId        Int
+  SubidoATra       Boolean  @default(false)
+  traId            Int?
+  SubidoASire      Boolean  @default(false)
 
   LinkFormulario LinkFormulario?
   Huesped        Huesped         @relation(fields: [huespedId], references: [id])

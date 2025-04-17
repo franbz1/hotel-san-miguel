@@ -36,6 +36,9 @@ export class FormulariosService {
     const formularios = await this.prisma.formulario.findMany({
       skip: (page - 1) * limit,
       take: limit,
+      include: {
+        LinkFormulario: true,
+      },
     });
 
     return {
@@ -50,6 +53,9 @@ export class FormulariosService {
    * @returns El formulario encontrado.
    */
   async findOne(id: number) {
+    if (!id)
+      throw new BadRequestException('El ID del formulario es requerido.');
+
     try {
       return await this.prisma.formulario.findFirstOrThrow({
         where: { id, deleted: false },

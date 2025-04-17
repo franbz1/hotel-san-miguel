@@ -1,14 +1,25 @@
-import { Controller, Get, Post, Delete, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Query,
+  Body,
+} from '@nestjs/common';
 import { LinkFormularioService } from './link-formulario.service';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import { Role } from 'src/usuarios/entities/rol.enum';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
+import { CreateLinkFormularioDto } from './dto/CreateLinkFormularioDto';
 
 @ApiTags('link-formulario')
 @Controller('link-formulario')
@@ -32,8 +43,10 @@ export class LinkFormularioController {
     status: 401,
     description: 'No autorizado',
   })
-  createLinkTemporal() {
-    return this.linkFormularioService.createLinkTemporal();
+  createLinkTemporal(@Body() createLinkFormularioDto: CreateLinkFormularioDto) {
+    return this.linkFormularioService.createLinkTemporal(
+      createLinkFormularioDto,
+    );
   }
 
   /**
@@ -92,5 +105,37 @@ export class LinkFormularioController {
   })
   remove(@Param('id') id: string) {
     return this.linkFormularioService.remove(+id);
+  }
+
+  /**
+   * Obtiene todos los links de formulario con paginación.
+   * @param paginationDto Datos de paginación.
+   * @returns Lista de links con metadatos de paginación.
+   */
+  @Get()
+  @Auth(Role.ADMINISTRADOR, Role.CAJERO)
+  @ApiOperation({ summary: 'Obtener todos los links de formulario' })
+  @ApiQuery({
+    name: 'page',
+    required: true,
+    type: Number,
+    description: 'Número de página',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: true,
+    type: Number,
+    description: 'Límite de elementos por página',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de links obtenida exitosamente',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado',
+  })
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.linkFormularioService.findAll(paginationDto);
   }
 }
