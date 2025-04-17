@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { EstadoHabitacion } from '../../common/enums/estadosHbaitacion.enum';
 import { TipoHabitacion } from '../../common/enums/tipoHabitacion.enum';
+import { Reserva } from 'src/reservas/entities/reserva.entity';
 
 export class Habitacion {
   @ApiProperty({
@@ -34,4 +35,10 @@ export class Habitacion {
     example: 150.5,
   })
   precio_por_noche: number;
+
+  @ApiProperty({
+    description: 'Reservas asociadas a la habitación',
+    type: [Reserva],
+  })
+  reservas: Reserva[];
 }
