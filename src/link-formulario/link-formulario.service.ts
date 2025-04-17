@@ -170,4 +170,39 @@ export class LinkFormularioService {
       if (error.code === 'P2025') throw notFoundError(id);
     }
   }
+
+  /**
+   * Regenera un link temporal para el formulario de reserva, el cual contiene un jwt valido
+   * @param id ID del link
+   * @throws NotFoundException si el link no existe
+   * @returns Link temporal
+   */
+  async regenerateLink(id: number) {
+    const ruta = `${DOMAIN_URL}/registro-formulario/`;
+
+    try {
+      const link = await this.findOne(id);
+
+      const payload = {
+        id: link.id,
+        rol: Role.REGISTRO_FORMULARIO,
+      };
+
+      const token = await this.jwtService.signAsync(payload, {
+        expiresIn: '1h',
+      });
+
+      const updatedLink = await this.prisma.linkFormulario.update({
+        where: { id },
+        data: {
+          url: `${ruta}${token}`,
+        },
+      });
+
+      return updatedLink.url;
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
+  }
 }

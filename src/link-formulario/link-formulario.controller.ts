@@ -138,4 +138,33 @@ export class LinkFormularioController {
   findAll(@Query() paginationDto: PaginationDto) {
     return this.linkFormularioService.findAll(paginationDto);
   }
+
+  /**
+   * Regenera un link temporal para el formulario de reserva
+   * @param id ID del link
+   * @returns Link temporal
+   */
+  @Post(':id/regenerate')
+  @Auth(Role.ADMINISTRADOR, Role.CAJERO)
+  @ApiOperation({ summary: 'Regenerar link temporal para formulario' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del link',
+    type: Number,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Link regenerado exitosamente',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Link no encontrado',
+  })
+  regenerateLink(@Param('id') id: string) {
+    return this.linkFormularioService.regenerateLink(+id);
+  }
 }
