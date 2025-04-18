@@ -134,15 +134,15 @@ export class TraService {
 
     try {
       // Para entornos reales, descomentar la línea siguiente
-      const { data } = await firstValueFrom(
-        this.httpService.post(endpoint, payload, { headers }),
-      );
+      // const { data } = await firstValueFrom(
+      //   this.httpService.post(endpoint, payload, { headers }),
+      // );
 
-      /*       // Mock para entornos de desarrollo
+       // Mock para entornos de desarrollo
       const data = { code: 1222 }; // Mock de respuesta
       this.logger.debug(`Mock response from TRA endpoint: ${endpoint}`);
       this.logger.debug(headers);
-      this.logger.debug(payload); */
+      this.logger.debug(payload);
       return data;
     } catch (error) {
       this.logger.error(
