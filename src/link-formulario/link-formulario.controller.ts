@@ -6,6 +6,7 @@ import {
   Param,
   Query,
   Body,
+  UseGuards,
 } from '@nestjs/common';
 import { LinkFormularioService } from './link-formulario.service';
 import { Auth } from 'src/auth/decorators/auth.decorator';
@@ -20,6 +21,9 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { CreateLinkFormularioDto } from './dto/CreateLinkFormularioDto';
+import { LinkFormularioGuard } from 'src/auth/guards/linkFormulario.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 @ApiTags('link-formulario')
 @Controller('link-formulario')
@@ -166,5 +170,27 @@ export class LinkFormularioController {
   })
   regenerateLink(@Param('id') id: string) {
     return this.linkFormularioService.regenerateLink(+id);
+  }
+
+  @Get('validate-token/:token')
+  @Roles(Role.REGISTRO_FORMULARIO)
+  @UseGuards(LinkFormularioGuard, RolesGuard)
+  @ApiOperation({ summary: 'Validar token' })
+  @ApiParam({
+    name: 'token',
+    description: 'Token',
+    type: String,
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    description: 'Token válido',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado',
+  })
+  validateToken(@Param('token') token: string) {
+    return this.linkFormularioService.validateToken(token);
   }
 }

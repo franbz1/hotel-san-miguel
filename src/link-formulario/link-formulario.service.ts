@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { DOMAIN_URL } from 'src/common/constants/domain';
+import { FRONTEND_URL } from 'src/common/constants/domain';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { Role } from 'src/usuarios/entities/rol.enum';
 import { UpdateLinkFormularioDto } from './dto/UpdateLinkFormularioDto';
@@ -22,7 +22,7 @@ export class LinkFormularioService {
    * @returns Link temporal
    */
   async createLinkTemporal(createLinkFormularioDto: CreateLinkFormularioDto) {
-    const ruta = `${DOMAIN_URL}/registro-formulario/`;
+    const ruta = `${FRONTEND_URL}/registro-formulario/`;
 
     const vencimiento = new Date(Date.now() + 3600 * 1000);
 
@@ -177,7 +177,7 @@ export class LinkFormularioService {
    * @returns Link temporal
    */
   async regenerateLink(id: number) {
-    const ruta = `${DOMAIN_URL}/registro-formulario/`;
+    const ruta = `${FRONTEND_URL}/registro-formulario/`;
 
     try {
       const link = await this.findOne(id);
@@ -202,6 +202,21 @@ export class LinkFormularioService {
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);
       throw error;
+    }
+  }
+
+  /**
+   * Valida un token
+   * @param token Token a validar
+   * @returns Payload del token
+   * @throws UnauthorizedException si el token no es válido o expirado
+   */
+  async validateToken(token: string) {
+    try {
+      const payload = await this.jwtService.verifyAsync(token);
+      return payload;
+    } catch (error) {
+      throw new UnauthorizedException('Token inválido o expirado');
     }
   }
 }
