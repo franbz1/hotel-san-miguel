@@ -24,8 +24,10 @@ import {
   ApiBody,
   ApiParam,
   ApiQuery,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { Habitacion } from './entities/habitacion.entity'; // Importa la entidad Habitacion
+import { RangoFechasDto } from 'src/auth/dto/rangoFechasDto';
 
 @ApiTags('habitaciones') // Agrupa las rutas bajo el tag "habitaciones"
 @UseGuards(AuthGuard) // Usa el guard de autenticación
@@ -141,5 +143,37 @@ export class HabitacionesController {
   @ApiResponse({ status: 404, description: 'Habitación no encontrada' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.habitacionesService.remove(id);
+  }
+
+  @Roles(Role.ADMINISTRADOR, Role.CAJERO)
+  @UseGuards(AuthGuard)
+  @Post('disponibles')
+  @ApiOperation({
+    summary: 'Obtener habitaciones disponibles entre dos fechas',
+    description:
+      'Obtiene las habitaciones disponibles entre dos fechas. Las fechas se validan solo por día, sin considerar la hora exacta. La fecha de inicio debe ser igual o posterior al día actual, y la fecha de fin debe ser posterior a la fecha de inicio.',
+  })
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'Token de autenticación',
+    required: true,
+  })
+  @ApiBody({
+    type: RangoFechasDto,
+    description:
+      'Rango de fechas para buscar habitaciones disponibles. Las fechas se validan solo por día.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de habitaciones disponibles',
+    type: [Habitacion],
+  })
+  getHabitacionesDisponiblesEntreFechas(
+    @Body() rangoFechasDto: RangoFechasDto,
+  ) {
+    return this.habitacionesService.getHabitacionesDisponiblesEntreFechas(
+      rangoFechasDto.fechaInicio,
+      rangoFechasDto.fechaFin,
+    );
   }
 }

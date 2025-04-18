@@ -149,4 +149,56 @@ export class HabitacionesService {
       throw error;
     }
   }
+
+  /**
+   * Obtiene las habitaciones disponibles entre dos fechas.
+   * @param fechaInicio Fecha de inicio.
+   * @param fechaFin Fecha de fin.
+   * @returns Las habitaciones disponibles.
+   */
+  async getHabitacionesDisponiblesEntreFechas(
+    fechaInicio: Date,
+    fechaFin: Date,
+  ) {
+    try {
+      // Obtener todas las habitaciones que no estén eliminadas y que no tengan reservas
+      // que se superpongan con el rango de fechas solicitado
+      const habitacionesDisponibles = await this.prisma.habitacion.findMany({
+        where: {
+          deleted: false,
+          // Usamos 'none' para excluir las habitaciones con reservas que se superponen al periodo solicitado
+          reservas: {
+            none: {
+              deleted: false,
+              // Una reserva se superpone si:
+              // - Su fecha de inicio es anterior o igual a la fecha de fin solicitada Y
+              // - Su fecha de fin es posterior o igual a la fecha de inicio solicitada
+              AND: [
+                { fecha_inicio: { lte: fechaFin } },
+                { fecha_fin: { gte: fechaInicio } },
+              ],
+            },
+          },
+        },
+        // Incluimos información relevante para mostrar al usuario
+        select: {
+          id: true,
+          numero_habitacion: true,
+          tipo: true,
+          estado: true,
+          precio_por_noche: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        // Ordenamos por número de habitación para facilitar la visualización
+        orderBy: {
+          numero_habitacion: 'asc',
+        },
+      });
+
+      return habitacionesDisponibles;
+    } catch (error) {
+      throw error;
+    }
+  }
 }

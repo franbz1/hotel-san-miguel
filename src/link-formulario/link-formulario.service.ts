@@ -5,7 +5,7 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { Role } from 'src/usuarios/entities/rol.enum';
 import { UpdateLinkFormularioDto } from './dto/UpdateLinkFormularioDto';
 import notFoundError from 'src/common/errors/notfoundError';
-import { EstadosHabitacion, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 import { CreateLinkFormularioDto } from './dto/CreateLinkFormularioDto';
@@ -32,7 +32,6 @@ export class LinkFormularioService {
       habitacion = await this.prisma.habitacion.findFirstOrThrow({
         where: {
           numero_habitacion: createLinkFormularioDto.numeroHabitacion,
-          estado: EstadosHabitacion.LIBRE,
           deleted: false,
         },
       });
