@@ -9,12 +9,14 @@ import { Prisma } from '@prisma/client';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 import { CreateLinkFormularioDto } from './dto/CreateLinkFormularioDto';
+import { BlacklistService } from 'src/auth/blacklist.service';
 
 @Injectable()
 export class LinkFormularioService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly blacklistService: BlacklistService,
   ) {}
 
   /**
@@ -132,6 +134,12 @@ export class LinkFormularioService {
         where: { id },
       });
 
+      const { url } = link;
+
+      const token = url.split('/').pop();
+
+      this.blacklistService.addToBlacklist(token);
+
       return link;
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);
@@ -182,6 +190,12 @@ export class LinkFormularioService {
     try {
       const link = await this.findOne(id);
 
+      const { url } = link;
+
+      const oldToken = url.split('/').pop();
+
+      this.blacklistService.addToBlacklist(oldToken);
+
       const payload = {
         id: link.id,
         rol: Role.REGISTRO_FORMULARIO,
@@ -198,7 +212,7 @@ export class LinkFormularioService {
         },
       });
 
-      return updatedLink.url;
+      return updatedLink;
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);
       throw error;
@@ -214,6 +228,13 @@ export class LinkFormularioService {
   async validateToken(token: string) {
     try {
       const payload = await this.jwtService.verifyAsync(token);
+
+      const blacklisted = await this.blacklistService.isTokenBlacklisted(token);
+
+      if (blacklisted) {
+        throw new UnauthorizedException('Token inválido o expirado');
+      }
+
       return payload;
     } catch (error) {
       throw new UnauthorizedException('Token inválido o expirado');
