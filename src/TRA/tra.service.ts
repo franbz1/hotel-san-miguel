@@ -23,8 +23,8 @@ export class TraService {
   /**
    * Procesa el registro en TRA para el huésped principal y secundarios.
    */
-  async postTra(registroFormularioDto: CreateRegistroFormularioDto) {
-    const { habitacionId, huespedes_secundarios, fecha_inicio, fecha_fin } =
+  async postTra(registroFormularioDto: CreateRegistroFormularioDto, habitacionId: number) {
+    const { huespedes_secundarios, fecha_inicio, fecha_fin } =
       registroFormularioDto;
 
     const habitacion = await this.habitacionesService.findOne(habitacionId);

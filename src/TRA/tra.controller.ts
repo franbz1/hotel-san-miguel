@@ -27,6 +27,6 @@ export class TraController {
   })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   test(@Body() createRegistroFormularioDto: CreateRegistroFormularioDto) {
-    return this.traService.postTra(createRegistroFormularioDto);
+    return this.traService.postTra(createRegistroFormularioDto, 1);
   }
 }

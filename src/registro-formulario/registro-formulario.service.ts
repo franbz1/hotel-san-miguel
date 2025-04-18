@@ -41,9 +41,14 @@ export class RegistroFormularioService {
   ) {
     const huesped = await this.getOrCreateHuesped(createRegistroFormularioDto);
 
+    const habitacion = await this.habitacionesService.findByNumeroHabitacion(
+      createRegistroFormularioDto.numero_habitacion,
+    );
+
     const reserva = this.createReservaDto(
       createRegistroFormularioDto,
       huesped.id,
+      habitacion.id,
     );
     const factura = this.createFacturaDto(
       createRegistroFormularioDto,
@@ -80,10 +85,11 @@ export class RegistroFormularioService {
   private createReservaDto(
     dto: CreateRegistroFormularioDto,
     huespedId: number,
+    habitacionId: number,
   ) {
     return this.dtoFactoryService
       .getFactory<CreateRegistroFormularioDto, CreateReservaDto>('reserva')
-      .create(dto, huespedId);
+      .create(dto, huespedId, habitacionId);
   }
 
   private createFacturaDto(
@@ -184,6 +190,7 @@ export class RegistroFormularioService {
     try {
       const traData = await this.traService.postTra(
         createRegistroFormularioDto,
+        result.reservaCreated.habitacionId,
       );
 
       return this.prisma.formulario.update({

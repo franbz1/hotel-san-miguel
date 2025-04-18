@@ -9,6 +9,7 @@ export class ReservaTraDtoFactory
   create(
     inputDto: CreateRegistroFormularioDto,
     huespedId: number,
+    habitacionId: number,
   ): CreateReservaDto {
     const {
       fecha_inicio,
@@ -18,7 +19,6 @@ export class ReservaTraDtoFactory
       ciudad_residencia,
       motivo_viaje,
       costo,
-      habitacionId,
       numero_acompaniantes,
     } = inputDto;
 

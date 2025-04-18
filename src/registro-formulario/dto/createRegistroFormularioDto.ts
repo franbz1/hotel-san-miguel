@@ -61,7 +61,7 @@ export class CreateRegistroFormularioDto {
   })
   @IsPositive()
   @Type(() => Number)
-  habitacionId: number;
+  numero_habitacion: number;
 
   @ApiProperty({
     description: 'Número de acompañantes en la reserva',
