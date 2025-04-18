@@ -130,8 +130,9 @@ export class LinkFormularioService {
    */
   async remove(id: number) {
     try {
-      const link = await this.prisma.linkFormulario.delete({
+      const link = await this.prisma.linkFormulario.update({
         where: { id },
+        data: { deleted: true },
       });
 
       const { url } = link;
