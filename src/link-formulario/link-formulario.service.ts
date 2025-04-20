@@ -211,6 +211,7 @@ export class LinkFormularioService {
         data: {
           url: `${ruta}${token}`,
           vencimiento: new Date(Date.now() + 3600 * 1000),
+          expirado: false,
         },
       });
 
