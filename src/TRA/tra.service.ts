@@ -23,7 +23,10 @@ export class TraService {
   /**
    * Procesa el registro en TRA para el huésped principal y secundarios.
    */
-  async postTra(registroFormularioDto: CreateRegistroFormularioDto, habitacionId: number) {
+  async postTra(
+    registroFormularioDto: CreateRegistroFormularioDto,
+    habitacionId: number,
+  ) {
     const { huespedes_secundarios, fecha_inicio, fecha_fin } =
       registroFormularioDto;
 
@@ -138,7 +141,7 @@ export class TraService {
       //   this.httpService.post(endpoint, payload, { headers }),
       // );
 
-       // Mock para entornos de desarrollo
+      // Mock para entornos de desarrollo
       const data = { code: 1222 }; // Mock de respuesta
       this.logger.debug(`Mock response from TRA endpoint: ${endpoint}`);
       this.logger.debug(headers);

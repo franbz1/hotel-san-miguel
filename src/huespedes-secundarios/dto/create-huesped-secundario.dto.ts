@@ -118,17 +118,6 @@ export class CreateHuespedSecundarioDto {
   ciudad_procedencia: string;
 
   @ApiProperty({
-    description: 'Lugar de nacimiento del huésped secundario',
-    example: 'Cali',
-  })
-  @IsString({
-    message: 'El lugar de nacimiento es obligatorio y debe ser un texto',
-  })
-  @MinLength(2)
-  @MaxLength(50)
-  lugar_nacimiento: string;
-
-  @ApiProperty({
     description: 'Fecha de nacimiento del huésped secundario',
     example: '1990-01-01T00:00:00.000Z',
   })

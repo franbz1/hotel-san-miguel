@@ -86,7 +86,6 @@ model HuespedSecundario {
   departamento_residencia String
   ciudad_residencia       String
   ciudad_procedencia      String
-  lugar_nacimiento        String
   fecha_nacimiento        DateTime
   nacionalidad            String
   ocupacion               String

@@ -28,6 +28,7 @@ export class HuespedPrincipalTraDtoFactory
       fecha_fin,
       costo,
       numero_acompaniantes,
+      ciudad_procedencia,
     } = inputDto;
 
     const motivoViajeText = () => {
@@ -78,7 +79,7 @@ export class HuespedPrincipalTraDtoFactory
       nombres,
       apellidos: `${primer_apellido} ${segundo_apellido}`,
       cuidad_residencia: ciudad_residencia,
-      cuidad_procedencia: ciudad_residencia,
+      cuidad_procedencia: ciudad_procedencia,
       numero_habitacion: habitacion.id.toString(),
       motivo: motivoViajeText().toString(),
       numero_acompanantes: numero_acompaniantes.toString(),

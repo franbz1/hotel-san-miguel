@@ -120,6 +120,15 @@ export class CreateRegistroFormularioDto {
   nombres: string;
 
   @ApiProperty({
+    description: 'Ciudad de procedencia del huésped',
+    example: 'Medellín',
+  })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  ciudad_procedencia: string;
+
+  @ApiProperty({
     description: 'País de residencia del huésped',
     example: 'Colombia',
   })
