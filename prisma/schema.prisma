@@ -51,7 +51,6 @@ model Huesped {
   segundo_apellido        String?
   nombres                 String
   pais_residencia         String
-  departamento_residencia String
   ciudad_residencia       String
   lugar_nacimiento        String
   fecha_nacimiento        DateTime
@@ -83,7 +82,6 @@ model HuespedSecundario {
   segundo_apellido        String?
   nombres                 String
   pais_residencia         String
-  departamento_residencia String
   ciudad_residencia       String
   ciudad_procedencia      String
   fecha_nacimiento        DateTime
@@ -146,7 +144,6 @@ model Reserva {
   fecha_fin                DateTime
   estado                   EstadosReserva
   pais_procedencia         String
-  departamento_procedencia String
   ciudad_procedencia       String
   pais_destino             String
   motivo_viaje             MotivosViajes

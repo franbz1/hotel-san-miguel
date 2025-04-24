@@ -61,18 +61,6 @@ export class CreateReservaDto {
   pais_procedencia: string;
 
   @ApiProperty({
-    description: 'Departamento de procedencia',
-    example: 'Antioquia',
-  })
-  @IsString({
-    message:
-      'El departamento de la procedencia es obligatorio y debe ser una cadena',
-  })
-  @MinLength(2)
-  @MaxLength(50)
-  departamento_procedencia: string;
-
-  @ApiProperty({
     description: 'Ciudad de procedencia',
     example: 'Medellín',
   })

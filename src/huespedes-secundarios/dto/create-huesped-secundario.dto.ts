@@ -85,17 +85,6 @@ export class CreateHuespedSecundarioDto {
   pais_residencia: string;
 
   @ApiProperty({
-    description: 'Departamento de residencia del huésped secundario',
-    example: 'Antioquia',
-  })
-  @IsString({
-    message: 'El departamento de residencia es obligatorio y debe ser un texto',
-  })
-  @MinLength(2)
-  @MaxLength(50)
-  departamento_residencia: string;
-
-  @ApiProperty({
     description: 'Ciudad de residencia del huésped secundario',
     example: 'Medellín',
   })
