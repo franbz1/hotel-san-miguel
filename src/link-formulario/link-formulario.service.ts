@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { FRONTEND_URL } from 'src/common/constants/domain';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -183,6 +187,7 @@ export class LinkFormularioService {
    * Regenera un link temporal para el formulario de reserva, el cual contiene un jwt valido
    * @param id ID del link
    * @throws NotFoundException si el link no existe
+   * @throws BadRequestException si el link ya ha sido completado
    * @returns Link temporal
    */
   async regenerateLink(id: number) {
@@ -190,6 +195,10 @@ export class LinkFormularioService {
 
     try {
       const link = await this.findOne(id);
+
+      if (link.completado) {
+        throw new BadRequestException('El link ya ha sido completado');
+      }
 
       const { url } = link;
 
@@ -239,7 +248,7 @@ export class LinkFormularioService {
       }
 
       return payload;
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Token inválido o expirado');
     }
   }
