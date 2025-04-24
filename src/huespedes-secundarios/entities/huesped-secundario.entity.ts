@@ -47,16 +47,22 @@ export class HuespedSecundario {
   pais_residencia: string;
 
   @ApiProperty({
-    description: 'Departamento de residencia del huésped secundario',
-    example: 'Antioquia',
-  })
-  departamento_residencia: string;
-
-  @ApiProperty({
     description: 'Ciudad de residencia del huésped secundario',
     example: 'Medellín',
   })
   ciudad_residencia: string;
+
+  @ApiProperty({
+    description: 'País de procedencia del huésped secundario',
+    example: 'Colombia',
+  })
+  pais_procedencia: string;
+
+  @ApiProperty({
+    description: 'Ciudad de procedencia del huésped secundario',
+    example: 'Medellín',
+  })
+  ciudad_procedencia: string;
 
   @ApiProperty({
     description: 'Lugar de nacimiento del huésped secundario',

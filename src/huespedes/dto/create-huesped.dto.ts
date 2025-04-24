@@ -101,6 +101,30 @@ export class CreateHuespedDto {
   ciudad_residencia: string;
 
   @ApiProperty({
+    description: 'País de procedencia del huésped',
+    example: 'Colombia',
+  })
+  @IsString({
+    message: 'El país de procedencia es obligatorio y debe ser un texto',
+    always: true,
+  })
+  @MinLength(2)
+  @MaxLength(50)
+  pais_procedencia: string;
+
+  @ApiProperty({
+    description: 'Ciudad de procedencia del huésped',
+    example: 'Medellín',
+  })
+  @IsString({
+    message: 'La ciudad de procedencia es obligatoria y debe ser un texto',
+    always: true,
+  })
+  @MinLength(2)
+  @MaxLength(50)
+  ciudad_procedencia: string;
+
+  @ApiProperty({
     description: 'Lugar de nacimiento del huésped',
     example: 'Bogotá',
   })

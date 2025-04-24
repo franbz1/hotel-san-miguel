@@ -46,22 +46,16 @@ export class Huesped {
   pais_recidencia: string;
 
   @ApiProperty({
-    description: 'Departamento de residencia del huésped',
-    example: 'Antioquia',
-  })
-  departamento_recidencia: string;
-
-  @ApiProperty({
     description: 'Ciudad de residencia del huésped',
     example: 'Medellín',
   })
   ciudad_recidencia: string;
 
   @ApiProperty({
-    description: 'Lugar de nacimiento del huésped',
-    example: 'Bogotá',
+    description: 'País de procedencia del huésped',
+    example: 'Colombia',
   })
-  lugar_nacimiento: string;
+  pais_procedencia: string;
 
   @ApiProperty({
     description: 'Fecha de nacimiento del huésped',

@@ -52,6 +52,8 @@ model Huesped {
   nombres                 String
   pais_residencia         String
   ciudad_residencia       String
+  pais_procedencia String
+  ciudad_procedencia String
   lugar_nacimiento        String
   fecha_nacimiento        DateTime
   nacionalidad            String
@@ -83,6 +85,7 @@ model HuespedSecundario {
   nombres                 String
   pais_residencia         String
   ciudad_residencia       String
+  pais_procedencia String
   ciudad_procedencia      String
   fecha_nacimiento        DateTime
   nacionalidad            String

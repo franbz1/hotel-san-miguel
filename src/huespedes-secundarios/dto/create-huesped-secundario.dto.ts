@@ -96,6 +96,17 @@ export class CreateHuespedSecundarioDto {
   ciudad_residencia: string;
 
   @ApiProperty({
+    description: 'País de procedencia del huésped secundario',
+    example: 'Colombia',
+  })
+  @IsString({
+    message: 'El pais de procedencia es obligatorio y debe ser un texto',
+  })
+  @MinLength(2)
+  @MaxLength(50)
+  pais_procedencia: string;
+
+  @ApiProperty({
     description: 'Ciudad de procedencia del huésped secundario',
     example: 'Bogotá',
   })
