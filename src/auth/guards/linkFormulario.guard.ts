@@ -23,7 +23,8 @@ export class LinkFormularioGuard implements CanActivate {
     const request = this.getRequest(context);
     const token = this.extractTokenFromParam(request);
 
-    // Verificar si el token está en la lista negra
+    await this.validateLinkCompletado(token);
+
     const isBlacklisted = await this.blacklistService.isTokenBlacklisted(token);
     if (isBlacklisted) {
       throw new UnauthorizedException('Token ha sido invalidado');
@@ -89,6 +90,14 @@ export class LinkFormularioGuard implements CanActivate {
       throw new UnauthorizedException('Formulario expirado');
     }
 
+    if (formulario.completado) {
+      throw new UnauthorizedException('Formulario ya completado');
+    }
+  }
+
+  private async validateLinkCompletado(token: string): Promise<void> {
+    const payload = await this.validateToken(token);
+    const formulario = await this.linkFormularioService.findOne(payload.id);
     if (formulario.completado) {
       throw new UnauthorizedException('Formulario ya completado');
     }
