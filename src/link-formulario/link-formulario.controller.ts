@@ -172,6 +172,11 @@ export class LinkFormularioController {
     return this.linkFormularioService.regenerateLink(+id);
   }
 
+  /**
+   * Valida el token de un formulario y devuelve su payload
+   * @param token Token JWT del formulario
+   * @returns Payload del token si es válido
+   */
   @Get('validate-token/:token')
   @Roles(Role.REGISTRO_FORMULARIO)
   @UseGuards(LinkFormularioGuard, RolesGuard)
@@ -188,7 +193,8 @@ export class LinkFormularioController {
   })
   @ApiResponse({
     status: 401,
-    description: 'No autorizado',
+    description:
+      'No autorizado - Token inválido, expirado, en lista negra o formulario ya completado',
   })
   validateToken(@Param('token') token: string) {
     return this.linkFormularioService.validateToken(token);

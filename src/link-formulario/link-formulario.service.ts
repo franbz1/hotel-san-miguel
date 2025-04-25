@@ -232,22 +232,15 @@ export class LinkFormularioService {
   }
 
   /**
-   * Valida un token
+   * Retorna el payload del token
    * @param token Token a validar
    * @returns Payload del token
-   * @throws UnauthorizedException si el token no es válido o expirado
    */
   async validateToken(token: string) {
+    // The LinkFormularioGuard already does the complete validation,
+    // so we just return the payload here
     try {
-      const payload = await this.jwtService.verifyAsync(token);
-
-      const blacklisted = await this.blacklistService.isTokenBlacklisted(token);
-
-      if (blacklisted) {
-        throw new UnauthorizedException('Token inválido o expirado');
-      }
-
-      return payload;
+      return await this.jwtService.verifyAsync(token);
     } catch {
       throw new UnauthorizedException('Token inválido o expirado');
     }

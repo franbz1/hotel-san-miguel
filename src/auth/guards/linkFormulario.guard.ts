@@ -10,6 +10,7 @@ import { Request } from 'express';
 import { envs } from 'src/config/envs';
 import { LinkFormularioService } from 'src/link-formulario/link-formulario.service';
 import { BlacklistService } from '../blacklist.service';
+import { LinkFormulario } from '@prisma/client';
 
 @Injectable()
 export class LinkFormularioGuard implements CanActivate {
@@ -23,16 +24,29 @@ export class LinkFormularioGuard implements CanActivate {
     const request = this.getRequest(context);
     const token = this.extractTokenFromParam(request);
 
-    await this.validateLinkCompletado(token);
+    // First extract ID from token without validation to check if form is completed
+    const decodedToken = this.decodeToken(token);
 
-    const isBlacklisted = await this.blacklistService.isTokenBlacklisted(token);
-    if (isBlacklisted) {
-      throw new UnauthorizedException('Token ha sido invalidado');
+    // Get form and check completion status first (highest priority)
+    const formulario = await this.getFormulario(decodedToken.id);
+    if (formulario.completado) {
+      throw new UnauthorizedException('Formulario ya completado');
     }
 
+    // Now validate token (this will throw for expired tokens)
     const payload = await this.validateToken(token);
-    await this.validateFormulario(payload.id);
 
+    if (formulario.expirado) {
+      throw new UnauthorizedException('Link expirado');
+    }
+
+    // Check if token is in blacklist
+    const isBlacklisted = await this.blacklistService.isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      throw new UnauthorizedException('Link invalido');
+    }
+
+    // Attach payload to request for RolesGuard
     request['usuario'] = payload;
 
     return true;
@@ -46,26 +60,37 @@ export class LinkFormularioGuard implements CanActivate {
     const token = request.params.token;
 
     if (!token) {
-      throw new UnauthorizedException('Token no proporcionado');
+      throw new UnauthorizedException('Link invalido');
     }
 
     return token;
   }
 
+  private decodeToken(token: string): any {
+    try {
+      // Just decode without verification to get the ID
+      return this.jwtService.decode(token);
+    } catch {
+      throw new UnauthorizedException('Link invalido');
+    }
+  }
+
   private async validateToken(token: string): Promise<any> {
     try {
-      return await this.jwtService.verifyAsync(token, {
+      const payload = await this.jwtService.verifyAsync(token, {
         secret: envs.jwtSecret,
       });
+
+      return payload;
     } catch (error) {
       if (error instanceof TokenExpiredError) {
         return this.handleExpiredToken(token);
       }
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Link invalido');
     }
   }
 
-  private async handleExpiredToken(token: string): Promise<never> {
+  private async handleExpiredToken(token: string): Promise<void> {
     const payload = await this.jwtService.verifyAsync(token, {
       secret: envs.jwtSecret,
       ignoreExpiration: true,
@@ -76,30 +101,14 @@ export class LinkFormularioGuard implements CanActivate {
         expirado: true,
       });
     }
-
-    throw new UnauthorizedException('Token expirado');
+    throw new UnauthorizedException('Link expirado');
   }
 
-  private async validateFormulario(id: number): Promise<void> {
-    const formulario = await this.linkFormularioService.findOne(id);
-    if (!formulario) {
-      throw new UnauthorizedException('Formulario no encontrado');
-    }
-
-    if (formulario.expirado) {
-      throw new UnauthorizedException('Formulario expirado');
-    }
-
-    if (formulario.completado) {
-      throw new UnauthorizedException('Formulario ya completado');
-    }
-  }
-
-  private async validateLinkCompletado(token: string): Promise<void> {
-    const payload = await this.validateToken(token);
-    const formulario = await this.linkFormularioService.findOne(payload.id);
-    if (formulario.completado) {
-      throw new UnauthorizedException('Formulario ya completado');
+  private async getFormulario(id: number): Promise<LinkFormulario> {
+    try {
+      return await this.linkFormularioService.findOne(id);
+    } catch {
+      throw new UnauthorizedException('Link invalido');
     }
   }
 }
