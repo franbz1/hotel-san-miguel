@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, InternalServerErrorException, NotFoundException, ConflictException } from '@nestjs/common';
 import { CreateRegistroFormularioDto } from './dto/createRegistroFormularioDto';
 import { CreateHuespedDto } from 'src/huespedes/dto/create-huesped.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -35,51 +35,90 @@ export class RegistroFormularioService {
 
   private readonly logger = new Logger(RegistroFormularioService.name);
 
-  async create(
+  async createWithTra(
     createRegistroFormularioDto: CreateRegistroFormularioDto,
     tokenId: number,
   ) {
-    const huesped = await this.getOrCreateHuesped(createRegistroFormularioDto);
+    try {
+      const huesped = await this.getOrCreateHuesped(createRegistroFormularioDto);
 
-    const habitacion = await this.habitacionesService.findByNumeroHabitacion(
-      createRegistroFormularioDto.numero_habitacion,
-    );
-
-    const reserva = this.createReservaDto(
-      createRegistroFormularioDto,
-      huesped.id,
-      habitacion.id,
-    );
-    const factura = this.createFacturaDto(
-      createRegistroFormularioDto,
-      huesped.id,
-      reserva,
-    );
-
-    const transactionResult = await this.executeTransaction(
-      createRegistroFormularioDto,
-      reserva,
-      factura,
-      huesped,
-      tokenId,
-    );
-
-    if (transactionResult.success) {
-      const traFormulario = await this.registerTra(
-        createRegistroFormularioDto,
-        transactionResult,
+      const habitacion = await this.habitacionesService.findByNumeroHabitacion(
+        createRegistroFormularioDto.numero_habitacion,
       );
 
-      // TODO: Registrar en Sire pendiente
-      return { result: transactionResult, traFormulario };
+      if (!habitacion) {
+        throw new NotFoundException(`La habitación con número ${createRegistroFormularioDto.numero_habitacion} no existe`);
+      }
+
+      const reserva = this.createReservaDto(
+        createRegistroFormularioDto,
+        huesped.id,
+        habitacion.id,
+      );
+      const factura = this.createFacturaDto(
+        createRegistroFormularioDto,
+        huesped.id,
+        reserva,
+      );
+
+      const transactionResult = await this.executeTransaction(
+        createRegistroFormularioDto,
+        reserva,
+        factura,
+        huesped,
+        tokenId,
+      );
+
+      if (!transactionResult || !transactionResult.success) {
+        throw new InternalServerErrorException('Error al procesar la transacción');
+      }
+
+      let traFormulario;
+      try {
+        traFormulario = await this.registerTra(
+          createRegistroFormularioDto,
+          transactionResult,
+        );
+        // TODO: Registrar en Sire pendiente
+      } catch (traError) {
+        this.logger.warn(
+          `Formulario creado exitosamente pero falló el registro en TRA: ${traError.message}`,
+          traError.stack,
+        );
+        // Devolvemos éxito parcial con el estado del registro TRA
+        return {
+          success: true,
+          result: transactionResult,
+          traRegistration: { success: false, error: traError.message },
+          message: 'Formulario registrado exitosamente pero falló el registro en TRA'
+        };
+      }
+
+      return {
+        success: true,
+        result: transactionResult,
+        traFormulario,
+        message: 'Formulario registrado exitosamente'
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al crear registro de formulario: ${error.message}`,
+        error.stack,
+      );
+      throw error;
     }
   }
 
   private async getOrCreateHuesped(dto: CreateRegistroFormularioDto) {
-    const huespedDto = this.dtoFactoryService
-      .getFactory<CreateRegistroFormularioDto, CreateHuespedDto>('huesped')
-      .create(dto);
-    return this.huespedService.findOrCreateHuesped(huespedDto);
+    try {
+      const huespedDto = this.dtoFactoryService
+        .getFactory<CreateRegistroFormularioDto, CreateHuespedDto>('huesped')
+        .create(dto);
+      return await this.huespedService.findOrCreateHuesped(huespedDto);
+    } catch (error) {
+      this.logger.error(`Error al obtener o crear huésped: ${error.message}`);
+      throw new BadRequestException(`Error al procesar datos del huésped: ${error.message}`);
+    }
   }
 
   private createReservaDto(
@@ -108,9 +147,21 @@ export class RegistroFormularioService {
     factura: CreateFacturaDto,
     huesped: any,
     tokenId: number,
-  ) {
+  ): Promise<ProcessTransactionResult> {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        // Verificar si ya existe un formulario completado para este token
+        const existingLink = await tx.linkFormulario.findUnique({
+          where: { id: tokenId },
+          include: { formulario: true },
+        });
+
+        if (existingLink?.completado) {
+          throw new ConflictException(
+            `Ya existe un formulario completado para este token (ID: ${existingLink.formularioId})`,
+          );
+        }
+
         const facturaCreated = await this.facturaService.createTransaction(
           factura,
           tx,
@@ -148,10 +199,11 @@ export class RegistroFormularioService {
           formulario: formularioCreated,
           linkFormulario,
           huespedesSecundariosCreated,
+          timestamp: new Date(),
         };
       });
     } catch (error) {
-      this.handleDatabaseError(error);
+      return this.handleDatabaseError(error);
     }
   }
 
@@ -183,6 +235,9 @@ export class RegistroFormularioService {
     return createdGuests;
   }
 
+  /**
+   * Registra un formulario en el sistema TRA
+   */
   private async registerTra(
     createRegistroFormularioDto: CreateRegistroFormularioDto,
     result: ProcessTransactionResult,
@@ -193,20 +248,124 @@ export class RegistroFormularioService {
         result.reservaCreated.habitacionId,
       );
 
-      return this.prisma.formulario.update({
+      if (!traData || !traData.huespedPrincipal?.code) {
+        throw new BadRequestException('Respuesta inválida del servicio TRA');
+      }
+
+      return await this.prisma.formulario.update({
         where: { id: result.formulario.id },
         data: { SubidoATra: true, traId: traData.huespedPrincipal.code },
       });
     } catch (error) {
-      this.logger.error(error);
-      throw error;
+      this.logger.error(
+        `Error al registrar en TRA: ${error.message}`,
+        error.stack,
+      );
+      
+      // Marcamos el formulario como no subido a TRA pero mantenemos el registro
+      await this.prisma.formulario.update({
+        where: { id: result.formulario.id },
+        data: { SubidoATra: false, traId: null },
+      });
+      
+      throw new BadRequestException(
+        `Error al registrar en TRA: ${error.message}`,
+      );
     }
   }
 
   private handleDatabaseError(error: any): never {
-    if (error.code === 'P2003') {
-      throw new BadRequestException('La habitación no existe');
+    this.logger.error(
+      `Error en transacción de base de datos: ${error.message}`,
+      error.stack,
+    );
+    
+    // Errores específicos de Prisma
+    if (error.code) {
+      switch (error.code) {
+        case 'P2002':
+          throw new ConflictException(
+            `Ya existe un registro con los mismos datos únicos: ${error.meta?.target?.join(', ')}`,
+          );
+        case 'P2003':
+          throw new BadRequestException(
+            `Referencia inválida: ${error.meta?.field_name}`,
+          );
+        case 'P2025':
+          throw new NotFoundException(
+            `Registro no encontrado: ${error.meta?.cause}`,
+          );
+        default:
+          throw new BadRequestException(
+            `Error de base de datos (${error.code}): ${error.message}`,
+          );
+      }
     }
-    throw error;
+    
+    // Si es un error de NestJS, lo relanzamos tal cual
+    if (error.status && error.response) {
+      throw error;
+    }
+    
+    // Error genérico
+    throw new InternalServerErrorException(
+      `Error en la transacción: ${error.message}`,
+    );
+  }
+
+  /**
+   * Crea un registro de formulario sin integración con el sistema TRA
+   */
+  async create(
+    createRegistroFormularioDto: CreateRegistroFormularioDto,
+    tokenId: number,
+  ) {
+    try {
+      const huesped = await this.getOrCreateHuesped(createRegistroFormularioDto);
+
+      const habitacion = await this.habitacionesService.findByNumeroHabitacion(
+        createRegistroFormularioDto.numero_habitacion,
+      );
+
+      if (!habitacion) {
+        throw new NotFoundException(`La habitación con número ${createRegistroFormularioDto.numero_habitacion} no existe`);
+      }
+
+      const reserva = this.createReservaDto(
+        createRegistroFormularioDto,
+        huesped.id,
+        habitacion.id,
+      );
+      const factura = this.createFacturaDto(
+        createRegistroFormularioDto,
+        huesped.id,
+        reserva,
+      );
+
+      const transactionResult = await this.executeTransaction(
+        createRegistroFormularioDto,
+        reserva,
+        factura,
+        huesped,
+        tokenId,
+      );
+
+      if (!transactionResult || !transactionResult.success) {
+        throw new InternalServerErrorException('Error al procesar la transacción');
+      }
+
+      // TODO: Registrar en Sire pendiente
+      return {
+        success: true,
+        result: transactionResult,
+        message: 'Formulario registrado exitosamente sin integración con TRA'
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al crear registro de formulario: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 }
