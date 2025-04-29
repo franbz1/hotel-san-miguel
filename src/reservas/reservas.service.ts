@@ -167,4 +167,16 @@ export class ReservasService {
       throw error;
     }
   }
+
+  async removeTx(id: number, tx: Prisma.TransactionClient) {
+    try {
+      return await tx.reserva.update({
+        where: { id, deleted: false },
+        data: { deleted: true },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
+  }
 }

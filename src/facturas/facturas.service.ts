@@ -135,4 +135,16 @@ export class FacturasService {
       throw error;
     }
   }
+
+  async removeTx(id: number, tx: Prisma.TransactionClient) {
+    try {
+      return await tx.factura.update({
+        where: { id, deleted: false },
+        data: { deleted: true },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
+  }
 }

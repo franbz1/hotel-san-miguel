@@ -152,6 +152,26 @@ export class LinkFormularioService {
     }
   }
 
+  async removeTx(id: number, tx: Prisma.TransactionClient) {
+    try {
+      const link = await tx.linkFormulario.update({
+        where: { id },
+        data: { deleted: true },
+      });
+
+      const { url } = link;
+
+      const token = url.split('/').pop();
+
+      this.blacklistService.addToBlacklist(token);
+
+      return link;
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
+  }
+
   /**
    * Actualiza el estado de un linkFormulario con su id en su complecion o expiracion
    * @param id
