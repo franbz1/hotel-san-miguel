@@ -1,8 +1,10 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { CreateHabitacionDto } from './dto/create-habitacion.dto';
 import { UpdateHabitacionDto } from './dto/update-habitacion.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -12,7 +14,7 @@ import notFoundError from 'src/common/errors/notfoundError';
 
 @Injectable()
 export class HabitacionesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly logger: Logger) { }
 
   /**
    * Crea una nueva habitación.
@@ -198,6 +200,76 @@ export class HabitacionesService {
 
       return habitacionesDisponibles;
     } catch (error) {
+      throw error;
+    }
+  }
+
+  @Cron(CronExpression.EVERY_5_SECONDS, { timeZone: 'America/Bogota' })
+  async marcarEstadosCronConTransaccion() {
+    const ahora = new Date();
+    const limiteFuturo = new Date(ahora.getTime() + 6 * 60 * 60 * 1000);
+
+    // 1) DEBUG: ver qué reservas proximas encuentra
+    const reservasProximas = await this.prisma.reserva.findMany({
+      where: {
+        deleted: false,
+        estado: { in: ['RESERVADO', 'PENDIENTE'] },
+        fecha_inicio: { gte: ahora, lte: limiteFuturo },
+        habitacion: { deleted: false, estado: { notIn: ['RESERVADO', 'OCUPADO'] } },
+      },
+      include: { habitacion: true },
+    });
+    this.logger.log(`DEBUG reservasProximas (${reservasProximas.length}):\n${JSON.stringify(reservasProximas, null, 2)}`);
+
+    // 2) DEBUG: ver qué reservas activas encuentra
+    const reservasActivas = await this.prisma.reserva.findMany({
+      where: {
+        deleted: false,
+        estado: { in: ['RESERVADO', 'PENDIENTE'] },
+        fecha_inicio: { lte: ahora },
+        fecha_fin: { gt: ahora },
+        habitacion: { deleted: false, estado: 'RESERVADO' },
+      },
+      include: { habitacion: true },
+    });
+    this.logger.log(`DEBUG reservasActivas (${reservasActivas.length}):\n${JSON.stringify(reservasActivas, null, 2)}`);
+
+    try {
+      const [resNear, resOcc] = await this.prisma.$transaction([
+        this.prisma.habitacion.updateMany({
+          where: {
+            deleted: false,
+            estado: { notIn: ['RESERVADO', 'OCUPADO'] },
+            reservas: {
+              some: {
+                deleted: false,
+                estado: { in: ['RESERVADO', 'PENDIENTE'] },
+                fecha_inicio: { gte: ahora, lte: limiteFuturo },
+              },
+            },
+          },
+          data: { estado: 'RESERVADO' },
+        }),
+        this.prisma.habitacion.updateMany({
+          where: {
+            deleted: false,
+            estado: 'RESERVADO',
+            reservas: {
+              some: {
+                deleted: false,
+                estado: { in: ['RESERVADO', 'PENDIENTE'] },
+                fecha_inicio: { lte: ahora },
+                fecha_fin: { gt: ahora },
+              },
+            },
+          },
+          data: { estado: 'OCUPADO' },
+        }),
+      ]);
+      //this.logger.log(`Transacción: ${resNear.count} → RESERVADO, ${resOcc.count} → OCUPADO`);
+      return { near: resNear.count, occupied: resOcc.count };
+    } catch (error) {
+      this.logger.error(`Error en marcarEstadosCronConTransaccion: ${error.message}`);
       throw error;
     }
   }
