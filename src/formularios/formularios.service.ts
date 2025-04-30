@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateFormularioDto } from './dto/update-formulario.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
@@ -117,6 +117,67 @@ export class FormulariosService {
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);
       throw error;
+    }
+  }
+
+  /**
+   * Obtiene un formulario con todas sus relaciones necesarias para el registro en TRA
+   * @param formularioId ID del formulario
+   * @returns Un objeto con el formulario y sus relaciones o null si no existe
+   */
+  async getFormularioWithRelations(formularioId: number) {
+    try {
+      const formulario = await this.prisma.formulario.findUnique({
+        where: { id: formularioId, deleted: false },
+        include: {
+          Huesped: true,
+          Reserva: {
+            include: {
+              habitacion: true
+            }
+          }
+        }
+      });
+      
+      if (!formulario) {
+        return null;
+      }
+      
+      return {
+        formulario,
+        huesped: formulario.Huesped,
+        reserva: formulario.Reserva,
+        habitacion: formulario.Reserva.habitacion
+      };
+    } catch (error) {
+      throw new BadRequestException(`Error al obtener el formulario con sus relaciones: ${error.message}`);
+    }
+  }
+
+  /**
+   * Obtiene los huéspedes secundarios asociados a una reserva
+   * @param reservaId ID de la reserva
+   * @returns Array de huéspedes secundarios
+   */
+  async getHuespedesSecundariosFromReserva(reservaId: number) {
+    try {
+      const reserva = await this.prisma.reserva.findUnique({
+        where: { id: reservaId },
+        include: {
+          huespedes_secundarios: true
+        }
+      });
+      
+      if (!reserva) {
+        throw new NotFoundException(`Reserva con ID ${reservaId} no encontrada`);
+      }
+      
+      return reserva.huespedes_secundarios;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(`Error al obtener los huéspedes secundarios: ${error.message}`);
     }
   }
 }

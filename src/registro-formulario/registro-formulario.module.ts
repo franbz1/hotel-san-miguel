@@ -13,6 +13,7 @@ import { HabitacionesModule } from 'src/habitaciones/habitaciones.module';
 import { SireModule } from 'src/sire/sire.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { LinkFormularioModule } from 'src/link-formulario/link-formulario.module';
+import { FormulariosModule } from 'src/formularios/formularios.module';
 
 @Module({
   controllers: [RegistroFormularioController],
@@ -29,6 +30,7 @@ import { LinkFormularioModule } from 'src/link-formulario/link-formulario.module
     SireModule,
     AuthModule,
     LinkFormularioModule,
+    FormulariosModule,
   ],
 })
 export class RegistroFormularioModule {}

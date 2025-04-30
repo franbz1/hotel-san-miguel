@@ -1,14 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { TRA_CREDENCIALES } from 'src/common/constants/TraCredenciales';
-import { CreateRegistroFormularioDto } from 'src/registro-formulario/dto/createRegistroFormularioDto';
-import { HabitacionesService } from 'src/habitaciones/habitaciones.service';
-import { DtoFactoryService } from 'src/common/factories/dto_Factory/dtoFactoryService.service';
-import { Habitacion } from '@prisma/client';
-import { CreateHuespedSecundarioWithoutIdDto } from 'src/registro-formulario/dto/CreateHuespedSecundarioWithoutIdDto';
-import { CreateHuespedPrincipalTraDto } from './dto/huespedPrincipalTraDto';
-import { CreateHuespedSecundarioTraDto } from './dto/huespedSecundarioTraDto';
+import { Habitacion, Huesped, HuespedSecundario, Reserva } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
+import { FormulariosService } from 'src/formularios/formularios.service';
 
 @Injectable()
 export class TraService {
@@ -16,39 +11,42 @@ export class TraService {
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly habitacionesService: HabitacionesService,
-    private readonly dtoFactoryService: DtoFactoryService,
+
+    private readonly formulariosService: FormulariosService,
   ) {}
 
   /**
-   * Procesa el registro en TRA para el huésped principal y secundarios.
+   * Procesa el registro en TRA para el huésped principal y secundarios a partir del ID de un formulario.
+   * @param formularioId ID del formulario a registrar en TRA
    */
-  async postTra(
-    registroFormularioDto: CreateRegistroFormularioDto,
-    habitacionId: number,
-  ) {
-    const { huespedes_secundarios, fecha_inicio, fecha_fin } =
-      registroFormularioDto;
-
-    const habitacion = await this.habitacionesService.findOne(habitacionId);
-
-    if (!habitacion) {
-      throw new Error('No se encontró la habitación');
+  async postTra(formularioId: number) {
+    // Obtenemos los datos del formulario con todas sus relaciones necesarias usando el servicio de formularios
+    const formulario = await this.formulariosService.getFormularioWithRelations(formularioId);
+    
+    if (!formulario) {
+      throw new NotFoundException(`No se encontró el formulario con id ${formularioId}`);
     }
-
-    const huespedPrincipalResponse = await this.postTraHuespedPrincipalFromForm(
-      registroFormularioDto,
-      habitacion,
+    
+    const { huesped, reserva, habitacion } = formulario;
+    
+    // Obtenemos huéspedes secundarios relacionados con la reserva
+    const huespedesSecundarios = await this.formulariosService.getHuespedesSecundariosFromReserva(reserva.id);
+    
+    // Registramos el huésped principal en TRA
+    const huespedPrincipalResponse = await this.postTraHuespedPrincipal(
+      huesped,
+      reserva,
+      habitacion
     );
 
-    const huespedesSecundariosData =
-      await this.postTraHuespedesSecundariosFromForm(
-        huespedes_secundarios,
-        huespedPrincipalResponse.code,
-        habitacion.numero_habitacion,
-        fecha_inicio,
-        fecha_fin,
-      );
+    // Registramos los huéspedes secundarios en TRA
+    const huespedesSecundariosData = await this.postTraHuespedesSecundarios(
+      huespedesSecundarios,
+      huespedPrincipalResponse.code,
+      habitacion.numero_habitacion,
+      reserva.check_in,
+      reserva.check_out
+    );
 
     return {
       huespedPrincipal: huespedPrincipalResponse,
@@ -59,12 +57,14 @@ export class TraService {
   /**
    * Registra al huésped principal en TRA.
    */
-  private async postTraHuespedPrincipalFromForm(
-    registroFormularioDto: CreateRegistroFormularioDto,
+  private async postTraHuespedPrincipal(
+    huesped: Huesped,
+    reserva: Reserva,
     habitacion: Habitacion,
   ) {
     const payload = this.createHuespedPrincipalPayload(
-      registroFormularioDto,
+      huesped,
+      reserva,
       habitacion,
     );
 
@@ -77,8 +77,8 @@ export class TraService {
   /**
    * Registra a los huéspedes secundarios en TRA.
    */
-  private async postTraHuespedesSecundariosFromForm(
-    huespedesSecundarios: CreateHuespedSecundarioWithoutIdDto[],
+  private async postTraHuespedesSecundarios(
+    huespedesSecundarios: HuespedSecundario[],
     padreId: number,
     numero_habitacion: number,
     check_in: Date,
@@ -88,13 +88,16 @@ export class TraService {
 
     if (!huespedesSecundarios?.length) return [];
 
-    const huespedesSecundariosTraDtos = huespedesSecundarios.map((huesped) =>
-      this.dtoFactoryService
-        .getFactory<
-          CreateHuespedSecundarioWithoutIdDto,
-          CreateHuespedSecundarioTraDto
-        >('huespedSecundario')
-        .create(huesped, numero_habitacion, padreId, check_in, check_out),
+    const huespedesSecundariosTraDtos = await Promise.all(
+      huespedesSecundarios.map(async (huesped) => {
+        return this.createHuespedSecundarioTraPayload(
+          huesped, 
+          numero_habitacion, 
+          padreId, 
+          check_in, 
+          check_out
+        );
+      })
     );
 
     for (const huesped of huespedesSecundariosTraDtos) {
@@ -107,26 +110,76 @@ export class TraService {
     }
     return huespedesSecundariosData;
   }
+  
+  /**
+   * Crea el payload para el huésped secundario a enviar a TRA
+   */
+  private createHuespedSecundarioTraPayload(
+    huesped: HuespedSecundario,
+    numero_habitacion: number,
+    padreId: number,
+    check_in: Date,
+    check_out: Date,
+  ) {
+    // Transformar el huésped secundario en el formato esperado por TRA
+    const payload = {
+      padre: padreId,
+      num_habitacion: numero_habitacion,
+      tipo_documento: huesped.tipo_documento,
+      numero_documento: huesped.numero_documento,
+      primer_apellido: huesped.primer_apellido,
+      segundo_apellido: huesped.segundo_apellido || '',
+      nombres: huesped.nombres,
+      genero: huesped.genero,
+      fecha_nacimiento: huesped.fecha_nacimiento.toISOString().split('T')[0],
+      nacionalidad: huesped.nacionalidad,
+      pais_residencia: huesped.pais_residencia,
+      ciudad_residencia: huesped.ciudad_residencia,
+      pais_procedencia: huesped.pais_procedencia,
+      ciudad_procedencia: huesped.ciudad_procedencia,
+      ocupacion: huesped.ocupacion,
+      check_in: check_in.toISOString().split('T')[0],
+      check_out: check_out.toISOString().split('T')[0],
+    };
+    
+    return payload;
+  }
 
   /**
    * Crea el payload para el registro del huésped principal.
    */
   private createHuespedPrincipalPayload(
-    registroFormularioDto: CreateRegistroFormularioDto,
+    huesped: Huesped,
+    reserva: Reserva,
     habitacion: Habitacion,
   ) {
-    const huespedPrincipalDto = this.dtoFactoryService
-      .getFactory<
-        CreateRegistroFormularioDto,
-        CreateHuespedPrincipalTraDto
-      >('huespedPrincipal')
-      .create(registroFormularioDto, habitacion);
-
-    return {
-      ...huespedPrincipalDto,
+    // Transformar los datos del huésped y reserva en el formato esperado por TRA
+    const payload = {
       nombre_establecimiento: TRA_CREDENCIALES.NOMBRE_ESTABLECIMIENTO,
       rnt_establecimiento: TRA_CREDENCIALES.RNT_ESTABLECIMIENTO,
+      num_habitacion: habitacion.numero_habitacion,
+      tipo_documento: huesped.tipo_documento,
+      numero_documento: huesped.numero_documento,
+      primer_apellido: huesped.primer_apellido,
+      segundo_apellido: huesped.segundo_apellido || '',
+      nombres: huesped.nombres,
+      genero: huesped.genero,
+      fecha_nacimiento: huesped.fecha_nacimiento.toISOString().split('T')[0],
+      nacionalidad: huesped.nacionalidad,
+      tipo_habitacion: habitacion.tipo,
+      pais_residencia: huesped.pais_residencia,
+      ciudad_residencia: huesped.ciudad_residencia,
+      pais_procedencia: huesped.pais_procedencia,
+      ciudad_procedencia: huesped.ciudad_procedencia,
+      pais_destino: reserva.pais_destino,
+      motivo_viaje: reserva.motivo_viaje,
+      ocupacion: huesped.ocupacion,
+      medio_transporte: 'TERRESTRE', // Valor por defecto, podría extraerse de la reserva si se añade
+      check_in: reserva.check_in.toISOString().split('T')[0],
+      check_out: reserva.check_out.toISOString().split('T')[0],
     };
+    
+    return payload;
   }
 
   /**

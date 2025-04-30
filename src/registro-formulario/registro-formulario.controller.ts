@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Post, Req, UseGuards, HttpStatus, Param, ParseIntPipe } from '@nestjs/common';
 import { RegistroFormularioService } from './registro-formulario.service';
 import { CreateRegistroFormularioDto } from './dto/createRegistroFormularioDto';
 import { LinkFormularioGuard } from 'src/auth/guards/linkFormulario.guard';
@@ -14,6 +14,7 @@ import {
   ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('registro-formulario')
 @Controller('registro-formulario')
@@ -110,6 +111,31 @@ export class RegistroFormularioController {
         reserva: result.result.reservaCreated,
         huesped: result.result.huesped,
         traFormulario: result.traFormulario
+      }
+    };
+  }
+
+  @Post('tra/formulario/:id')
+  @Auth(Role.ADMINISTRADOR)
+  @ApiOperation({ summary: 'Registrar un formulario existente en TRA' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del formulario a registrar en TRA',
+    type: Number,
+  })
+  @ApiResponse({ status: 200, description: 'Formulario registrado exitosamente en TRA' })
+  @ApiResponse({ status: 400, description: 'Bad Request - Error al registrar en TRA' })
+  @ApiResponse({ status: 404, description: 'Not Found - Formulario no encontrado' })
+  @ApiBearerAuth()
+  async registerFormularioInTra(@Param('id', ParseIntPipe) id: number) {
+    const result = await this.registroFormularioService.registerFormularioInTra(id);
+    
+    return {
+      statusCode: HttpStatus.OK,
+      message: result.message,
+      data: {
+        formulario: result.formulario,
+        traData: result.traData
       }
     };
   }
