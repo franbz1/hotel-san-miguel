@@ -1,4 +1,11 @@
-import { BadRequestException, Injectable, Logger, InternalServerErrorException, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { CreateRegistroFormularioDto } from './dto/createRegistroFormularioDto';
 import { CreateHuespedDto } from 'src/huespedes/dto/create-huesped.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
@@ -42,14 +49,18 @@ export class RegistroFormularioService {
     tokenId: number,
   ) {
     try {
-      const huesped = await this.getOrCreateHuesped(createRegistroFormularioDto);
+      const huesped = await this.getOrCreateHuesped(
+        createRegistroFormularioDto,
+      );
 
       const habitacion = await this.habitacionesService.findByNumeroHabitacion(
         createRegistroFormularioDto.numero_habitacion,
       );
 
       if (!habitacion) {
-        throw new NotFoundException(`La habitación con número ${createRegistroFormularioDto.numero_habitacion} no existe`);
+        throw new NotFoundException(
+          `La habitación con número ${createRegistroFormularioDto.numero_habitacion} no existe`,
+        );
       }
 
       const reserva = this.createReservaDto(
@@ -72,15 +83,14 @@ export class RegistroFormularioService {
       );
 
       if (!transactionResult || !transactionResult.success) {
-        throw new InternalServerErrorException('Error al procesar la transacción');
+        throw new InternalServerErrorException(
+          'Error al procesar la transacción',
+        );
       }
 
       let traFormulario;
       try {
-        traFormulario = await this.registerTra(
-          createRegistroFormularioDto,
-          transactionResult,
-        );
+        traFormulario = await this.registerTra(transactionResult);
         // TODO: Registrar en Sire pendiente
       } catch (traError) {
         this.logger.warn(
@@ -92,7 +102,8 @@ export class RegistroFormularioService {
           success: true,
           result: transactionResult,
           traRegistration: { success: false, error: traError.message },
-          message: 'Formulario registrado exitosamente pero falló el registro en TRA'
+          message:
+            'Formulario registrado exitosamente pero falló el registro en TRA',
         };
       }
 
@@ -100,7 +111,7 @@ export class RegistroFormularioService {
         success: true,
         result: transactionResult,
         traFormulario,
-        message: 'Formulario registrado exitosamente'
+        message: 'Formulario registrado exitosamente',
       };
     } catch (error) {
       this.logger.error(
@@ -119,7 +130,9 @@ export class RegistroFormularioService {
       return await this.huespedService.findOrCreateHuesped(huespedDto);
     } catch (error) {
       this.logger.error(`Error al obtener o crear huésped: ${error.message}`);
-      throw new BadRequestException(`Error al procesar datos del huésped: ${error.message}`);
+      throw new BadRequestException(
+        `Error al procesar datos del huésped: ${error.message}`,
+      );
     }
   }
 
@@ -201,7 +214,7 @@ export class RegistroFormularioService {
           formulario: formularioCreated,
           linkFormulario,
           huespedesSecundariosCreated,
-          timestamp: new Date(),
+          timestamp: new Date(new Date().toISOString()),
         };
       });
     } catch (error) {
@@ -241,7 +254,6 @@ export class RegistroFormularioService {
    * Registra un formulario en el sistema TRA
    */
   private async registerTra(
-    createRegistroFormularioDto: CreateRegistroFormularioDto,
     result: ProcessTransactionResult,
   ): Promise<Formulario> {
     try {
@@ -261,13 +273,13 @@ export class RegistroFormularioService {
         `Error al registrar en TRA: ${error.message}`,
         error.stack,
       );
-      
+
       // Marcamos el formulario como no subido a TRA pero mantenemos el registro
       await this.prisma.formulario.update({
         where: { id: result.formulario.id },
         data: { SubidoATra: false, traId: null },
       });
-      
+
       throw new BadRequestException(
         `Error al registrar en TRA: ${error.message}`,
       );
@@ -279,7 +291,7 @@ export class RegistroFormularioService {
       `Error en transacción de base de datos: ${error.message}`,
       error.stack,
     );
-    
+
     // Errores específicos de Prisma
     if (error.code) {
       switch (error.code) {
@@ -301,18 +313,18 @@ export class RegistroFormularioService {
           );
       }
     }
-    
+
     // Si es un error de NestJS, lo relanzamos tal cual
     if (error.status && error.response) {
       throw error;
     }
-    
+
     // Error genérico
     throw new InternalServerErrorException(
       `Error en la transacción: ${error.message}`,
     );
   }
-  
+
   /**
    * Intenta registrar un formulario existente en el sistema TRA
    * @param formularioId ID del formulario a registrar en TRA
@@ -323,7 +335,9 @@ export class RegistroFormularioService {
       const formulario = await this.formulariosService.findOne(formularioId);
 
       if (!formulario) {
-        throw new NotFoundException(`Formulario con ID ${formularioId} no encontrado`);
+        throw new NotFoundException(
+          `Formulario con ID ${formularioId} no encontrado`,
+        );
       }
 
       // Verificar si ya está subido a TRA
@@ -343,10 +357,13 @@ export class RegistroFormularioService {
       }
 
       // Actualizar formulario con el ID de TRA
-      const updatedFormulario = await this.formulariosService.update(formularioId, {
-        SubidoATra: true,
-        traId: traData.huespedPrincipal.code,
-      });
+      const updatedFormulario = await this.formulariosService.update(
+        formularioId,
+        {
+          SubidoATra: true,
+          traId: traData.huespedPrincipal.code,
+        },
+      );
 
       return {
         success: true,
@@ -359,12 +376,12 @@ export class RegistroFormularioService {
         `Error al registrar formulario ${formularioId} en TRA: ${error.message}`,
         error.stack,
       );
-      
+
       // Si es un error de NotFound, lo relanzamos directamente
       if (error instanceof NotFoundException) {
         throw error;
       }
-      
+
       // Para otros errores, marcamos el formulario como no subido a TRA
       try {
         await this.formulariosService.update(formularioId, {
@@ -376,7 +393,7 @@ export class RegistroFormularioService {
           `Error adicional al actualizar estado del formulario: ${dbError.message}`,
         );
       }
-      
+
       throw new BadRequestException(
         `Error al registrar formulario en TRA: ${error.message}`,
       );
@@ -391,14 +408,18 @@ export class RegistroFormularioService {
     tokenId: number,
   ) {
     try {
-      const huesped = await this.getOrCreateHuesped(createRegistroFormularioDto);
+      const huesped = await this.getOrCreateHuesped(
+        createRegistroFormularioDto,
+      );
 
       const habitacion = await this.habitacionesService.findByNumeroHabitacion(
         createRegistroFormularioDto.numero_habitacion,
       );
 
       if (!habitacion) {
-        throw new NotFoundException(`La habitación con número ${createRegistroFormularioDto.numero_habitacion} no existe`);
+        throw new NotFoundException(
+          `La habitación con número ${createRegistroFormularioDto.numero_habitacion} no existe`,
+        );
       }
 
       const reserva = this.createReservaDto(
@@ -421,14 +442,16 @@ export class RegistroFormularioService {
       );
 
       if (!transactionResult || !transactionResult.success) {
-        throw new InternalServerErrorException('Error al procesar la transacción');
+        throw new InternalServerErrorException(
+          'Error al procesar la transacción',
+        );
       }
 
       // TODO: Registrar en Sire pendiente
       return {
         success: true,
         result: transactionResult,
-        message: 'Formulario registrado exitosamente sin integración con TRA'
+        message: 'Formulario registrado exitosamente sin integración con TRA',
       };
     } catch (error) {
       this.logger.error(

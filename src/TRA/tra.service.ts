@@ -1,7 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { TRA_CREDENCIALES } from 'src/common/constants/TraCredenciales';
-import { Habitacion, Huesped, HuespedSecundario, Reserva } from '@prisma/client';
+import {
+  Habitacion,
+  Huesped,
+  HuespedSecundario,
+  Reserva,
+} from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { FormulariosService } from 'src/formularios/formularios.service';
 
@@ -21,22 +26,28 @@ export class TraService {
    */
   async postTra(formularioId: number) {
     // Obtenemos los datos del formulario con todas sus relaciones necesarias usando el servicio de formularios
-    const formulario = await this.formulariosService.getFormularioWithRelations(formularioId);
-    
+    const formulario =
+      await this.formulariosService.getFormularioWithRelations(formularioId);
+
     if (!formulario) {
-      throw new NotFoundException(`No se encontró el formulario con id ${formularioId}`);
+      throw new NotFoundException(
+        `No se encontró el formulario con id ${formularioId}`,
+      );
     }
-    
+
     const { huesped, reserva, habitacion } = formulario;
-    
+
     // Obtenemos huéspedes secundarios relacionados con la reserva
-    const huespedesSecundarios = await this.formulariosService.getHuespedesSecundariosFromReserva(reserva.id);
-    
+    const huespedesSecundarios =
+      await this.formulariosService.getHuespedesSecundariosFromReserva(
+        reserva.id,
+      );
+
     // Registramos el huésped principal en TRA
     const huespedPrincipalResponse = await this.postTraHuespedPrincipal(
       huesped,
       reserva,
-      habitacion
+      habitacion,
     );
 
     // Registramos los huéspedes secundarios en TRA
@@ -45,7 +56,7 @@ export class TraService {
       huespedPrincipalResponse.code,
       habitacion.numero_habitacion,
       reserva.check_in,
-      reserva.check_out
+      reserva.check_out,
     );
 
     return {
@@ -91,13 +102,13 @@ export class TraService {
     const huespedesSecundariosTraDtos = await Promise.all(
       huespedesSecundarios.map(async (huesped) => {
         return this.createHuespedSecundarioTraPayload(
-          huesped, 
-          numero_habitacion, 
-          padreId, 
-          check_in, 
-          check_out
+          huesped,
+          numero_habitacion,
+          padreId,
+          check_in,
+          check_out,
         );
-      })
+      }),
     );
 
     for (const huesped of huespedesSecundariosTraDtos) {
@@ -110,7 +121,7 @@ export class TraService {
     }
     return huespedesSecundariosData;
   }
-  
+
   /**
    * Crea el payload para el huésped secundario a enviar a TRA
    */
@@ -141,7 +152,7 @@ export class TraService {
       check_in: check_in.toISOString().split('T')[0],
       check_out: check_out.toISOString().split('T')[0],
     };
-    
+
     return payload;
   }
 
@@ -178,7 +189,7 @@ export class TraService {
       check_in: reserva.check_in.toISOString().split('T')[0],
       check_out: reserva.check_out.toISOString().split('T')[0],
     };
-    
+
     return payload;
   }
 

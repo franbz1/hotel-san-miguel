@@ -27,6 +27,6 @@ export class TraController {
   })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   test(@Body() createRegistroFormularioDto: CreateRegistroFormularioDto) {
-    return 'aun no implementado' 
+    return 'aun no implementado';
   }
 }

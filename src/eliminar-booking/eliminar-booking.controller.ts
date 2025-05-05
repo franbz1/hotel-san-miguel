@@ -1,19 +1,8 @@
-
-import {
-  Controller,
-  Delete,
-  Param,
-  ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Delete, Param, ParseIntPipe } from '@nestjs/common';
 import { EliminarBookingService } from './eliminar-booking.service';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import { Role } from 'src/usuarios/entities/rol.enum';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { RemoveBookingResponse } from './eliminar-booking.service';
 
 /**
@@ -23,7 +12,9 @@ import { RemoveBookingResponse } from './eliminar-booking.service';
 @Auth(Role.ADMINISTRADOR)
 @Controller('eliminar-booking')
 export class EliminarBookingController {
-  constructor(private readonly eliminarBookingService: EliminarBookingService) {}
+  constructor(
+    private readonly eliminarBookingService: EliminarBookingService,
+  ) {}
 
   /**
    * Elimina un booking (el link del formulario y la reserva) por id
@@ -32,9 +23,15 @@ export class EliminarBookingController {
    * @returns Booking eliminado
    */
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un booking (el link del formulario y la reserva) por ID' })
+  @ApiOperation({
+    summary: 'Eliminar un booking (el link del formulario y la reserva) por ID',
+  })
   @ApiParam({ name: 'id', description: 'ID del booking', type: Number })
-  @ApiResponse({ status: 200, description: 'Booking eliminado', type: RemoveBookingResponse })
+  @ApiResponse({
+    status: 200,
+    description: 'Booking eliminado',
+    type: RemoveBookingResponse,
+  })
   @ApiResponse({ status: 404, description: 'Booking no encontrado' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.eliminarBookingService.remove(id);

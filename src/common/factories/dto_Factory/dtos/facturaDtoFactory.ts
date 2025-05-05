@@ -14,7 +14,7 @@ export class FacturaTraDtoFactory
     return {
       total: costo,
       huespedId: huespedId,
-      fecha_factura: new Date(),
+      fecha_factura: new Date(new Date().toISOString()),
     };
   }
 }

@@ -14,7 +14,10 @@ import notFoundError from 'src/common/errors/notfoundError';
 
 @Injectable()
 export class HabitacionesService {
-  constructor(private readonly prisma: PrismaService, private readonly logger: Logger) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: Logger,
+  ) {}
 
   /**
    * Crea una nueva habitación.
@@ -204,9 +207,9 @@ export class HabitacionesService {
     }
   }
 
-  @Cron(CronExpression.EVERY_5_SECONDS, { timeZone: 'America/Bogota' })
+  @Cron(CronExpression.EVERY_5_SECONDS)
   async marcarEstadosCronConTransaccion() {
-    const ahora = new Date();
+    const ahora = new Date(new Date().toISOString());
     const limiteFuturo = new Date(ahora.getTime() + 6 * 60 * 60 * 1000);
 
     // 1) DEBUG: ver qué reservas proximas encuentra
@@ -215,11 +218,16 @@ export class HabitacionesService {
         deleted: false,
         estado: { in: ['RESERVADO', 'PENDIENTE'] },
         fecha_inicio: { gte: ahora, lte: limiteFuturo },
-        habitacion: { deleted: false, estado: { notIn: ['RESERVADO', 'OCUPADO'] } },
+        habitacion: {
+          deleted: false,
+          estado: { notIn: ['RESERVADO', 'OCUPADO'] },
+        },
       },
       include: { habitacion: true },
     });
-    this.logger.log(`DEBUG reservasProximas (${reservasProximas.length}):\n${JSON.stringify(reservasProximas, null, 2)}`);
+    this.logger.log(
+      `DEBUG reservasProximas (${reservasProximas.length}):\n${JSON.stringify(reservasProximas, null, 2)}`,
+    );
 
     // 2) DEBUG: ver qué reservas activas encuentra
     const reservasActivas = await this.prisma.reserva.findMany({
@@ -232,7 +240,9 @@ export class HabitacionesService {
       },
       include: { habitacion: true },
     });
-    this.logger.log(`DEBUG reservasActivas (${reservasActivas.length}):\n${JSON.stringify(reservasActivas, null, 2)}`);
+    this.logger.log(
+      `DEBUG reservasActivas (${reservasActivas.length}):\n${JSON.stringify(reservasActivas, null, 2)}`,
+    );
 
     try {
       const [resNear, resOcc] = await this.prisma.$transaction([
@@ -269,7 +279,9 @@ export class HabitacionesService {
       //this.logger.log(`Transacción: ${resNear.count} → RESERVADO, ${resOcc.count} → OCUPADO`);
       return { near: resNear.count, occupied: resOcc.count };
     } catch (error) {
-      this.logger.error(`Error en marcarEstadosCronConTransaccion: ${error.message}`);
+      this.logger.error(
+        `Error en marcarEstadosCronConTransaccion: ${error.message}`,
+      );
       throw error;
     }
   }

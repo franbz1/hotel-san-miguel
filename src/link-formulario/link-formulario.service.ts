@@ -30,7 +30,9 @@ export class LinkFormularioService {
   async createLinkTemporal(createLinkFormularioDto: CreateLinkFormularioDto) {
     const ruta = `${FRONTEND_URL}/registro-formulario/`;
 
-    const vencimiento = new Date(Date.now() + 3600 * 1000);
+    const hoy = new Date(new Date().toISOString());
+
+    const vencimiento = new Date(hoy.getTime() + 3600 * 1000);
 
     let habitacion;
 
@@ -213,6 +215,8 @@ export class LinkFormularioService {
   async regenerateLink(id: number) {
     const ruta = `${FRONTEND_URL}/registro-formulario/`;
 
+    const hoy = new Date(new Date().toISOString());
+
     try {
       const link = await this.findOne(id);
 
@@ -235,11 +239,13 @@ export class LinkFormularioService {
         expiresIn: '1h',
       });
 
+      const vencimiento = new Date(hoy.getTime() + 3600 * 1000);
+
       const updatedLink = await this.prisma.linkFormulario.update({
         where: { id },
         data: {
           url: `${ruta}${token}`,
-          vencimiento: new Date(Date.now() + 3600 * 1000),
+          vencimiento: vencimiento,
           expirado: false,
         },
       });

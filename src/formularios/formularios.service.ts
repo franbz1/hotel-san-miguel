@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UpdateFormularioDto } from './dto/update-formulario.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
@@ -133,24 +137,26 @@ export class FormulariosService {
           Huesped: true,
           Reserva: {
             include: {
-              habitacion: true
-            }
-          }
-        }
+              habitacion: true,
+            },
+          },
+        },
       });
-      
+
       if (!formulario) {
         return null;
       }
-      
+
       return {
         formulario,
         huesped: formulario.Huesped,
         reserva: formulario.Reserva,
-        habitacion: formulario.Reserva.habitacion
+        habitacion: formulario.Reserva.habitacion,
       };
     } catch (error) {
-      throw new BadRequestException(`Error al obtener el formulario con sus relaciones: ${error.message}`);
+      throw new BadRequestException(
+        `Error al obtener el formulario con sus relaciones: ${error.message}`,
+      );
     }
   }
 
@@ -164,20 +170,24 @@ export class FormulariosService {
       const reserva = await this.prisma.reserva.findUnique({
         where: { id: reservaId },
         include: {
-          huespedes_secundarios: true
-        }
+          huespedes_secundarios: true,
+        },
       });
-      
+
       if (!reserva) {
-        throw new NotFoundException(`Reserva con ID ${reservaId} no encontrada`);
+        throw new NotFoundException(
+          `Reserva con ID ${reservaId} no encontrada`,
+        );
       }
-      
+
       return reserva.huespedes_secundarios;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new BadRequestException(`Error al obtener los huéspedes secundarios: ${error.message}`);
+      throw new BadRequestException(
+        `Error al obtener los huéspedes secundarios: ${error.message}`,
+      );
     }
   }
 }

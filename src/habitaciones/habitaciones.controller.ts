@@ -172,10 +172,10 @@ export class HabitacionesController {
     @Body() rangoFechasDto: RangoFechasDto,
   ) {
     if (!rangoFechasDto.fechaInicio) {
-      rangoFechasDto.fechaInicio = new Date();
+      rangoFechasDto.fechaInicio = new Date(new Date().toISOString());
     }
     if (!rangoFechasDto.fechaFin) {
-      const tomorrow = new Date();
+      const tomorrow = new Date(new Date().toISOString());
       tomorrow.setDate(tomorrow.getDate() + 1);
       rangoFechasDto.fechaFin = tomorrow;
     }
