@@ -12,7 +12,7 @@ export class RangoFechasDto {
     example: '2025-01-01',
     required: false,
   })
-  fechaInicio?: Date = new Date();
+  fechaInicio?: Date;
 
   @IsDate()
   @IsOptional()
@@ -23,5 +23,5 @@ export class RangoFechasDto {
     example: '2025-01-02',
     required: false,
   })
-  fechaFin?: Date = new Date(new Date().setDate(new Date().getDate() + 1));
+  fechaFin?: Date;
 }
