@@ -171,6 +171,15 @@ export class HabitacionesController {
   getHabitacionesDisponiblesEntreFechas(
     @Body() rangoFechasDto: RangoFechasDto,
   ) {
+    if (!rangoFechasDto.fechaInicio) {
+      rangoFechasDto.fechaInicio = new Date();
+    }
+    if (!rangoFechasDto.fechaFin) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      rangoFechasDto.fechaFin = tomorrow;
+    }
+
     return this.habitacionesService.getHabitacionesDisponiblesEntreFechas(
       rangoFechasDto.fechaInicio,
       rangoFechasDto.fechaFin,
