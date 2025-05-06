@@ -4,11 +4,12 @@ import { HabitacionesController } from './habitaciones.controller';
 import { PrismaModule } from 'src/common/prisma/prisma.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SseModule } from 'src/sse/sse.module';
 
 @Module({
   controllers: [HabitacionesController],
   providers: [HabitacionesService, Logger],
-  imports: [PrismaModule, AuthModule, ScheduleModule.forRoot()],
+  imports: [PrismaModule, AuthModule, ScheduleModule.forRoot(), SseModule],
   exports: [HabitacionesService],
 })
 export class HabitacionesModule {}

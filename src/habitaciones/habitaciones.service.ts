@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -11,12 +10,18 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 import notFoundError from 'src/common/errors/notfoundError';
+import {
+  HabitacionesCambio,
+  HabitacionSseService,
+} from 'src/sse/habitacionSse.service';
+import { EstadoHabitacion } from 'src/common/enums/estadosHbaitacion.enum';
+import { EstadosReserva } from '@prisma/client';
 
 @Injectable()
 export class HabitacionesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly logger: Logger,
+    private readonly habitacionSseService: HabitacionSseService,
   ) {}
 
   /**
@@ -207,48 +212,133 @@ export class HabitacionesService {
     }
   }
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  /**
+   * Cron job que se ejecuta cada minuto para actualizar automáticamente los estados
+   * de las habitaciones según las reservas actuales.
+   *
+   * Este método realiza las siguientes operaciones:
+   * 1. Identifica habitaciones que deben marcarse como RESERVADAS (próximas 6 horas)
+   * 2. Identifica habitaciones que deben marcarse como OCUPADAS (reserva en curso)
+   * 3. Identifica habitaciones que deben marcarse como LIBRES (sin reservas activas)
+   * 4. Actualiza todos los estados en una única transacción para garantizar consistencia
+   * 5. Emite los cambios a través del servicio SSE para actualizar interfaces en tiempo real
+   *
+   * @returns Objeto con el conteo de habitaciones actualizadas por cada estado
+   */
+  @Cron(CronExpression.EVERY_MINUTE)
   async marcarEstadosCronConTransaccion() {
-    const ahora = new Date(new Date().toISOString());
+    const ahora = new Date();
     const limiteFuturo = new Date(ahora.getTime() + 6 * 60 * 60 * 1000);
 
-    try {
-      const [resNear, resOcc] = await this.prisma.$transaction([
-        this.prisma.habitacion.updateMany({
-          where: {
-            deleted: false,
-            estado: { notIn: ['RESERVADO', 'OCUPADO'] },
-            reservas: {
-              some: {
-                deleted: false,
-                estado: { in: ['RESERVADO', 'PENDIENTE'] },
-                fecha_inicio: { gte: ahora, lte: limiteFuturo },
-              },
+    // Defino los filtros en variables para reutilizarlos
+    // Habitaciones que deben marcarse como RESERVADAS (con reservas en las próximas 6 horas)
+    const nearWhere = {
+      deleted: false,
+      estado: { notIn: [EstadoHabitacion.RESERVADO, EstadoHabitacion.OCUPADO] },
+      reservas: {
+        some: {
+          deleted: false,
+          estado: { in: [EstadosReserva.RESERVADO] },
+          fecha_inicio: { gte: ahora, lte: limiteFuturo },
+        },
+      },
+    };
+
+    // Habitaciones que deben marcarse como OCUPADAS (con reservas activas en este momento)
+    const occWhere = {
+      deleted: false,
+      reservas: {
+        some: {
+          deleted: false,
+          estado: { in: [EstadosReserva.RESERVADO] },
+          fecha_inicio: { lte: ahora },
+          fecha_fin: { gt: ahora },
+        },
+      },
+    };
+
+    // Habitaciones que deben marcarse como LIBRES (sin reservas activas o próximas)
+    const freeWhere = {
+      deleted: false,
+      reservas: {
+        none: {
+          deleted: false,
+          estado: { in: [EstadosReserva.RESERVADO, EstadosReserva.PENDIENTE] },
+          OR: [
+            { fecha_inicio: { gte: ahora, lte: limiteFuturo } },
+            {
+              AND: [
+                { fecha_inicio: { lte: ahora } },
+                { fecha_fin: { gt: ahora } },
+              ],
             },
-          },
-          data: { estado: 'RESERVADO' },
-        }),
-        this.prisma.habitacion.updateMany({
-          where: {
-            deleted: false,
-            reservas: {
-              some: {
-                deleted: false,
-                estado: { in: ['RESERVADO', 'PENDIENTE'] },
-                fecha_inicio: { lte: ahora },
-                fecha_fin: { gt: ahora },
-              },
-            },
-          },
-          data: { estado: 'OCUPADO' },
-        }),
-      ]);
-      return { near: resNear.count, occupied: resOcc.count };
-    } catch (error) {
-      this.logger.error(
-        `Error en marcarEstadosCronConTransaccion: ${error.message}`,
-      );
-      throw error;
-    }
+          ],
+        },
+      },
+      estado: { not: EstadoHabitacion.LIBRE },
+    };
+
+    // Ejecuto todo en un callback para asegurarme de usar el mismo snapshot
+    const [nearRooms, occRooms, freeRooms] = await this.prisma.$transaction(
+      async (tx) => {
+        // 1) Busco los IDs de las habitaciones a actualizar
+        const nearRooms = await tx.habitacion.findMany({
+          where: nearWhere,
+          select: { id: true },
+        });
+        const occRooms = await tx.habitacion.findMany({
+          where: occWhere,
+          select: { id: true },
+        });
+        const freeRooms = await tx.habitacion.findMany({
+          where: freeWhere,
+          select: { id: true },
+        });
+
+        // 2) Aplico las actualizaciones en la misma transacción
+        await Promise.all([
+          tx.habitacion.updateMany({
+            where: nearWhere,
+            data: { estado: EstadoHabitacion.RESERVADO },
+          }),
+          tx.habitacion.updateMany({
+            where: occWhere,
+            data: { estado: EstadoHabitacion.OCUPADO },
+          }),
+          tx.habitacion.updateMany({
+            where: freeWhere,
+            data: { estado: EstadoHabitacion.LIBRE },
+          }),
+        ]);
+
+        // 3) Devuelvo los arrays de IDs para construir el payload SSE
+        return [nearRooms, occRooms, freeRooms];
+      },
+    );
+
+    // 4. Construyo el payload para enviar por SSE
+    const cambios: HabitacionesCambio[] = [
+      ...nearRooms.map((r) => ({
+        habitacionId: r.id,
+        nuevoEstado: EstadoHabitacion.RESERVADO,
+      })),
+      ...occRooms.map((r) => ({
+        habitacionId: r.id,
+        nuevoEstado: EstadoHabitacion.OCUPADO,
+      })),
+      ...freeRooms.map((r) => ({
+        habitacionId: r.id,
+        nuevoEstado: EstadoHabitacion.LIBRE,
+      })),
+    ];
+
+    // 5. Emisión por SSE para actualizar los clientes en tiempo real
+    this.habitacionSseService.emitirCambios(cambios);
+
+    return {
+      near: nearRooms.length,
+      occupied: occRooms.length,
+      free: freeRooms.length,
+    };
   }
 }

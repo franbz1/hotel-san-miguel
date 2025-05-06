@@ -14,6 +14,8 @@ import { CreateDocModule } from './common/create-doc/create-doc.module';
 import { CreateDocService } from './common/create-doc/create-doc.service';
 import { FormulariosModule } from './formularios/formularios.module';
 import { EliminarBookingModule } from './eliminar-booking/eliminar-booking.module';
+import { SseModule } from './sse/sse.module';
+import { HabitacionSseService } from './sse/habitacionSse.service';
 
 @Module({
   imports: [
@@ -31,8 +33,9 @@ import { EliminarBookingModule } from './eliminar-booking/eliminar-booking.modul
     CreateDocModule,
     FormulariosModule,
     EliminarBookingModule,
+    SseModule,
   ],
   controllers: [],
-  providers: [CreateDocService],
+  providers: [CreateDocService, HabitacionSseService],
 })
 export class AppModule {}
