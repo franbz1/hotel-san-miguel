@@ -199,4 +199,50 @@ export class LinkFormularioController {
   validateToken(@Param('token') token: string) {
     return this.linkFormularioService.validateToken(token);
   }
+
+  /**
+   * Obtiene todos los links de formulario para una habitación específica con paginación.
+   * @param numeroHabitacion Número de habitación
+   * @param paginationDto Datos de paginación
+   * @returns Lista de links con metadatos de paginación
+   */
+  @Get('habitacion/:numeroHabitacion')
+  @Auth(Role.ADMINISTRADOR, Role.CAJERO)
+  @ApiOperation({
+    summary: 'Obtener links de formulario por número de habitación',
+  })
+  @ApiParam({
+    name: 'numeroHabitacion',
+    description: 'Número de habitación',
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: true,
+    type: Number,
+    description: 'Número de página',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: true,
+    type: Number,
+    description: 'Límite de elementos por página',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de links obtenida exitosamente',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado',
+  })
+  findAllByHabitacion(
+    @Param('numeroHabitacion') numeroHabitacion: string,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.linkFormularioService.findAllByHabitacion(
+      +numeroHabitacion,
+      paginationDto,
+    );
+  }
 }

@@ -271,4 +271,46 @@ export class LinkFormularioService {
       throw new UnauthorizedException('Token inválido o expirado');
     }
   }
+
+  /**
+   * Obtiene todos los links de formulario de una habitación específica con paginación.
+   * @param numeroHabitacion Número de la habitación.
+   * @param paginationDto Datos de paginación.
+   * @returns Objeto con la lista de links y metadatos de paginación.
+   */
+  async findAllByHabitacion(
+    numeroHabitacion: number,
+    paginationDto: PaginationDto,
+  ) {
+    const { page, limit } = paginationDto;
+
+    const totalLinks = await this.prisma.linkFormulario.count({
+      where: {
+        numeroHabitacion,
+        deleted: false,
+      },
+    });
+
+    const lastPage = Math.ceil(totalLinks / limit);
+
+    const emptyData = emptyPaginationResponse(
+      page,
+      limit,
+      totalLinks,
+      lastPage,
+    );
+
+    if (totalLinks === 0 || page > emptyData.meta.lastPage) return emptyData;
+
+    const links = await this.prisma.linkFormulario.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      where: {
+        numeroHabitacion,
+        deleted: false,
+      },
+    });
+
+    return { data: links, meta: { page, limit, totalLinks, lastPage } };
+  }
 }
