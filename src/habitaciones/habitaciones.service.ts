@@ -247,6 +247,7 @@ export class HabitacionesService {
     // Habitaciones que deben marcarse como OCUPADAS (con reservas activas en este momento)
     const occWhere = {
       deleted: false,
+      estado: { notIn: [EstadoHabitacion.OCUPADO] },
       reservas: {
         some: {
           deleted: false,
