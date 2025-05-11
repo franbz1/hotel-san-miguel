@@ -106,6 +106,23 @@ export class HabitacionesService {
     try {
       return await this.prisma.habitacion.findFirstOrThrow({
         where: { numero_habitacion: numeroHabitacion, deleted: false },
+        include: {
+          reservas: {
+            where: {
+              deleted: false,
+              huesped: { deleted: false },
+            },
+            include: {
+              huesped: true,
+              huespedes_secundarios: {
+                where: { deleted: false },
+              },
+              factura: {
+                where: { deleted: false },
+              },
+            },
+          },
+        },
       });
     } catch (error) {
       if (error.code === 'P2025')
