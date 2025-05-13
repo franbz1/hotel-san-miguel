@@ -16,6 +16,7 @@ import { FormulariosModule } from './formularios/formularios.module';
 import { EliminarBookingModule } from './eliminar-booking/eliminar-booking.module';
 import { SseModule } from './sse/sse.module';
 import { HabitacionSseService } from './sse/habitacionSse.service';
+import { CronModule } from './cron/cron.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { HabitacionSseService } from './sse/habitacionSse.service';
     FormulariosModule,
     EliminarBookingModule,
     SseModule,
+    CronModule,
   ],
   controllers: [],
   providers: [CreateDocService, HabitacionSseService],

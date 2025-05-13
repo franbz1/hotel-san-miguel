@@ -1,4 +1,10 @@
-import { Controller, Sse, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Param,
+  ParseIntPipe,
+  Sse,
+  UseGuards,
+} from '@nestjs/common';
 import {
   HabitacionesCambio,
   HabitacionSseService,
@@ -14,13 +20,17 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { ReservaCambio, ReservaSseService } from './reservasSse.service';
 
 @ApiTags('SSE')
 @ApiBearerAuth()
 @Controller('sse')
 @UseGuards(JwtCookieGuardGuard)
 export class SseController {
-  constructor(private readonly habitacionesSseService: HabitacionSseService) {}
+  constructor(
+    private readonly habitacionesSseService: HabitacionSseService,
+    private readonly reservaSseService: ReservaSseService,
+  ) {}
 
   /**
    * Endpoint de Server-Sent Events que emite cambios de estado de habitaciones en tiempo real.
@@ -42,5 +52,20 @@ export class SseController {
     return this.habitacionesSseService.cambiosStream.pipe(
       map((cambios) => ({ data: cambios })),
     );
+  }
+
+  /**
+   * SSE endpoint para cambios de reservas de una habitación concreta.
+   * Clientes se suscriben a /sse/habitaciones/:id/reservas
+   */
+  @Sse(':id/reservas')
+  @UseGuards(JwtCookieGuardGuard, AuthGuard)
+  @Roles(Role.ADMINISTRADOR, Role.CAJERO)
+  streamReservas(
+    @Param('id', ParseIntPipe) habitacionId: number,
+  ): Observable<{ data: ReservaCambio }> {
+    return this.reservaSseService
+      .getStream(habitacionId)
+      .pipe(map((cambio) => ({ data: cambio })));
   }
 }
