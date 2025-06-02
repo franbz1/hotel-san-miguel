@@ -19,22 +19,31 @@ import {
   ApiParam,
   ApiBearerAuth,
   ApiQuery,
+  ApiExtraModels,
 } from '@nestjs/swagger';
 import { CreateLinkFormularioDto } from './dto/CreateLinkFormularioDto';
 import { LinkFormularioGuard } from 'src/auth/guards/linkFormulario.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
+import { LinkFormulario } from './entities/link-formulario.entity';
+import {
+  createPaginatedApiResponse,
+  PAGE_QUERY,
+  LIMIT_QUERY,
+  AUTH_INVALID_RESPONSE,
+  PERMISSIONS_RESPONSE,
+} from 'src/common/swagger/pagination-responses';
 
 @ApiTags('link-formulario')
 @Controller('link-formulario')
 @ApiBearerAuth()
+@ApiExtraModels(LinkFormulario)
 export class LinkFormularioController {
   constructor(private readonly linkFormularioService: LinkFormularioService) {}
 
-  /**
-   * Crea un link temporal para el formulario de reserva
-   * @returns Link temporal
-   */
+  // ================================================================
+  // CREATE - Crear enlace temporal para formulario
+  // ================================================================
   @Post()
   @Auth(Role.ADMINISTRADOR, Role.CAJERO)
   @ApiOperation({ summary: 'Crear enlace temporal para formulario' })
@@ -43,140 +52,69 @@ export class LinkFormularioController {
     description: 'Enlace temporal creado exitosamente',
     type: String,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado',
-  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Habitación no encontrada' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   createLinkTemporal(@Body() createLinkFormularioDto: CreateLinkFormularioDto) {
     return this.linkFormularioService.createLinkTemporal(
       createLinkFormularioDto,
     );
   }
 
-  /**
-   * Obtiene un link por su ID
-   * @param id ID del link
-   * @returns Link encontrado
-   */
-  @Get(':id')
-  @Auth(Role.ADMINISTRADOR, Role.CAJERO)
-  @ApiOperation({ summary: 'Obtener link por ID' })
-  @ApiParam({
-    name: 'id',
-    description: 'ID del link',
-    type: Number,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Link encontrado',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Link no encontrado',
-  })
-  findOne(@Param('id') id: string) {
-    return this.linkFormularioService.findOne(+id);
-  }
-
-  /**
-   * Elimina un link por su ID
-   * @param id ID del link
-   * @returns Link eliminado
-   */
-  @Delete(':id')
-  @Auth(Role.ADMINISTRADOR)
-  @ApiOperation({ summary: 'Eliminar link por ID' })
-  @ApiParam({
-    name: 'id',
-    description: 'ID del link',
-    type: Number,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Link eliminado exitosamente',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Link no encontrado',
-  })
-  remove(@Param('id') id: string) {
-    return this.linkFormularioService.remove(+id);
-  }
-
-  /**
-   * Obtiene todos los links de formulario con paginación.
-   * @param paginationDto Datos de paginación.
-   * @returns Lista de links con metadatos de paginación.
-   */
+  // ================================================================
+  // READ - Obtener todos los links con paginación
+  // ================================================================
   @Get()
   @Auth(Role.ADMINISTRADOR, Role.CAJERO)
   @ApiOperation({ summary: 'Obtener todos los links de formulario' })
-  @ApiQuery({
-    name: 'page',
-    required: true,
-    type: Number,
-    description: 'Número de página',
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: true,
-    type: Number,
-    description: 'Límite de elementos por página',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de links obtenida exitosamente',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado',
-  })
+  @ApiQuery(PAGE_QUERY)
+  @ApiQuery(LIMIT_QUERY)
+  @ApiResponse(createPaginatedApiResponse(LinkFormulario, 'totalLinks'))
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findAll(@Query() paginationDto: PaginationDto) {
     return this.linkFormularioService.findAll(paginationDto);
   }
 
-  /**
-   * Regenera un link temporal para el formulario de reserva
-   * @param id ID del link
-   * @returns Link temporal
-   */
-  @Post(':id/regenerate')
+  // ================================================================
+  // READ - Obtener links por habitación con paginación
+  // ================================================================
+  @Get('habitacion/:numeroHabitacion')
   @Auth(Role.ADMINISTRADOR, Role.CAJERO)
-  @ApiOperation({ summary: 'Regenerar link temporal para formulario' })
+  @ApiOperation({
+    summary: 'Obtener links de formulario por número de habitación',
+  })
   @ApiParam({
-    name: 'id',
-    description: 'ID del link',
+    name: 'numeroHabitacion',
+    description: 'Número de habitación',
     type: Number,
+    example: 101,
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Link regenerado exitosamente',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Link no encontrado',
-  })
-  regenerateLink(@Param('id') id: string) {
-    return this.linkFormularioService.regenerateLink(+id);
+  @ApiQuery(PAGE_QUERY)
+  @ApiQuery(LIMIT_QUERY)
+  @ApiResponse(
+    createPaginatedApiResponse(
+      LinkFormulario,
+      'totalLinks',
+      'Lista paginada de links de formulario por habitación con metadatos',
+    ),
+  )
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
+  findAllByHabitacion(
+    @Param('numeroHabitacion') numeroHabitacion: string,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.linkFormularioService.findAllByHabitacion(
+      +numeroHabitacion,
+      paginationDto,
+    );
   }
 
-  /**
-   * Valida el token de un formulario y devuelve su payload
-   * @param token Token JWT del formulario
-   * @returns Payload del token si es válido
-   */
+  // ================================================================
+  // BUSINESS LOGIC - Validar token de formulario
+  // ================================================================
   @Get('validate-token/:token')
   @Roles(Role.REGISTRO_FORMULARIO)
   @UseGuards(LinkFormularioGuard, RolesGuard)
@@ -185,8 +123,8 @@ export class LinkFormularioController {
     name: 'token',
     description: 'Token',
     type: String,
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
-  @ApiBearerAuth()
   @ApiResponse({
     status: 200,
     description: 'Token válido',
@@ -200,49 +138,76 @@ export class LinkFormularioController {
     return this.linkFormularioService.validateToken(token);
   }
 
-  /**
-   * Obtiene todos los links de formulario para una habitación específica con paginación.
-   * @param numeroHabitacion Número de habitación
-   * @param paginationDto Datos de paginación
-   * @returns Lista de links con metadatos de paginación
-   */
-  @Get('habitacion/:numeroHabitacion')
+  // ================================================================
+  // READ - Obtener link por ID
+  // ================================================================
+  @Get(':id')
   @Auth(Role.ADMINISTRADOR, Role.CAJERO)
-  @ApiOperation({
-    summary: 'Obtener links de formulario por número de habitación',
-  })
+  @ApiOperation({ summary: 'Obtener link por ID' })
   @ApiParam({
-    name: 'numeroHabitacion',
-    description: 'Número de habitación',
+    name: 'id',
+    description: 'ID del link',
     type: Number,
-  })
-  @ApiQuery({
-    name: 'page',
-    required: true,
-    type: Number,
-    description: 'Número de página',
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: true,
-    type: Number,
-    description: 'Límite de elementos por página',
+    example: 1,
   })
   @ApiResponse({
     status: 200,
-    description: 'Lista de links obtenida exitosamente',
+    description: 'Link encontrado',
+    type: LinkFormulario,
+  })
+  @ApiResponse({ status: 404, description: 'Link no encontrado' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
+  findOne(@Param('id') id: string) {
+    return this.linkFormularioService.findOne(+id);
+  }
+
+  // ================================================================
+  // UPDATE - Regenerar link temporal
+  // ================================================================
+  @Post(':id/regenerate')
+  @Auth(Role.ADMINISTRADOR, Role.CAJERO)
+  @ApiOperation({ summary: 'Regenerar link temporal para formulario' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del link',
+    type: Number,
+    example: 1,
   })
   @ApiResponse({
-    status: 401,
-    description: 'No autorizado',
+    status: 200,
+    description: 'Link regenerado exitosamente',
+    type: LinkFormulario,
   })
-  findAllByHabitacion(
-    @Param('numeroHabitacion') numeroHabitacion: string,
-    @Query() paginationDto: PaginationDto,
-  ) {
-    return this.linkFormularioService.findAllByHabitacion(
-      +numeroHabitacion,
-      paginationDto,
-    );
+  @ApiResponse({ status: 400, description: 'El link ya ha sido completado' })
+  @ApiResponse({ status: 404, description: 'Link no encontrado' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
+  regenerateLink(@Param('id') id: string) {
+    return this.linkFormularioService.regenerateLink(+id);
+  }
+
+  // ================================================================
+  // DELETE - Eliminar link por ID
+  // ================================================================
+  @Delete(':id')
+  @Auth(Role.ADMINISTRADOR)
+  @ApiOperation({ summary: 'Eliminar link por ID' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del link',
+    type: Number,
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Link eliminado exitosamente',
+    type: LinkFormulario,
+  })
+  @ApiResponse({ status: 404, description: 'Link no encontrado' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
+  remove(@Param('id') id: string) {
+    return this.linkFormularioService.remove(+id);
   }
 }

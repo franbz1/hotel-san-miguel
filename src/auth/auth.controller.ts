@@ -19,6 +19,9 @@ import { AuthGuard } from './guards/auth.guard';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // ================================================================
+  // LOGIN - Autenticar usuario
+  // ================================================================
   /**
    * Método para autenticar a un usuario
    * `POST /auth/login`
@@ -27,11 +30,36 @@ export class AuthController {
    * @returns Token de autenticación o datos del usuario autenticado
    */
   @Post('login')
-  @ApiOperation({ summary: 'Autenticar usuario' }) // Resumen de la operación
-  @ApiBody({ type: LoginDto }) // Describe el cuerpo de la solicitud (DTO)
+  @ApiOperation({ summary: 'Autenticar usuario' })
+  @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 200,
     description: 'Usuario autenticado correctamente',
+    schema: {
+      type: 'object',
+      properties: {
+        token: {
+          type: 'string',
+          description: 'Token JWT de autenticación',
+        },
+        usuarioId: {
+          type: 'number',
+          description: 'ID del usuario',
+        },
+        nombre: {
+          type: 'string',
+          description: 'Nombre del usuario',
+        },
+        rol: {
+          type: 'string',
+          description: 'Rol del usuario',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Error al procesar el login',
   })
   @ApiResponse({
     status: 401,
@@ -41,6 +69,9 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  // ================================================================
+  // LOGOUT - Cerrar sesión del usuario
+  // ================================================================
   /**
    * Método para cerrar la sesión de un usuario autenticado
    * `POST /auth/logout`
@@ -77,6 +108,9 @@ export class AuthController {
     return this.authService.logout(auth);
   }
 
+  // ================================================================
+  // VALIDATE - Validar token JWT
+  // ================================================================
   /**
    * Método para validar un token JWT
    * `POST /auth/validate`

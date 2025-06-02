@@ -9,7 +9,6 @@ import {
   ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { RemoveBookingResponse } from './eliminar-booking.service';
 
 /**
  * Controller para manejar la eliminación de reservas y links de formularios
@@ -43,8 +42,8 @@ export class EliminarBookingController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Booking eliminado exitosamente',
-    type: RemoveBookingResponse,
+    description:
+      'Booking eliminado exitosamente. Si el formulario estaba completado, retorna datos completos de eliminación. Si no estaba completado, retorna solo el link de formulario eliminado.',
   })
   @ApiResponse({
     status: 404,

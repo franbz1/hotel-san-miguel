@@ -56,7 +56,10 @@ export class ReservasController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   @ApiResponse(AUTH_INVALID_RESPONSE)
   @ApiResponse(PERMISSIONS_RESPONSE)
-  @ApiResponse({ status: 409, description: 'Conflicto con otra reserva' })
+  @ApiResponse({
+    status: 400,
+    description: 'El huésped no existe o no se encontró la habitación',
+  })
   create(@Body() createReservaDto: CreateReservaDto) {
     return this.reservasService.create(createReservaDto);
   }

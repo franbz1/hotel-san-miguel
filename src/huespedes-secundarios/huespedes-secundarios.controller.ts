@@ -58,7 +58,10 @@ export class HuespedesSecundariosController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   @ApiResponse(AUTH_INVALID_RESPONSE)
   @ApiResponse(PERMISSIONS_RESPONSE)
-  @ApiResponse({ status: 409, description: 'El número de documento ya existe' })
+  @ApiResponse({
+    status: 400,
+    description: 'El huespedId no es válido o el número de documento ya existe',
+  })
   create(@Body() CreateHuespedSecundarioDto: CreateHuespedSecundarioDto) {
     return this.huespedesSecundariosService.create(CreateHuespedSecundarioDto);
   }
@@ -103,7 +106,6 @@ export class HuespedesSecundariosController {
       'Lista paginada de huéspedes secundarios del huésped principal con metadatos',
     ),
   )
-  @ApiResponse({ status: 404, description: 'Huésped principal no encontrado' })
   @ApiResponse(AUTH_INVALID_RESPONSE)
   @ApiResponse(PERMISSIONS_RESPONSE)
   findAllByHuespedId(
@@ -157,7 +159,7 @@ export class HuespedesSecundariosController {
     description: 'Huésped secundario encontrado',
     type: HuespedSecundario,
   })
-  @ApiResponse({ status: 404, description: 'Huésped secundario no encontrado' })
+  @ApiResponse({ status: 400, description: 'El número de documento no existe' })
   @ApiResponse(AUTH_INVALID_RESPONSE)
   @ApiResponse(PERMISSIONS_RESPONSE)
   findByNumeroDocumento(@Param('numeroDocumento') numeroDocumento: string) {

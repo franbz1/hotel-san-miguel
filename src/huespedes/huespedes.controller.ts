@@ -56,7 +56,7 @@ export class HuespedesController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   @ApiResponse(AUTH_INVALID_RESPONSE)
   @ApiResponse(PERMISSIONS_RESPONSE)
-  @ApiResponse({ status: 409, description: 'El número de documento ya existe' })
+  @ApiResponse({ status: 400, description: 'El huésped ya existe' })
   create(@Body() CreateHuespedDto: CreateHuespedDto) {
     return this.huespedesService.create(CreateHuespedDto);
   }

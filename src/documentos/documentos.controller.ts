@@ -56,6 +56,10 @@ export class DocumentosController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   @ApiResponse(AUTH_INVALID_RESPONSE)
   @ApiResponse(PERMISSIONS_RESPONSE)
+  @ApiResponse({
+    status: 404,
+    description: 'Huésped o huésped secundario no encontrado',
+  })
   create(@Body() createDocumentoDto: CreateDocumentoDto) {
     return this.documentosService.create(createDocumentoDto);
   }
@@ -80,7 +84,6 @@ export class DocumentosController {
       'Lista paginada de documentos del huésped con metadatos',
     ),
   )
-  @ApiResponse({ status: 404, description: 'Huésped no encontrado' })
   @ApiResponse(AUTH_INVALID_RESPONSE)
   @ApiResponse(PERMISSIONS_RESPONSE)
   findAll(
@@ -145,7 +148,7 @@ export class DocumentosController {
   // DELETE - Eliminar documento por ID
   // ================================================================
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un documento por ID' })
+  @ApiOperation({ summary: 'Eliminar un documento por ID (hard delete)' })
   @ApiParam({
     name: 'id',
     description: 'ID del documento',

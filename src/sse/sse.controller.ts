@@ -98,10 +98,6 @@ export class SseController {
     status: 403,
     description: 'Sin permisos suficientes',
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Habitación no encontrada',
-  })
   streamReservas(
     @Param('id', ParseIntPipe) habitacionId: number,
   ): Observable<{ data: ReservaCambio }> {

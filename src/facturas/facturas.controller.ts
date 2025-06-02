@@ -56,6 +56,7 @@ export class FacturasController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   @ApiResponse(AUTH_INVALID_RESPONSE)
   @ApiResponse(PERMISSIONS_RESPONSE)
+  @ApiResponse({ status: 404, description: 'Huésped no encontrado' })
   create(@Body() createFacturaDto: CreateFacturaDto) {
     return this.facturasService.create(createFacturaDto);
   }

@@ -57,11 +57,15 @@ export class HabitacionesController {
     description: 'Habitación creada exitosamente',
     type: Habitacion,
   })
-  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   @ApiResponse(AUTH_INVALID_RESPONSE)
   @ApiResponse({
     status: 403,
     description: 'Sin permisos suficientes - Solo administradores',
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Datos de entrada inválidos o ya existe una habitación con ese número',
   })
   create(@Body() createHabitacionDto: CreateHabitacionDto) {
     return this.habitacionesService.create(createHabitacionDto);
