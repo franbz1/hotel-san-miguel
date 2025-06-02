@@ -22,6 +22,7 @@ import {
   ApiBody,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Usuario } from './entities/usuario.entity'; // Importa la entidad Usuario
 
@@ -29,6 +30,7 @@ import { Usuario } from './entities/usuario.entity'; // Importa la entidad Usuar
  * Controller CRUD para manejar usuarios
  */
 @ApiTags('usuarios') // Agrupa las rutas bajo el tag "usuarios"
+@ApiBearerAuth()
 @Auth(Role.ADMINISTRADOR)
 @Controller('usuarios')
 export class UsuariosController {

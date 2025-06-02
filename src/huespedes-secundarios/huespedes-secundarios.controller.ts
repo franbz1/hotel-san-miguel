@@ -22,10 +22,12 @@ import {
   ApiBody,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { HuespedSecundario } from './entities/huesped-secundario.entity'; // Importa la entidad
 
 @ApiTags('huespedes-secundarios') // Agrupa las rutas
+@ApiBearerAuth()
 @Auth(Role.ADMINISTRADOR, Role.CAJERO) // Roles autorizados
 @Controller('huespedes-secundarios')
 export class HuespedesSecundariosController {
@@ -34,37 +36,46 @@ export class HuespedesSecundariosController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Crear un huésped secundario' })
+  @ApiOperation({ summary: 'Crear un nuevo huésped secundario' })
   @ApiBody({ type: CreateHuespedSecundarioDto })
   @ApiResponse({
     status: 201,
-    description: 'Huésped secundario creado',
+    description: 'Huésped secundario creado exitosamente',
     type: HuespedSecundario,
   })
-  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
+  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse({ status: 409, description: 'El número de documento ya existe' })
   create(@Body() CreateHuespedSecundarioDto: CreateHuespedSecundarioDto) {
     return this.huespedesSecundariosService.create(CreateHuespedSecundarioDto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar todos los huéspedes secundarios' })
+  @ApiOperation({
+    summary: 'Listar todos los huéspedes secundarios con paginación',
+  })
   @ApiQuery({
     name: 'page',
-    description: 'Número de página',
+    description: 'Número de página (por defecto: 1)',
     required: false,
     type: Number,
+    example: 1,
   })
   @ApiQuery({
     name: 'limit',
-    description: 'Límite de resultados por página',
+    description: 'Límite de resultados por página (por defecto: 10)',
     required: false,
     type: Number,
+    example: 10,
   })
   @ApiResponse({
     status: 200,
-    description: 'Lista de huéspedes secundarios',
+    description: 'Lista de huéspedes secundarios obtenida exitosamente',
     type: [HuespedSecundario],
   })
+  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
+  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
   findAll(@Query() paginationDto: PaginationDto) {
     return this.huespedesSecundariosService.findAll(paginationDto);
   }
@@ -77,27 +88,33 @@ export class HuespedesSecundariosController {
     name: 'huespedId',
     description: 'ID del huésped principal',
     type: Number,
+    example: 1,
   })
   @ApiQuery({
     name: 'page',
-    description: 'Número de página',
+    description: 'Número de página (por defecto: 1)',
     required: false,
     type: Number,
-  }) // Query para paginación
+    example: 1,
+  })
   @ApiQuery({
     name: 'limit',
-    description: 'Límite de resultados por página',
+    description: 'Límite de resultados por página (por defecto: 10)',
     required: false,
     type: Number,
-  }) // Query para paginación
+    example: 10,
+  })
   @ApiResponse({
     status: 200,
-    description: 'Lista de huéspedes secundarios',
+    description: 'Lista de huéspedes secundarios del huésped principal',
     type: [HuespedSecundario],
   })
+  @ApiResponse({ status: 404, description: 'Huésped principal no encontrado' })
+  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
+  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
   findAllByHuespedId(
     @Param('huespedId', ParseIntPipe) huespedId: number,
-    @Query() paginationDto: PaginationDto, // Usamos @Query para paginationDto
+    @Query() paginationDto: PaginationDto,
   ) {
     return this.huespedesSecundariosService.findAllHuespedesSecundariosByHuespedId(
       huespedId,
@@ -111,6 +128,7 @@ export class HuespedesSecundariosController {
     name: 'id',
     description: 'ID del huésped secundario',
     type: Number,
+    example: 1,
   })
   @ApiResponse({
     status: 200,
@@ -118,6 +136,8 @@ export class HuespedesSecundariosController {
     type: HuespedSecundario,
   })
   @ApiResponse({ status: 404, description: 'Huésped secundario no encontrado' })
+  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
+  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.huespedesSecundariosService.findOne(id);
   }
@@ -128,15 +148,18 @@ export class HuespedesSecundariosController {
   })
   @ApiParam({
     name: 'numeroDocumento',
-    description: 'Número de documento',
+    description: 'Número de documento del huésped secundario',
     type: String,
-  }) // Tipo String
+    example: '87654321',
+  })
   @ApiResponse({
     status: 200,
     description: 'Huésped secundario encontrado',
     type: HuespedSecundario,
   })
   @ApiResponse({ status: 404, description: 'Huésped secundario no encontrado' })
+  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
+  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
   findByNumeroDocumento(@Param('numeroDocumento') numeroDocumento: string) {
     return this.huespedesSecundariosService.findByNumeroDocumento(
       numeroDocumento,
@@ -149,14 +172,18 @@ export class HuespedesSecundariosController {
     name: 'id',
     description: 'ID del huésped secundario',
     type: Number,
+    example: 1,
   })
   @ApiBody({ type: UpdateHuespedSecundarioDto })
   @ApiResponse({
     status: 200,
-    description: 'Huésped secundario actualizado',
+    description: 'Huésped secundario actualizado exitosamente',
     type: HuespedSecundario,
   })
   @ApiResponse({ status: 404, description: 'Huésped secundario no encontrado' })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
+  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() UpdateHuespedSecundarioDto: UpdateHuespedSecundarioDto,
@@ -168,18 +195,23 @@ export class HuespedesSecundariosController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un huésped secundario por ID' })
+  @ApiOperation({
+    summary: 'Eliminar un huésped secundario por ID (soft delete)',
+  })
   @ApiParam({
     name: 'id',
     description: 'ID del huésped secundario',
     type: Number,
+    example: 1,
   })
   @ApiResponse({
     status: 200,
-    description: 'Huésped secundario eliminado',
+    description: 'Huésped secundario eliminado exitosamente',
     type: HuespedSecundario,
   })
   @ApiResponse({ status: 404, description: 'Huésped secundario no encontrado' })
+  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
+  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.huespedesSecundariosService.remove(id);
   }
