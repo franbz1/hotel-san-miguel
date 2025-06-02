@@ -23,16 +23,28 @@ import {
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
+  ApiExtraModels,
 } from '@nestjs/swagger';
-import { Reserva } from './entities/reserva.entity'; // Importa la entidad Reserva
+import { Reserva } from './entities/reserva.entity';
+import {
+  createPaginatedApiResponse,
+  PAGE_QUERY,
+  LIMIT_QUERY,
+  AUTH_INVALID_RESPONSE,
+  PERMISSIONS_RESPONSE,
+} from 'src/common/swagger/pagination-responses';
 
-@ApiTags('reservas') // Agrupa las rutas
+@ApiTags('reservas')
 @ApiBearerAuth()
-@Auth(Role.CAJERO, Role.ADMINISTRADOR) // Roles autorizados
+@Auth(Role.CAJERO, Role.ADMINISTRADOR)
+@ApiExtraModels(Reserva)
 @Controller('reservas')
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
+  // ================================================================
+  // CREATE - Crear nueva reserva
+  // ================================================================
   @Post()
   @ApiOperation({ summary: 'Crear una nueva reserva' })
   @ApiBody({ type: CreateReservaDto })
@@ -42,40 +54,30 @@ export class ReservasController {
     type: Reserva,
   })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   @ApiResponse({ status: 409, description: 'Conflicto con otra reserva' })
   create(@Body() createReservaDto: CreateReservaDto) {
     return this.reservasService.create(createReservaDto);
   }
 
+  // ================================================================
+  // READ - Listar todas las reservas (con paginación)
+  // ================================================================
   @Get()
   @ApiOperation({ summary: 'Listar todas las reservas con paginación' })
-  @ApiQuery({
-    name: 'page',
-    description: 'Número de página (por defecto: 1)',
-    required: false,
-    type: Number,
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Límite de resultados por página (por defecto: 10)',
-    required: false,
-    type: Number,
-    example: 10,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de reservas obtenida exitosamente',
-    type: [Reserva],
-  })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiQuery(PAGE_QUERY)
+  @ApiQuery(LIMIT_QUERY)
+  @ApiResponse(createPaginatedApiResponse(Reserva, 'totalReservas'))
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findAll(@Query() paginationDto: PaginationDto) {
     return this.reservasService.findAll(paginationDto);
   }
 
+  // ================================================================
+  // READ - Buscar reserva por ID
+  // ================================================================
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una reserva por ID' })
   @ApiParam({
@@ -90,12 +92,15 @@ export class ReservasController {
     type: Reserva,
   })
   @ApiResponse({ status: 404, description: 'Reserva no encontrada' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.reservasService.findOne(id);
   }
 
+  // ================================================================
+  // UPDATE - Actualizar reserva por ID
+  // ================================================================
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar una reserva por ID' })
   @ApiParam({
@@ -110,10 +115,10 @@ export class ReservasController {
     description: 'Reserva actualizada exitosamente',
     type: Reserva,
   })
-  @ApiResponse({ status: 404, description: 'Reserva no encontrada' })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse({ status: 404, description: 'Reserva no encontrada' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateReservaDto: UpdateReservaDto,
@@ -121,6 +126,9 @@ export class ReservasController {
     return this.reservasService.update(id, updateReservaDto);
   }
 
+  // ================================================================
+  // DELETE - Eliminar reserva por ID (soft delete)
+  // ================================================================
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar una reserva por ID (soft delete)' })
   @ApiParam({
@@ -135,8 +143,8 @@ export class ReservasController {
     type: Reserva,
   })
   @ApiResponse({ status: 404, description: 'Reserva no encontrada' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.reservasService.remove(id);
   }

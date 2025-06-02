@@ -20,44 +20,43 @@ import {
   ApiQuery,
   ApiParam,
   ApiBody,
+  ApiExtraModels,
 } from '@nestjs/swagger';
 import { Role } from 'src/usuarios/entities/rol.enum';
 import { Formulario } from './entities/formulario.entity';
+import {
+  createPaginatedApiResponse,
+  PAGE_QUERY,
+  LIMIT_QUERY,
+  AUTH_INVALID_RESPONSE,
+  PERMISSIONS_RESPONSE,
+} from 'src/common/swagger/pagination-responses';
 
 @ApiTags('formularios')
 @ApiBearerAuth()
 @Auth(Role.CAJERO, Role.ADMINISTRADOR)
+@ApiExtraModels(Formulario)
 @Controller('formularios')
 export class FormulariosController {
   constructor(private readonly formulariosService: FormulariosService) {}
 
+  /**
+   * Listar todos los formularios con paginación
+   */
   @Get()
   @ApiOperation({ summary: 'Listar todos los formularios con paginación' })
-  @ApiQuery({
-    name: 'page',
-    description: 'Número de página (por defecto: 1)',
-    required: false,
-    type: Number,
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Límite de resultados por página (por defecto: 10)',
-    required: false,
-    type: Number,
-    example: 10,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de formularios obtenida exitosamente',
-    type: [Formulario],
-  })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiQuery(PAGE_QUERY)
+  @ApiQuery(LIMIT_QUERY)
+  @ApiResponse(createPaginatedApiResponse(Formulario, 'totalFormularios'))
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findAll(@Query() paginationDto: PaginationDto) {
     return this.formulariosService.findAll(paginationDto);
   }
 
+  /**
+   * Obtener un formulario por ID
+   */
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un formulario por ID' })
   @ApiParam({
@@ -72,12 +71,15 @@ export class FormulariosController {
     type: Formulario,
   })
   @ApiResponse({ status: 404, description: 'Formulario no encontrado' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.formulariosService.findOne(id);
   }
 
+  /**
+   * Actualizar un formulario por ID
+   */
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un formulario por ID' })
   @ApiParam({
@@ -92,10 +94,10 @@ export class FormulariosController {
     description: 'Formulario actualizado exitosamente',
     type: Formulario,
   })
-  @ApiResponse({ status: 404, description: 'Formulario no encontrado' })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse({ status: 404, description: 'Formulario no encontrado' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateFormularioDto: UpdateFormularioDto,
@@ -103,6 +105,9 @@ export class FormulariosController {
     return this.formulariosService.update(id, updateFormularioDto);
   }
 
+  /**
+   * Eliminar un formulario por ID
+   */
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un formulario por ID (soft delete)' })
   @ApiParam({
@@ -117,8 +122,8 @@ export class FormulariosController {
     type: Formulario,
   })
   @ApiResponse({ status: 404, description: 'Formulario no encontrado' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.formulariosService.remove(id);
   }

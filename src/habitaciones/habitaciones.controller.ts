@@ -25,17 +25,29 @@ import {
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
+  ApiExtraModels,
 } from '@nestjs/swagger';
-import { Habitacion } from './entities/habitacion.entity'; // Importa la entidad Habitacion
+import { Habitacion } from './entities/habitacion.entity';
 import { RangoFechasDto } from 'src/auth/dto/rangoFechasDto';
+import {
+  createPaginatedApiResponse,
+  PAGE_QUERY,
+  LIMIT_QUERY,
+  AUTH_INVALID_RESPONSE,
+  PERMISSIONS_RESPONSE,
+} from 'src/common/swagger/pagination-responses';
 
-@ApiTags('habitaciones') // Agrupa las rutas bajo el tag "habitaciones"
+@ApiTags('habitaciones')
 @ApiBearerAuth()
-@UseGuards(AuthGuard) // Usa el guard de autenticación
+@UseGuards(AuthGuard)
+@ApiExtraModels(Habitacion)
 @Controller('habitaciones')
 export class HabitacionesController {
   constructor(private readonly habitacionesService: HabitacionesService) {}
 
+  // ================================================================
+  // CREATE - Crear nueva habitación
+  // ================================================================
   @Roles(Role.ADMINISTRADOR)
   @Post()
   @ApiOperation({ summary: 'Crear una nueva habitación' })
@@ -46,40 +58,33 @@ export class HabitacionesController {
     type: Habitacion,
   })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos suficientes - Solo administradores',
+  })
   create(@Body() createHabitacionDto: CreateHabitacionDto) {
     return this.habitacionesService.create(createHabitacionDto);
   }
 
+  // ================================================================
+  // READ - Listar todas las habitaciones (con paginación)
+  // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
   @Get()
   @ApiOperation({ summary: 'Listar todas las habitaciones con paginación' })
-  @ApiQuery({
-    name: 'page',
-    description: 'Número de página (por defecto: 1)',
-    required: false,
-    type: Number,
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Límite de resultados por página (por defecto: 10)',
-    required: false,
-    type: Number,
-    example: 10,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de habitaciones obtenida exitosamente',
-    type: [Habitacion],
-  })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiQuery(PAGE_QUERY)
+  @ApiQuery(LIMIT_QUERY)
+  @ApiResponse(createPaginatedApiResponse(Habitacion, 'totalHabitaciones'))
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findAll(@Query() paginationDto: PaginationDto) {
     return this.habitacionesService.findAll(paginationDto);
   }
 
+  // ================================================================
+  // READ - Buscar habitación por número
+  // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
   @Get('numero_habitacion/:numeroHabitacion')
   @ApiOperation({ summary: 'Buscar habitación por número de habitación' })
@@ -95,14 +100,17 @@ export class HabitacionesController {
     type: Habitacion,
   })
   @ApiResponse({ status: 404, description: 'Habitación no encontrada' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findByNumeroHabitacion(
     @Param('numeroHabitacion', ParseIntPipe) numeroHabitacion: number,
   ) {
     return this.habitacionesService.findByNumeroHabitacion(numeroHabitacion);
   }
 
+  // ================================================================
+  // READ - Buscar habitación por ID
+  // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
   @Get(':id')
   @ApiOperation({ summary: 'Buscar habitación por ID' })
@@ -118,12 +126,15 @@ export class HabitacionesController {
     type: Habitacion,
   })
   @ApiResponse({ status: 404, description: 'Habitación no encontrada' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.habitacionesService.findOne(id);
   }
 
+  // ================================================================
+  // UPDATE - Actualizar habitación por ID
+  // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar habitación por ID' })
@@ -139,9 +150,10 @@ export class HabitacionesController {
     description: 'Habitación actualizada exitosamente',
     type: Habitacion,
   })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   @ApiResponse({ status: 404, description: 'Habitación no encontrada' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateHabitacionDto: UpdateHabitacionDto,
@@ -149,6 +161,9 @@ export class HabitacionesController {
     return this.habitacionesService.update(id, updateHabitacionDto);
   }
 
+  // ================================================================
+  // DELETE - Eliminar habitación por ID
+  // ================================================================
   @Roles(Role.ADMINISTRADOR)
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar habitación por ID' })
@@ -164,12 +179,18 @@ export class HabitacionesController {
     type: Habitacion,
   })
   @ApiResponse({ status: 404, description: 'Habitación no encontrada' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos suficientes - Solo administradores',
+  })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.habitacionesService.remove(id);
   }
 
+  // ================================================================
+  // BUSINESS LOGIC - Obtener habitaciones disponibles entre fechas
+  // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
   @Post('disponibles')
   @ApiOperation({
@@ -188,8 +209,8 @@ export class HabitacionesController {
     type: [Habitacion],
   })
   @ApiResponse({ status: 400, description: 'Rango de fechas inválido' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   getHabitacionesDisponiblesEntreFechas(
     @Body() rangoFechasDto: RangoFechasDto,
   ) {

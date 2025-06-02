@@ -23,16 +23,28 @@ import {
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
+  ApiExtraModels,
 } from '@nestjs/swagger';
-import { Huesped } from './entities/huesped.entity'; // Importa la entidad Huesped
+import { Huesped } from './entities/huesped.entity';
+import {
+  createPaginatedApiResponse,
+  PAGE_QUERY,
+  LIMIT_QUERY,
+  AUTH_INVALID_RESPONSE,
+  PERMISSIONS_RESPONSE,
+} from 'src/common/swagger/pagination-responses';
 
-@ApiBearerAuth() // Protege la ruta con JWT
-@ApiTags('huespedes') // Agrupa las rutas bajo el tag "huespedes"
-@Auth(Role.ADMINISTRADOR, Role.CAJERO) // Roles autorizados
+@ApiTags('huespedes')
+@ApiBearerAuth()
+@Auth(Role.ADMINISTRADOR, Role.CAJERO)
+@ApiExtraModels(Huesped)
 @Controller('huespedes')
 export class HuespedesController {
   constructor(private readonly huespedesService: HuespedesService) {}
 
+  // ================================================================
+  // CREATE - Crear nuevo huésped
+  // ================================================================
   @Post()
   @ApiOperation({ summary: 'Crear un nuevo huésped' })
   @ApiBody({ type: CreateHuespedDto })
@@ -42,40 +54,30 @@ export class HuespedesController {
     type: Huesped,
   })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   @ApiResponse({ status: 409, description: 'El número de documento ya existe' })
   create(@Body() CreateHuespedDto: CreateHuespedDto) {
     return this.huespedesService.create(CreateHuespedDto);
   }
 
+  // ================================================================
+  // READ - Listar todos los huéspedes (con paginación)
+  // ================================================================
   @Get()
   @ApiOperation({ summary: 'Listar todos los huéspedes con paginación' })
-  @ApiQuery({
-    name: 'page',
-    description: 'Número de página (por defecto: 1)',
-    required: false,
-    type: Number,
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Límite de resultados por página (por defecto: 10)',
-    required: false,
-    type: Number,
-    example: 10,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de huéspedes obtenida exitosamente',
-    type: [Huesped],
-  })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiQuery(PAGE_QUERY)
+  @ApiQuery(LIMIT_QUERY)
+  @ApiResponse(createPaginatedApiResponse(Huesped, 'totalHuespedes'))
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findAll(@Query() paginationDto: PaginationDto) {
     return this.huespedesService.findAll(paginationDto);
   }
 
+  // ================================================================
+  // READ - Buscar huésped por ID
+  // ================================================================
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un huésped por ID' })
   @ApiParam({
@@ -90,12 +92,15 @@ export class HuespedesController {
     type: Huesped,
   })
   @ApiResponse({ status: 404, description: 'Huésped no encontrado' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.huespedesService.findOne(id);
   }
 
+  // ================================================================
+  // READ - Buscar huésped por número de documento
+  // ================================================================
   @Get('documento/:documentoId')
   @ApiOperation({ summary: 'Obtener un huésped por número de documento' })
   @ApiParam({
@@ -109,12 +114,15 @@ export class HuespedesController {
     type: Huesped,
   })
   @ApiResponse({ status: 404, description: 'Huésped no encontrado' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findByDocumentoId(@Param('documentoId') documentoId: string) {
     return this.huespedesService.findByDocumentoId(documentoId);
   }
 
+  // ================================================================
+  // UPDATE - Actualizar huésped por ID
+  // ================================================================
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un huésped por ID' })
   @ApiParam({
@@ -129,10 +137,10 @@ export class HuespedesController {
     description: 'Huésped actualizado exitosamente',
     type: Huesped,
   })
-  @ApiResponse({ status: 404, description: 'Huésped no encontrado' })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse({ status: 404, description: 'Huésped no encontrado' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateHuespedDto: UpdateHuespedDto,
@@ -140,6 +148,9 @@ export class HuespedesController {
     return this.huespedesService.update(id, updateHuespedDto);
   }
 
+  // ================================================================
+  // DELETE - Eliminar huésped por ID (soft delete)
+  // ================================================================
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un huésped por ID (soft delete)' })
   @ApiParam({
@@ -154,8 +165,8 @@ export class HuespedesController {
     type: Huesped,
   })
   @ApiResponse({ status: 404, description: 'Huésped no encontrado' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.huespedesService.remove(id);
   }

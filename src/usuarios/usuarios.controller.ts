@@ -23,99 +23,104 @@ import {
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
+  ApiExtraModels,
 } from '@nestjs/swagger';
-import { Usuario } from './entities/usuario.entity'; // Importa la entidad Usuario
+import { Usuario } from './entities/usuario.entity';
+import {
+  createPaginatedApiResponse,
+  PAGE_QUERY,
+  LIMIT_QUERY,
+  AUTH_INVALID_RESPONSE,
+  PERMISSIONS_RESPONSE,
+} from 'src/common/swagger/pagination-responses';
 
 /**
  * Controller CRUD para manejar usuarios
  */
-@ApiTags('usuarios') // Agrupa las rutas bajo el tag "usuarios"
+@ApiTags('usuarios')
 @ApiBearerAuth()
 @Auth(Role.ADMINISTRADOR)
+@ApiExtraModels(Usuario)
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   /**
    * Método para crear un usuario
-   * `POST /usuarios`
-   * @param createUsuarioDto
-   * @returns Usuario
    */
   @Post()
-  @ApiOperation({ summary: 'Crear un usuario' }) // Resumen de la operación
-  @ApiBody({ type: CreateUsuarioDto }) // Describe el cuerpo de la solicitud (DTO)
-  @ApiResponse({ status: 201, description: 'Usuario creado', type: Usuario }) // Describe la respuesta exitosa (código 201)
-  @ApiResponse({ status: 400, description: 'Bad Request' }) // Ejemplo de otra respuesta (código 400)
+  @ApiOperation({ summary: 'Crear un usuario' })
+  @ApiBody({ type: CreateUsuarioDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuario creado exitosamente',
+    type: Usuario,
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   create(@Body() createUsuarioDto: CreateUsuarioDto) {
     return this.usuariosService.create(createUsuarioDto);
   }
 
   /**
    * Método para obtener todos los usuarios con paginación
-   * `GET /usuarios`
-   * @param paginationDto
-   * @returns Objeto con los usuarios y metadatos de paginación
    */
   @Get()
-  @ApiOperation({ summary: 'Listar todos los usuarios' })
-  @ApiQuery({
-    name: 'page',
-    description: 'Número de página',
-    required: false,
-    type: Number,
-  }) // Documenta el parámetro 'page'
-  @ApiQuery({
-    name: 'limit',
-    description: 'Límite de resultados por página',
-    required: false,
-    type: Number,
-  }) // Documenta el parámetro 'limit'
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de usuarios',
-    type: [Usuario],
-  })
+  @ApiOperation({ summary: 'Listar todos los usuarios con paginación' })
+  @ApiQuery(PAGE_QUERY)
+  @ApiQuery(LIMIT_QUERY)
+  @ApiResponse(createPaginatedApiResponse(Usuario, 'totalUsuarios'))
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findAll(@Query() paginationDto: PaginationDto) {
     return this.usuariosService.findAll(paginationDto);
   }
 
   /**
    * Busca un usuario por id
-   * `GET /usuarios/:id`
-   * @param id
-   * @returns Usuario
    */
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un usuario por ID' })
-  @ApiParam({ name: 'id', description: 'ID del usuario', type: Number }) // Documenta el parámetro 'id'
+  @ApiParam({
+    name: 'id',
+    description: 'ID del usuario',
+    type: Number,
+    example: 1,
+  })
   @ApiResponse({
     status: 200,
     description: 'Usuario encontrado',
     type: Usuario,
   })
-  @ApiResponse({ status: 404, description: 'Usuario no encontrado' }) // Ejemplo de otra respuesta (código 404)
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usuariosService.findOne(id);
   }
 
   /**
    * Actualiza un usuario por id
-   * `PATCH /usuarios/:id`
-   * @param id
-   * @param updateUsuarioDto
-   * @returns Usuario actualizado
    */
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un usuario por ID' })
-  @ApiParam({ name: 'id', description: 'ID del usuario', type: Number })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del usuario',
+    type: Number,
+    example: 1,
+  })
   @ApiBody({ type: UpdateUsuarioDto })
   @ApiResponse({
     status: 200,
-    description: 'Usuario actualizado',
+    description: 'Usuario actualizado exitosamente',
     type: Usuario,
   })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUsuarioDto: UpdateUsuarioDto,
@@ -125,15 +130,23 @@ export class UsuariosController {
 
   /**
    * Elimina un usuario por id
-   * `DELETE /usuarios/:id`
-   * @param id
-   * @returns Usuario eliminado
    */
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar un usuario por ID' })
-  @ApiParam({ name: 'id', description: 'ID del usuario', type: Number })
-  @ApiResponse({ status: 200, description: 'Usuario eliminado', type: Usuario })
+  @ApiOperation({ summary: 'Eliminar un usuario por ID (soft delete)' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del usuario',
+    type: Number,
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario eliminado exitosamente',
+    type: Usuario,
+  })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usuariosService.remove(id);
   }

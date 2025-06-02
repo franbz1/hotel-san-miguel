@@ -21,24 +21,30 @@ import {
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
+  ApiExtraModels,
 } from '@nestjs/swagger';
 import { Documento } from './entities/documento.entity';
 import { Auth } from 'src/auth/decorators/auth.decorator';
 import { Role } from 'src/usuarios/entities/rol.enum';
+import {
+  createPaginatedApiResponse,
+  PAGE_QUERY,
+  LIMIT_QUERY,
+  AUTH_INVALID_RESPONSE,
+  PERMISSIONS_RESPONSE,
+} from 'src/common/swagger/pagination-responses';
 
 @ApiTags('documentos')
 @ApiBearerAuth()
 @Auth(Role.ADMINISTRADOR, Role.CAJERO)
+@ApiExtraModels(Documento)
 @Controller('documentos')
 export class DocumentosController {
   constructor(private readonly documentosService: DocumentosService) {}
 
-  /**
-   * Crea un nuevo documento.
-   * `POST /documentos`
-   * @param createDocumentoDto Datos del documento a crear.
-   * @returns El documento creado.
-   */
+  // ================================================================
+  // CREATE - Crear nuevo documento
+  // ================================================================
   @Post()
   @ApiOperation({ summary: 'Crear un nuevo documento' })
   @ApiBody({ type: CreateDocumentoDto })
@@ -48,19 +54,15 @@ export class DocumentosController {
     type: Documento,
   })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   create(@Body() createDocumentoDto: CreateDocumentoDto) {
     return this.documentosService.create(createDocumentoDto);
   }
 
-  /**
-   * Busca todos los documentos por el id del huesped
-   * `GET /documentos/huesped/:huespedId`
-   * @param huespedId ID del huesped.
-   * @param paginationDto Datos de paginación.
-   * @returns Documentos[] con los documentos y metadatos de paginación.
-   */
+  // ================================================================
+  // READ - Buscar documentos por ID de huésped (con paginación)
+  // ================================================================
   @Get('huesped/:huespedId')
   @ApiOperation({ summary: 'Buscar documentos por ID de huésped' })
   @ApiParam({
@@ -69,28 +71,18 @@ export class DocumentosController {
     type: Number,
     example: 1,
   })
-  @ApiQuery({
-    name: 'page',
-    description: 'Número de página (por defecto: 1)',
-    required: false,
-    type: Number,
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Límite de resultados por página (por defecto: 10)',
-    required: false,
-    type: Number,
-    example: 10,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de documentos obtenida exitosamente',
-    type: [Documento],
-  })
+  @ApiQuery(PAGE_QUERY)
+  @ApiQuery(LIMIT_QUERY)
+  @ApiResponse(
+    createPaginatedApiResponse(
+      Documento,
+      'total',
+      'Lista paginada de documentos del huésped con metadatos',
+    ),
+  )
   @ApiResponse({ status: 404, description: 'Huésped no encontrado' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findAll(
     @Param('huespedId', ParseIntPipe) huespedId: number,
     @Query() paginationDto: PaginationDto,
@@ -98,12 +90,9 @@ export class DocumentosController {
     return this.documentosService.findAll(huespedId, paginationDto);
   }
 
-  /**
-   * Busca un documento por su ID.
-   * `GET /documentos/:id`
-   * @param id ID del documento.
-   * @returns El documento encontrado.
-   */
+  // ================================================================
+  // READ - Buscar documento por ID
+  // ================================================================
   @Get(':id')
   @ApiOperation({ summary: 'Buscar un documento por ID' })
   @ApiParam({
@@ -118,19 +107,15 @@ export class DocumentosController {
     type: Documento,
   })
   @ApiResponse({ status: 404, description: 'Documento no encontrado' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.documentosService.findOne(id);
   }
 
-  /**
-   * Actualiza los datos de un documento por su ID.
-   * `PATCH /documentos/:id`
-   * @param id ID del documento.
-   * @param updateDocumentoDto Datos para actualizar.
-   * @returns El documento actualizado.
-   */
+  // ================================================================
+  // UPDATE - Actualizar documento por ID
+  // ================================================================
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un documento por ID' })
   @ApiParam({
@@ -145,10 +130,10 @@ export class DocumentosController {
     description: 'Documento actualizado exitosamente',
     type: Documento,
   })
-  @ApiResponse({ status: 404, description: 'Documento no encontrado' })
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse({ status: 404, description: 'Documento no encontrado' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDocumentoDto: UpdateDocumentoDto,
@@ -156,12 +141,9 @@ export class DocumentosController {
     return this.documentosService.update(id, updateDocumentoDto);
   }
 
-  /**
-   * Elimina un documento por su ID.
-   * `DELETE /documentos/:id`
-   * @param id ID del documento.
-   * @returns El documento eliminado.
-   */
+  // ================================================================
+  // DELETE - Eliminar documento por ID
+  // ================================================================
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un documento por ID' })
   @ApiParam({
@@ -176,8 +158,8 @@ export class DocumentosController {
     type: Documento,
   })
   @ApiResponse({ status: 404, description: 'Documento no encontrado' })
-  @ApiResponse({ status: 401, description: 'Token de autenticación inválido' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.documentosService.remove(id);
   }
