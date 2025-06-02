@@ -45,9 +45,9 @@ import {
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
-  /**
-   * Método para crear un usuario
-   */
+  // ================================================================
+  // CREATE - Crear un usuario
+  // ================================================================
   @Post()
   @ApiOperation({ summary: 'Crear un usuario' })
   @ApiBody({ type: CreateUsuarioDto })
@@ -63,9 +63,9 @@ export class UsuariosController {
     return this.usuariosService.create(createUsuarioDto);
   }
 
-  /**
-   * Método para obtener todos los usuarios con paginación
-   */
+  // ================================================================
+  // READ - Listar todos los usuarios con paginación
+  // ================================================================
   @Get()
   @ApiOperation({ summary: 'Listar todos los usuarios con paginación' })
   @ApiQuery(PAGE_QUERY)
@@ -77,9 +77,9 @@ export class UsuariosController {
     return this.usuariosService.findAll(paginationDto);
   }
 
-  /**
-   * Busca un usuario por id
-   */
+  // ================================================================
+  // READ - Buscar un usuario por id
+  // ================================================================
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un usuario por ID' })
   @ApiParam({
@@ -100,9 +100,9 @@ export class UsuariosController {
     return this.usuariosService.findOne(id);
   }
 
-  /**
-   * Actualiza un usuario por id
-   */
+  // ================================================================
+  // UPDATE - Actualizar un usuario por id
+  // ================================================================
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un usuario por ID' })
   @ApiParam({
@@ -128,9 +128,9 @@ export class UsuariosController {
     return this.usuariosService.update(id, updateUsuarioDto);
   }
 
-  /**
-   * Elimina un usuario por id
-   */
+  // ================================================================
+  // DELETE - Eliminar un usuario por id
+  // ================================================================
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un usuario por ID (soft delete)' })
   @ApiParam({

@@ -40,9 +40,9 @@ import {
 export class FormulariosController {
   constructor(private readonly formulariosService: FormulariosService) {}
 
-  /**
-   * Listar todos los formularios con paginación
-   */
+  // ================================================================
+  // READ - Listar todos los formularios con paginación
+  // ================================================================
   @Get()
   @ApiOperation({ summary: 'Listar todos los formularios con paginación' })
   @ApiQuery(PAGE_QUERY)
@@ -54,9 +54,9 @@ export class FormulariosController {
     return this.formulariosService.findAll(paginationDto);
   }
 
-  /**
-   * Obtener un formulario por ID
-   */
+  // ================================================================
+  // READ - Obtener un formulario por ID
+  // ================================================================
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un formulario por ID' })
   @ApiParam({
@@ -77,9 +77,9 @@ export class FormulariosController {
     return this.formulariosService.findOne(id);
   }
 
-  /**
-   * Actualizar un formulario por ID
-   */
+  // ================================================================
+  // UPDATE - Actualizar un formulario por ID
+  // ================================================================
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar un formulario por ID' })
   @ApiParam({
@@ -105,9 +105,9 @@ export class FormulariosController {
     return this.formulariosService.update(id, updateFormularioDto);
   }
 
-  /**
-   * Eliminar un formulario por ID
-   */
+  // ================================================================
+  // DELETE - Eliminar un formulario por ID
+  // ================================================================
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar un formulario por ID (soft delete)' })
   @ApiParam({
