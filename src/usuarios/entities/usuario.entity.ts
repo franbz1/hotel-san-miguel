@@ -21,6 +21,7 @@ export class Usuario {
       'El rol del usuario es el rol que tiene el usuario dentro de la compañía',
     enum: Role,
     example: Role.ADMINISTRADOR,
+    default: Role.CAJERO,
   })
   public rol: Role;
 
@@ -29,4 +30,25 @@ export class Usuario {
     example: 'contraseña123',
   })
   public password: string;
+
+  @ApiProperty({
+    description: 'Fecha de creación del usuario',
+    example: '2024-01-15T10:30:00Z',
+    type: Date,
+  })
+  public createdAt: Date;
+
+  @ApiProperty({
+    description: 'Fecha de última actualización del usuario',
+    example: '2024-01-15T10:30:00Z',
+    type: Date,
+  })
+  public updatedAt: Date;
+
+  @ApiProperty({
+    description: 'Indica si el usuario ha sido eliminado (soft delete)',
+    example: false,
+    default: false,
+  })
+  public deleted: boolean;
 }

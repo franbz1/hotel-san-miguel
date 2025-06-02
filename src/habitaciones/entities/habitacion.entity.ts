@@ -11,7 +11,7 @@ export class Habitacion {
   id: number;
 
   @ApiProperty({
-    description: 'Número de la habitación',
+    description: 'Número de la habitación (debe ser único)',
     example: 101,
   })
   numero_habitacion: number;
@@ -19,26 +19,48 @@ export class Habitacion {
   @ApiProperty({
     description: 'Tipo de habitación',
     enum: TipoHabitacion,
-    example: TipoHabitacion.SENCILLA, // Ajusta el ejemplo según los valores definidos en el enum
+    example: TipoHabitacion.SENCILLA,
   })
   tipo: TipoHabitacion;
 
   @ApiProperty({
-    description: 'Estado de la habitación',
+    description: 'Estado actual de la habitación',
     enum: EstadoHabitacion,
-    example: EstadoHabitacion.LIBRE, // Ajusta el ejemplo según los valores definidos en el enum
+    example: EstadoHabitacion.LIBRE,
   })
   estado: EstadoHabitacion;
 
   @ApiProperty({
     description: 'Precio por noche de la habitación',
     example: 150.5,
+    type: 'number',
   })
   precio_por_noche: number;
 
   @ApiProperty({
     description: 'Reservas asociadas a la habitación',
-    type: [Reserva],
+    type: () => [Reserva],
   })
   reservas: Reserva[];
+
+  @ApiProperty({
+    description: 'Fecha de creación de la habitación',
+    example: '2024-01-15T10:30:00Z',
+    type: Date,
+  })
+  createdAt: Date;
+
+  @ApiProperty({
+    description: 'Fecha de última actualización de la habitación',
+    example: '2024-01-15T10:30:00Z',
+    type: Date,
+  })
+  updatedAt: Date;
+
+  @ApiProperty({
+    description: 'Indica si la habitación ha sido eliminada (soft delete)',
+    example: false,
+    default: false,
+  })
+  deleted: boolean;
 }

@@ -1,6 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Genero } from 'src/common/enums/generos.enum';
 import { TipoDoc } from 'src/common/enums/tipoDoc.enum';
+import { Documento } from 'src/documentos/entities/documento.entity';
+import { Huesped } from 'src/huespedes/entities/huesped.entity';
+import { Reserva } from 'src/reservas/entities/reserva.entity';
 
 export class HuespedSecundario {
   @ApiProperty({
@@ -12,12 +15,12 @@ export class HuespedSecundario {
   @ApiProperty({
     description: 'Tipo de documento del huésped secundario',
     enum: TipoDoc,
-    example: TipoDoc.CC, // Ajusta el ejemplo según corresponda
+    example: TipoDoc.CC,
   })
   tipo_documento: TipoDoc;
 
   @ApiProperty({
-    description: 'Número de documento del huésped secundario',
+    description: 'Número de documento del huésped secundario (debe ser único)',
     example: '12345678',
   })
   numero_documento: string;
@@ -28,11 +31,11 @@ export class HuespedSecundario {
   })
   primer_apellido: string;
 
-  @ApiProperty({
-    description: 'Segundo apellido del huésped secundario',
+  @ApiPropertyOptional({
+    description: 'Segundo apellido del huésped secundario (opcional)',
     example: 'García',
   })
-  segundo_apellido: string;
+  segundo_apellido?: string;
 
   @ApiProperty({
     description: 'Nombres del huésped secundario',
@@ -65,20 +68,15 @@ export class HuespedSecundario {
   ciudad_procedencia: string;
 
   @ApiProperty({
-    description: 'Lugar de nacimiento del huésped secundario',
-    example: 'Cali',
-  })
-  lugar_nacimiento: string;
-
-  @ApiProperty({
     description: 'Fecha de nacimiento del huésped secundario',
     example: '1990-01-01T00:00:00.000Z',
+    type: Date,
   })
   fecha_nacimiento: Date;
 
   @ApiProperty({
     description: 'Nacionalidad del huésped secundario',
-    example: 'Colombiano',
+    example: 'Colombiana',
   })
   nacionalidad: string;
 
@@ -98,25 +96,62 @@ export class HuespedSecundario {
   @ApiPropertyOptional({
     description: 'Teléfono del huésped secundario (opcional)',
     example: '+573001112233',
+    required: false,
   })
   telefono?: string;
 
   @ApiPropertyOptional({
     description: 'Correo del huésped secundario (opcional)',
     example: 'correo@example.com',
+    required: false,
   })
   correo?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description:
-      'Identificador del huésped principal al que pertenece el secundario',
+      'Identificador del huésped principal al que pertenece (opcional)',
     example: 1,
   })
-  huespedId: number;
+  huespedId?: number;
+
+  @ApiProperty({
+    description: 'Huésped principal asociado',
+    type: () => Huesped,
+  })
+  huesped?: Huesped;
+
+  @ApiProperty({
+    description: 'Lista de reservas asociadas al huésped secundario',
+    example: [],
+    type: () => [Reserva],
+  })
+  Reserva: Reserva[];
 
   @ApiProperty({
     description: 'Lista de documentos subidos por el huésped secundario',
     example: [],
+    type: () => [Documento],
   })
-  documentos_subidos: [];
+  documentos_subidos: Documento[];
+
+  @ApiProperty({
+    description: 'Fecha de creación del registro',
+    example: '2023-01-01T00:00:00.000Z',
+    type: Date,
+  })
+  createdAt: Date;
+
+  @ApiProperty({
+    description: 'Fecha de última actualización del registro',
+    example: '2023-01-02T00:00:00.000Z',
+    type: Date,
+  })
+  updatedAt: Date;
+
+  @ApiProperty({
+    description: 'Indica si el registro ha sido eliminado (soft delete)',
+    example: false,
+    default: false,
+  })
+  deleted: boolean;
 }
