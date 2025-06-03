@@ -288,6 +288,11 @@ describe('HuespedesService', () => {
               deleted: false,
             },
           },
+          facturas: {
+            where: {
+              deleted: false,
+            },
+          },
         },
       });
     });
@@ -312,6 +317,11 @@ describe('HuespedesService', () => {
             },
           },
           huespedes_secundarios: {
+            where: {
+              deleted: false,
+            },
+          },
+          facturas: {
             where: {
               deleted: false,
             },
