@@ -5,6 +5,8 @@ import { LinkFormularioService } from 'src/link-formulario/link-formulario.servi
 import { ReservasService } from 'src/reservas/reservas.service';
 import { FormulariosService } from 'src/formularios/formularios.service';
 import { FacturasService } from 'src/facturas/facturas.service';
+import { HuespedesService } from 'src/huespedes/huespedes.service';
+import { HuespedesSecundariosService } from 'src/huespedes-secundarios/huespedes-secundarios.service';
 
 describe('EliminarBookingService', () => {
   let service: EliminarBookingService;
@@ -13,6 +15,8 @@ describe('EliminarBookingService', () => {
   let reservasService: ReservasService;
   let formulariosService: FormulariosService;
   let facturasService: FacturasService;
+  let huespedesService: HuespedesService;
+  let huespedesSecundariosService: HuespedesSecundariosService;
 
   // Mock del PrismaService con transacciones
   const mockPrismaService = {
@@ -43,6 +47,16 @@ describe('EliminarBookingService', () => {
     removeTx: jest.fn(), // Método que debe existir para transacciones
   };
 
+  // Mock del HuespedesService
+  const mockHuespedesService = {
+    removeIfNoActiveReservationsTx: jest.fn(),
+  };
+
+  // Mock del HuespedesSecundariosService
+  const mockHuespedesSecundariosService = {
+    removeIfNoActiveReservationsTx: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -67,6 +81,14 @@ describe('EliminarBookingService', () => {
           provide: FacturasService,
           useValue: mockFacturasService,
         },
+        {
+          provide: HuespedesService,
+          useValue: mockHuespedesService,
+        },
+        {
+          provide: HuespedesSecundariosService,
+          useValue: mockHuespedesSecundariosService,
+        },
       ],
     }).compile();
 
@@ -78,6 +100,10 @@ describe('EliminarBookingService', () => {
     reservasService = module.get<ReservasService>(ReservasService);
     formulariosService = module.get<FormulariosService>(FormulariosService);
     facturasService = module.get<FacturasService>(FacturasService);
+    huespedesService = module.get<HuespedesService>(HuespedesService);
+    huespedesSecundariosService = module.get<HuespedesSecundariosService>(
+      HuespedesSecundariosService,
+    );
   });
 
   afterEach(() => {
@@ -95,6 +121,8 @@ describe('EliminarBookingService', () => {
       expect(reservasService).toBeDefined();
       expect(formulariosService).toBeDefined();
       expect(facturasService).toBeDefined();
+      expect(huespedesService).toBeDefined();
+      expect(huespedesSecundariosService).toBeDefined();
     });
   });
 
@@ -176,8 +204,34 @@ describe('EliminarBookingService', () => {
         deleted: false,
       };
 
+      const reservaCompleta = {
+        id: 1,
+        facturaId: 1,
+        huesped: {
+          id: 1,
+          nombre: 'Juan Perez',
+          deleted: false,
+        },
+        huespedes_secundarios: [
+          {
+            id: 1,
+            nombre: 'Maria Perez',
+            deleted: false,
+          },
+          {
+            id: 2,
+            nombre: 'Carlos Perez',
+            deleted: false,
+          },
+        ],
+      };
+
       // Mock de la transacción
-      const mockTx = {};
+      const mockTx = {
+        reserva: {
+          findFirst: jest.fn().mockResolvedValue(reservaCompleta),
+        },
+      };
 
       mockLinkFormularioService.findOne.mockResolvedValue(
         linkFormularioCompletado,
@@ -195,6 +249,15 @@ describe('EliminarBookingService', () => {
       mockReservasService.removeTx.mockResolvedValue({});
       mockLinkFormularioService.removeTx.mockResolvedValue({});
 
+      // Mock de eliminación de huéspedes - simular que se eliminaron
+      mockHuespedesSecundariosService.removeIfNoActiveReservationsTx
+        .mockResolvedValueOnce({ id: 1 }) // Primer huésped secundario eliminado
+        .mockResolvedValueOnce({ id: 2 }); // Segundo huésped secundario eliminado
+
+      mockHuespedesService.removeIfNoActiveReservationsTx.mockResolvedValue({
+        id: 1,
+      }); // Huésped principal eliminado
+
       // Act
       const resultado = await service.remove(bookingId);
 
@@ -206,6 +269,8 @@ describe('EliminarBookingService', () => {
           formularioId: 1,
           reservaId: 1,
           facturaId: 1,
+          huespedPrincipalEliminado: true,
+          huespedesSecundariosEliminados: [1, 2],
         },
       });
 
@@ -217,11 +282,35 @@ describe('EliminarBookingService', () => {
       // Verificar que se ejecutó la transacción
       expect(prismaService.$transaction).toHaveBeenCalledTimes(1);
 
+      // Verificar que se obtuvo la reserva completa con huéspedes
+      expect(mockTx.reserva.findFirst).toHaveBeenCalledWith({
+        where: { id: 1, deleted: false },
+        include: {
+          huesped: true,
+          huespedes_secundarios: {
+            where: { deleted: false },
+          },
+        },
+      });
+
       // Verificar orden de eliminaciones en transacción
       expect(facturasService.removeTx).toHaveBeenCalledWith(1, mockTx);
       expect(formulariosService.removeTx).toHaveBeenCalledWith(1, mockTx);
       expect(reservasService.removeTx).toHaveBeenCalledWith(1, mockTx);
       expect(linkFormularioService.removeTx).toHaveBeenCalledWith(1, mockTx);
+
+      // Verificar eliminación de huéspedes secundarios
+      expect(
+        huespedesSecundariosService.removeIfNoActiveReservationsTx,
+      ).toHaveBeenCalledWith(1, mockTx);
+      expect(
+        huespedesSecundariosService.removeIfNoActiveReservationsTx,
+      ).toHaveBeenCalledWith(2, mockTx);
+
+      // Verificar eliminación de huésped principal
+      expect(
+        huespedesService.removeIfNoActiveReservationsTx,
+      ).toHaveBeenCalledWith(1, mockTx);
     });
 
     it('debería eliminar booking completo sin factura en una transacción', async () => {
@@ -259,7 +348,28 @@ describe('EliminarBookingService', () => {
         deleted: false,
       };
 
-      const mockTx = {};
+      const reservaCompleta = {
+        id: 1,
+        facturaId: null,
+        huesped: {
+          id: 1,
+          nombre: 'Juan Perez',
+          deleted: false,
+        },
+        huespedes_secundarios: [
+          {
+            id: 1,
+            nombre: 'Maria Perez',
+            deleted: false,
+          },
+        ],
+      };
+
+      const mockTx = {
+        reserva: {
+          findFirst: jest.fn().mockResolvedValue(reservaCompleta),
+        },
+      };
 
       mockLinkFormularioService.findOne.mockResolvedValue(
         linkFormularioCompletado,
@@ -275,6 +385,14 @@ describe('EliminarBookingService', () => {
       mockReservasService.removeTx.mockResolvedValue({});
       mockLinkFormularioService.removeTx.mockResolvedValue({});
 
+      // Mock de eliminación de huéspedes - simular que solo se eliminó el secundario
+      mockHuespedesSecundariosService.removeIfNoActiveReservationsTx.mockResolvedValue(
+        { id: 1 },
+      );
+      mockHuespedesService.removeIfNoActiveReservationsTx.mockResolvedValue(
+        null,
+      ); // Principal no se eliminó porque tiene otras reservas
+
       // Act
       const resultado = await service.remove(bookingId);
 
@@ -286,6 +404,8 @@ describe('EliminarBookingService', () => {
           formularioId: 1,
           reservaId: 1,
           facturaId: null,
+          huespedPrincipalEliminado: false,
+          huespedesSecundariosEliminados: [1],
         },
       });
 
@@ -296,6 +416,227 @@ describe('EliminarBookingService', () => {
       expect(formulariosService.removeTx).toHaveBeenCalledWith(1, mockTx);
       expect(reservasService.removeTx).toHaveBeenCalledWith(1, mockTx);
       expect(linkFormularioService.removeTx).toHaveBeenCalledWith(1, mockTx);
+
+      // Verificar eliminación de huéspedes
+      expect(
+        huespedesSecundariosService.removeIfNoActiveReservationsTx,
+      ).toHaveBeenCalledWith(1, mockTx);
+      expect(
+        huespedesService.removeIfNoActiveReservationsTx,
+      ).toHaveBeenCalledWith(1, mockTx);
+    });
+
+    it('debería manejar booking con huéspedes que no se eliminan porque tienen otras reservas', async () => {
+      // Arrange
+      const bookingId = 1;
+      const linkFormularioCompletado = {
+        id: 1,
+        token: 'token-test',
+        completado: true,
+        expirado: false,
+        formularioId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      const formulario = {
+        id: 1,
+        reservaId: 1,
+        huespedPrincipal: 'Juan Perez',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      const reserva = {
+        id: 1,
+        facturaId: null,
+        usuarioId: 1,
+        habitacionId: 1,
+        fechaInicio: new Date(),
+        fechaFin: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      const reservaCompleta = {
+        id: 1,
+        facturaId: null,
+        huesped: {
+          id: 1,
+          nombre: 'Juan Perez',
+          deleted: false,
+        },
+        huespedes_secundarios: [
+          {
+            id: 1,
+            nombre: 'Maria Perez',
+            deleted: false,
+          },
+          {
+            id: 2,
+            nombre: 'Carlos Perez',
+            deleted: false,
+          },
+        ],
+      };
+
+      const mockTx = {
+        reserva: {
+          findFirst: jest.fn().mockResolvedValue(reservaCompleta),
+        },
+      };
+
+      mockLinkFormularioService.findOne.mockResolvedValue(
+        linkFormularioCompletado,
+      );
+      mockFormulariosService.findOne.mockResolvedValue(formulario);
+      mockReservasService.findOne.mockResolvedValue(reserva);
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTx);
+      });
+
+      mockFormulariosService.removeTx.mockResolvedValue({});
+      mockReservasService.removeTx.mockResolvedValue({});
+      mockLinkFormularioService.removeTx.mockResolvedValue({});
+
+      // Mock de eliminación de huéspedes - ninguno se elimina porque tienen otras reservas
+      mockHuespedesSecundariosService.removeIfNoActiveReservationsTx
+        .mockResolvedValueOnce(null) // Primer huésped secundario no eliminado
+        .mockResolvedValueOnce(null); // Segundo huésped secundario no eliminado
+
+      mockHuespedesService.removeIfNoActiveReservationsTx.mockResolvedValue(
+        null,
+      ); // Principal no se eliminó
+
+      // Act
+      const resultado = await service.remove(bookingId);
+
+      // Assert
+      expect(resultado).toEqual({
+        message: 'Booking eliminado correctamente',
+        data: {
+          linkFormularioId: 1,
+          formularioId: 1,
+          reservaId: 1,
+          facturaId: null,
+          huespedPrincipalEliminado: false,
+          huespedesSecundariosEliminados: [],
+        },
+      });
+
+      // Verificar que se intentó eliminar todos los huéspedes pero ninguno se eliminó
+      expect(
+        huespedesSecundariosService.removeIfNoActiveReservationsTx,
+      ).toHaveBeenCalledTimes(2);
+      expect(
+        huespedesSecundariosService.removeIfNoActiveReservationsTx,
+      ).toHaveBeenCalledWith(1, mockTx);
+      expect(
+        huespedesSecundariosService.removeIfNoActiveReservationsTx,
+      ).toHaveBeenCalledWith(2, mockTx);
+      expect(
+        huespedesService.removeIfNoActiveReservationsTx,
+      ).toHaveBeenCalledWith(1, mockTx);
+    });
+
+    it('debería manejar booking sin huéspedes secundarios', async () => {
+      // Arrange
+      const bookingId = 1;
+      const linkFormularioCompletado = {
+        id: 1,
+        token: 'token-test',
+        completado: true,
+        expirado: false,
+        formularioId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      const formulario = {
+        id: 1,
+        reservaId: 1,
+        huespedPrincipal: 'Juan Perez',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      const reserva = {
+        id: 1,
+        facturaId: null,
+        usuarioId: 1,
+        habitacionId: 1,
+        fechaInicio: new Date(),
+        fechaFin: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      const reservaCompleta = {
+        id: 1,
+        facturaId: null,
+        huesped: {
+          id: 1,
+          nombre: 'Juan Perez',
+          deleted: false,
+        },
+        huespedes_secundarios: [], // Sin huéspedes secundarios
+      };
+
+      const mockTx = {
+        reserva: {
+          findFirst: jest.fn().mockResolvedValue(reservaCompleta),
+        },
+      };
+
+      mockLinkFormularioService.findOne.mockResolvedValue(
+        linkFormularioCompletado,
+      );
+      mockFormulariosService.findOne.mockResolvedValue(formulario);
+      mockReservasService.findOne.mockResolvedValue(reserva);
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTx);
+      });
+
+      mockFormulariosService.removeTx.mockResolvedValue({});
+      mockReservasService.removeTx.mockResolvedValue({});
+      mockLinkFormularioService.removeTx.mockResolvedValue({});
+
+      // Solo el huésped principal se elimina
+      mockHuespedesService.removeIfNoActiveReservationsTx.mockResolvedValue({
+        id: 1,
+      });
+
+      // Act
+      const resultado = await service.remove(bookingId);
+
+      // Assert
+      expect(resultado).toEqual({
+        message: 'Booking eliminado correctamente',
+        data: {
+          linkFormularioId: 1,
+          formularioId: 1,
+          reservaId: 1,
+          facturaId: null,
+          huespedPrincipalEliminado: true,
+          huespedesSecundariosEliminados: [],
+        },
+      });
+
+      // Verificar que no se intentó eliminar huéspedes secundarios
+      expect(
+        huespedesSecundariosService.removeIfNoActiveReservationsTx,
+      ).not.toHaveBeenCalled();
+      expect(
+        huespedesService.removeIfNoActiveReservationsTx,
+      ).toHaveBeenCalledWith(1, mockTx);
     });
   });
 
@@ -363,6 +704,19 @@ describe('EliminarBookingService', () => {
       const formulario = { id: 1, reservaId: 1 };
       const reserva = { id: 1, facturaId: 1 };
 
+      const reservaCompleta = {
+        id: 1,
+        facturaId: 1,
+        huesped: { id: 1, nombre: 'Juan Perez', deleted: false },
+        huespedes_secundarios: [],
+      };
+
+      const mockTx = {
+        reserva: {
+          findFirst: jest.fn().mockResolvedValue(reservaCompleta),
+        },
+      };
+
       mockLinkFormularioService.findOne.mockResolvedValue(
         linkFormularioCompletado,
       );
@@ -373,7 +727,7 @@ describe('EliminarBookingService', () => {
       mockFacturasService.removeTx.mockRejectedValue(errorEliminacionFactura);
 
       mockPrismaService.$transaction.mockImplementation(async (callback) => {
-        return await callback({});
+        return await callback(mockTx);
       });
 
       // Act & Assert
@@ -393,6 +747,19 @@ describe('EliminarBookingService', () => {
       const formulario = { id: 1, reservaId: 1 };
       const reserva = { id: 1, facturaId: null };
 
+      const reservaCompleta = {
+        id: 1,
+        facturaId: null,
+        huesped: { id: 1, nombre: 'Juan Perez', deleted: false },
+        huespedes_secundarios: [],
+      };
+
+      const mockTx = {
+        reserva: {
+          findFirst: jest.fn().mockResolvedValue(reservaCompleta),
+        },
+      };
+
       mockLinkFormularioService.findOne.mockImplementation(async () => {
         operaciones.push('findOne-linkFormulario');
         return linkFormulario;
@@ -410,7 +777,7 @@ describe('EliminarBookingService', () => {
 
       mockPrismaService.$transaction.mockImplementation(async (callback) => {
         operaciones.push('inicio-transaccion');
-        const result = await callback({});
+        const result = await callback(mockTx);
         operaciones.push('fin-transaccion');
         return result;
       });
@@ -429,6 +796,10 @@ describe('EliminarBookingService', () => {
         operaciones.push('removeTx-linkFormulario');
         return {};
       });
+
+      mockHuespedesService.removeIfNoActiveReservationsTx.mockResolvedValue(
+        null,
+      );
 
       // Act
       await service.remove(bookingId);
@@ -455,12 +826,25 @@ describe('EliminarBookingService', () => {
       const formulario = { id: 1, reservaId: 1 };
       const reserva = { id: 1, facturaId: 1 };
 
+      const reservaCompleta = {
+        id: 1,
+        facturaId: 1,
+        huesped: { id: 1, nombre: 'Juan Perez', deleted: false },
+        huespedes_secundarios: [],
+      };
+
+      const mockTx = {
+        reserva: {
+          findFirst: jest.fn().mockResolvedValue(reservaCompleta),
+        },
+      };
+
       mockLinkFormularioService.findOne.mockResolvedValue(linkFormulario);
       mockFormulariosService.findOne.mockResolvedValue(formulario);
       mockReservasService.findOne.mockResolvedValue(reserva);
 
       mockPrismaService.$transaction.mockImplementation(async (callback) => {
-        return await callback({});
+        return await callback(mockTx);
       });
 
       mockFacturasService.removeTx.mockImplementation(async () => {
@@ -482,6 +866,10 @@ describe('EliminarBookingService', () => {
         operacionesEliminacion.push('linkFormulario');
         return {};
       });
+
+      mockHuespedesService.removeIfNoActiveReservationsTx.mockResolvedValue(
+        null,
+      );
 
       // Act
       await service.remove(bookingId);
@@ -519,13 +907,30 @@ describe('EliminarBookingService', () => {
           facturaId: testCase.facturaId,
         };
 
+        const reservaCompleta = {
+          id: testCase.reservaId,
+          facturaId: testCase.facturaId,
+          huesped: { id: 1, nombre: 'Juan Perez', deleted: false },
+          huespedes_secundarios: [],
+        };
+
+        const mockTx = {
+          reserva: {
+            findFirst: jest.fn().mockResolvedValue(reservaCompleta),
+          },
+        };
+
         mockLinkFormularioService.findOne.mockResolvedValue(linkFormulario);
         mockFormulariosService.findOne.mockResolvedValue(formulario);
         mockReservasService.findOne.mockResolvedValue(reserva);
 
         mockPrismaService.$transaction.mockImplementation(async (callback) => {
-          return await callback({});
+          return await callback(mockTx);
         });
+
+        mockHuespedesService.removeIfNoActiveReservationsTx.mockResolvedValue(
+          null,
+        );
 
         // Act
         const resultado = await service.remove(testCase.bookingId);
@@ -536,6 +941,8 @@ describe('EliminarBookingService', () => {
           formularioId: testCase.formularioId,
           reservaId: testCase.reservaId,
           facturaId: testCase.facturaId,
+          huespedPrincipalEliminado: false,
+          huespedesSecundariosEliminados: [],
         });
       }
     });
@@ -547,6 +954,13 @@ describe('EliminarBookingService', () => {
       const formulario = { id: 1, reservaId: 1 };
       const reserva = { id: 1, facturaId: 1 };
 
+      const reservaCompleta = {
+        id: 1,
+        facturaId: 1,
+        huesped: { id: 1, nombre: 'Juan Perez', deleted: false },
+        huespedes_secundarios: [],
+      };
+
       let transaccionActual: any = null;
 
       mockLinkFormularioService.findOne.mockResolvedValue(linkFormulario);
@@ -554,7 +968,12 @@ describe('EliminarBookingService', () => {
       mockReservasService.findOne.mockResolvedValue(reserva);
 
       mockPrismaService.$transaction.mockImplementation(async (callback) => {
-        const tx = { id: 'unique-transaction-id' };
+        const tx = {
+          id: 'unique-transaction-id',
+          reserva: {
+            findFirst: jest.fn().mockResolvedValue(reservaCompleta),
+          },
+        };
         transaccionActual = tx;
         return await callback(tx);
       });
@@ -579,6 +998,13 @@ describe('EliminarBookingService', () => {
         expect(tx).toBe(transaccionActual);
         return {};
       });
+
+      mockHuespedesService.removeIfNoActiveReservationsTx.mockImplementation(
+        async (id, tx) => {
+          expect(tx).toBe(transaccionActual);
+          return null;
+        },
+      );
 
       // Act
       await service.remove(bookingId);
