@@ -24,15 +24,31 @@ export class HabitacionesService {
    * @returns La habitación creada.
    */
   async create(createHabitacionDto: CreateHabitacionDto) {
+    // Verificar si ya existe una habitación con el mismo número que no esté eliminada
+    const habitacionExistente = await this.prisma.habitacion.findFirst({
+      where: {
+        numero_habitacion: createHabitacionDto.numero_habitacion,
+        deleted: false,
+      },
+    });
+
+    if (habitacionExistente) {
+      throw new BadRequestException(
+        'Ya existe una habitación activa con ese número',
+      );
+    }
+
     try {
       return await this.prisma.habitacion.create({
         data: createHabitacionDto,
       });
     } catch (error) {
-      if (error.code === 'P2002')
+      // Mantenemos el manejo de otros posibles errores de Prisma
+      if (error.code === 'P2002') {
         throw new BadRequestException(
-          'Ya existe una habitación con ese número',
+          'Error al crear la habitación. Verifique los datos proporcionados.',
         );
+      }
       throw error;
     }
   }
