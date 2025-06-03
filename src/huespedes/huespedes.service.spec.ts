@@ -277,6 +277,18 @@ describe('HuespedesService', () => {
       expect(resultado).toEqual(mockHuesped);
       expect(prismaService.huesped.findFirstOrThrow).toHaveBeenCalledWith({
         where: { id: 1, deleted: false },
+        include: {
+          reservas: {
+            where: {
+              deleted: false,
+            },
+          },
+          huespedes_secundarios: {
+            where: {
+              deleted: false,
+            },
+          },
+        },
       });
     });
 
@@ -293,6 +305,18 @@ describe('HuespedesService', () => {
       );
       expect(prismaService.huesped.findFirstOrThrow).toHaveBeenCalledWith({
         where: { id: 999, deleted: false },
+        include: {
+          reservas: {
+            where: {
+              deleted: false,
+            },
+          },
+          huespedes_secundarios: {
+            where: {
+              deleted: false,
+            },
+          },
+        },
       });
     });
 

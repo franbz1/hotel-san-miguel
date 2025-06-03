@@ -89,6 +89,23 @@ export class HuespedesService {
     try {
       return await this.prisma.huesped.findFirstOrThrow({
         where: { id, deleted: false },
+        include: {
+          reservas: {
+            where: {
+              deleted: false,
+            },
+          },
+          huespedes_secundarios: {
+            where: {
+              deleted: false,
+            },
+          },
+          facturas: {
+            where: {
+              deleted: false,
+            },
+          },
+        },
       });
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);
