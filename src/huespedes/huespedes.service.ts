@@ -64,6 +64,13 @@ export class HuespedesService {
       skip: (page - 1) * limit,
       take: limit,
       where: { deleted: false },
+      include: {
+        reservas: {
+          where: {
+            deleted: false,
+          },
+        },
+      },
     });
 
     return { data: huespedes, meta: { page, limit, totalHuespedes, lastPage } };
