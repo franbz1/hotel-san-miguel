@@ -172,7 +172,7 @@ describe('HuespedesService', () => {
       // Assert
       expect(resultado).toEqual({
         data: huespedesEncontrados,
-        meta: { page: 1, limit: 10, totalHuespedes: 2, lastPage: 1 },
+        meta: { page: 1, limit: 10, total: 2, lastPage: 1 },
       });
 
       expect(prismaService.huesped.count).toHaveBeenCalledWith({
@@ -207,7 +207,7 @@ describe('HuespedesService', () => {
       expect(resultado.meta).toEqual({
         page: 3,
         limit: 5,
-        totalHuespedes: 15,
+        total: 15,
         lastPage: 3, // Math.ceil(15 / 5)
       });
 
