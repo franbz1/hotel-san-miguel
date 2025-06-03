@@ -195,6 +195,71 @@ export class HuespedesSecundariosService {
     }
   }
 
+  /**
+   * Elimina un huésped secundario por su ID dentro de una transacción.
+   * @param id ID del huésped secundario.
+   * @param tx Cliente de transacción de Prisma.
+   * @returns El huésped secundario eliminado.
+   * @throws NotFoundException si el huésped secundario no existe.
+   */
+  async removeTx(id: number, tx: Prisma.TransactionClient) {
+    try {
+      return await tx.huespedSecundario.update({
+        where: { id, deleted: false },
+        data: { deleted: true },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifica si un huésped secundario tiene reservas activas.
+   * @param huespedSecundarioId ID del huésped secundario.
+   * @param tx Cliente de transacción de Prisma.
+   * @returns true si tiene reservas activas, false en caso contrario.
+   */
+  async hasActiveReservationsTx(
+    huespedSecundarioId: number,
+    tx: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    const count = await tx.reserva.count({
+      where: {
+        huespedes_secundarios: {
+          some: {
+            id: huespedSecundarioId,
+            deleted: false,
+          },
+        },
+        deleted: false,
+      },
+    });
+    return count > 0;
+  }
+
+  /**
+   * Elimina un huésped secundario solo si no tiene reservas activas, dentro de una transacción.
+   * @param huespedSecundarioId ID del huésped secundario.
+   * @param tx Cliente de transacción de Prisma.
+   * @returns El huésped secundario eliminado o null si no se eliminó.
+   */
+  async removeIfNoActiveReservationsTx(
+    huespedSecundarioId: number,
+    tx: Prisma.TransactionClient,
+  ) {
+    const hasActiveReservations = await this.hasActiveReservationsTx(
+      huespedSecundarioId,
+      tx,
+    );
+
+    if (!hasActiveReservations) {
+      return await this.removeTx(huespedSecundarioId, tx);
+    }
+
+    return null;
+  }
+
   async createManyTransaction(
     huespedesSecundarios: CreateHuespedSecundarioDto[],
     tx: Prisma.TransactionClient,

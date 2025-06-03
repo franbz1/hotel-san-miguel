@@ -6,6 +6,8 @@ import { LinkFormularioModule } from 'src/link-formulario/link-formulario.module
 import { ReservasModule } from 'src/reservas/reservas.module';
 import { FormulariosModule } from 'src/formularios/formularios.module';
 import { FacturasModule } from 'src/facturas/facturas.module';
+import { HuespedesModule } from 'src/huespedes/huespedes.module';
+import { HuespedesSecundariosModule } from 'src/huespedes-secundarios/huespedes-secundarios.module';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
@@ -15,6 +17,8 @@ import { AuthModule } from 'src/auth/auth.module';
     ReservasModule,
     FormulariosModule,
     FacturasModule,
+    HuespedesModule,
+    HuespedesSecundariosModule,
     AuthModule,
   ],
   controllers: [EliminarBookingController],

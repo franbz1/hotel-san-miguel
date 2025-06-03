@@ -5,6 +5,7 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import notFoundError from 'src/common/errors/notfoundError';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
+import { Prisma } from '@prisma/client';
 
 /**
  * Service para manejar los documentos subidos por el huesped
@@ -129,6 +130,27 @@ export class DocumentosService {
   async removeAllByHuespedId(huespedId: number) {
     try {
       return await this.prisma.documento.deleteMany({
+        where: { huespedId },
+      });
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(huespedId);
+      throw error;
+    }
+  }
+
+  /**
+   * Elimina todos los documentos de un huésped dentro de una transacción.
+   * @param huespedId ID del huésped.
+   * @param tx Cliente de transacción de Prisma.
+   * @returns El número de documentos eliminados.
+   * @throws NotFoundException si el huésped no existe.
+   */
+  async removeAllByHuespedIdTx(
+    huespedId: number,
+    tx: Prisma.TransactionClient,
+  ) {
+    try {
+      return await tx.documento.deleteMany({
         where: { huespedId },
       });
     } catch (error) {

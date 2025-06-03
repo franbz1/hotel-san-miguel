@@ -160,6 +160,68 @@ export class HuespedesService {
   }
 
   /**
+   * Elimina un huésped por su ID dentro de una transacción.
+   * @param id ID del huésped.
+   * @param tx Cliente de transacción de Prisma.
+   * @returns El huésped eliminado.
+   * @throws NotFoundException si el huésped no existe.
+   */
+  async removeTx(id: number, tx: Prisma.TransactionClient) {
+    try {
+      const huesped = await tx.huesped.update({
+        where: { id, deleted: false },
+        data: { deleted: true },
+      });
+      await this.documentosService.removeAllByHuespedIdTx(huesped.id, tx);
+      return huesped;
+    } catch (error) {
+      if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifica si un huésped tiene reservas activas.
+   * @param huespedId ID del huésped.
+   * @param tx Cliente de transacción de Prisma.
+   * @returns true si tiene reservas activas, false en caso contrario.
+   */
+  async hasActiveReservationsTx(
+    huespedId: number,
+    tx: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    const count = await tx.reserva.count({
+      where: {
+        huespedId,
+        deleted: false,
+      },
+    });
+    return count > 0;
+  }
+
+  /**
+   * Elimina un huésped solo si no tiene reservas activas, dentro de una transacción.
+   * @param huespedId ID del huésped.
+   * @param tx Cliente de transacción de Prisma.
+   * @returns El huésped eliminado o null si no se eliminó.
+   */
+  async removeIfNoActiveReservationsTx(
+    huespedId: number,
+    tx: Prisma.TransactionClient,
+  ) {
+    const hasActiveReservations = await this.hasActiveReservationsTx(
+      huespedId,
+      tx,
+    );
+
+    if (!hasActiveReservations) {
+      return await this.removeTx(huespedId, tx);
+    }
+
+    return null;
+  }
+
+  /**
    * Busca y devuelve el huesped de la base de datos, si no lo encuentra lo crea.
    * Si existe un huésped eliminado con el mismo número de documento, lo reactiva.
    * @param dto Dto del huesped a crear
