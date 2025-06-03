@@ -84,24 +84,30 @@ export class LinkFormularioGuard implements CanActivate {
       return payload;
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        return this.handleExpiredToken(token);
+        await this.handleExpiredToken(token);
+        throw new UnauthorizedException('Link expirado');
       }
       throw new UnauthorizedException('Link invalido');
     }
   }
 
   private async handleExpiredToken(token: string): Promise<void> {
-    const payload = await this.jwtService.verifyAsync(token, {
-      secret: envs.jwtSecret,
-      ignoreExpiration: true,
-    });
-
-    if (payload?.id) {
-      await this.linkFormularioService.update(payload.id, {
-        expirado: true,
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: envs.jwtSecret,
+        ignoreExpiration: true,
       });
+
+      if (payload?.id) {
+        await this.linkFormularioService.update(payload.id, {
+          expirado: true,
+        });
+      }
+    } catch (error) {
+      // Log error pero no fallar - el objetivo es marcar como expirado
+      console.warn('No se pudo marcar formulario como expirado:', error);
     }
-    throw new UnauthorizedException('Link expirado');
+    // No lanzar excepción aquí - dejar que validateToken lo haga
   }
 
   private async getFormulario(id: number): Promise<LinkFormulario> {
