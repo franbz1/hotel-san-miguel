@@ -198,7 +198,7 @@ enum EstadosHabitacion {
 
 model Habitacion {
   id                Int               @id @default(autoincrement())
-  numero_habitacion Int               @unique
+  numero_habitacion Int               
   tipo              TiposHabitacion
   estado            EstadosHabitacion
   precio_por_noche  Float
