@@ -19,10 +19,11 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { ReservaCambio, ReservaSseService } from './reservasSse.service';
 
-@ApiTags('SSE')
+@ApiTags('sse')
 @ApiBearerAuth()
 @Controller('sse')
 @UseGuards(JwtCookieGuardGuard)
@@ -39,15 +40,27 @@ export class SseController {
    *
    * @returns Un stream observable de eventos con los cambios de estado de habitaciones
    */
-  @ApiOperation({ summary: 'Stream de cambios de estado de habitaciones' })
+  @Sse('habitaciones-cambios')
+  @Roles(Role.ADMINISTRADOR, Role.CAJERO)
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Stream de cambios de estado de habitaciones en tiempo real',
+    description:
+      'Endpoint SSE que emite eventos cuando cambia el estado de las habitaciones. Los clientes se conectan y reciben actualizaciones automáticas.',
+  })
   @ApiResponse({
     status: 200,
     description:
       'Stream SSE con actualizaciones de estado de habitaciones en tiempo real',
   })
-  @Sse('habitaciones-cambios')
-  @Roles(Role.ADMINISTRADOR, Role.CAJERO)
-  @UseGuards(AuthGuard)
+  @ApiResponse({
+    status: 401,
+    description: 'Token de autenticación inválido',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos suficientes',
+  })
   cambios(): Observable<{ data: HabitacionesCambio[] }> {
     return this.habitacionesSseService.cambiosStream.pipe(
       map((cambios) => ({ data: cambios })),
@@ -61,6 +74,30 @@ export class SseController {
   @Sse(':id/reservas')
   @UseGuards(JwtCookieGuardGuard, AuthGuard)
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
+  @ApiOperation({
+    summary: 'Stream de cambios de reservas por habitación',
+    description:
+      'Endpoint SSE que emite eventos cuando cambian las reservas de una habitación específica.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID de la habitación',
+    type: Number,
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Stream SSE con actualizaciones de reservas de la habitación especificada',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token de autenticación inválido',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos suficientes',
+  })
   streamReservas(
     @Param('id', ParseIntPipe) habitacionId: number,
   ): Observable<{ data: ReservaCambio }> {

@@ -1,0 +1,4008 @@
+openapi: 3.0.0
+paths:
+  /usuarios:
+    post:
+      operationId: UsuariosController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUsuarioDto'
+      responses:
+        '201':
+          description: Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Crear un usuario
+      tags:
+        - usuarios
+    get:
+      operationId: UsuariosController_findAll
+      parameters:
+        - name: page
+          required: false
+          in: query
+          description: 'Número de página (por defecto: 1)'
+          schema:
+            minimum: 1
+            default: 1
+            example: 1
+            type: number
+        - name: limit
+          required: false
+          in: query
+          description: 'Límite de resultados por página (por defecto: 10)'
+          schema:
+            minimum: 1
+            default: 10
+            example: 10
+            type: number
+      responses:
+        '200':
+          description: Lista paginada de usuarios con metadatos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Usuario'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                        description: Página actual
+                      limit:
+                        type: number
+                        description: Límite por página
+                      totalUsuarios:
+                        type: number
+                        description: Total de usuarios
+                      lastPage:
+                        type: number
+                        description: Última página
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Listar todos los usuarios con paginación
+      tags:
+        - usuarios
+  /usuarios/{id}:
+    get:
+      operationId: UsuariosController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del usuario
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Usuario no encontrado
+      security:
+        - bearer: []
+      summary: Obtener un usuario por ID
+      tags:
+        - usuarios
+    patch:
+      operationId: UsuariosController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del usuario
+          schema:
+            example: 1
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUsuarioDto'
+      responses:
+        '200':
+          description: Usuario actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Usuario no encontrado
+      security:
+        - bearer: []
+      summary: Actualizar un usuario por ID
+      tags:
+        - usuarios
+    delete:
+      operationId: UsuariosController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del usuario
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Usuario eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Usuario no encontrado
+      security:
+        - bearer: []
+      summary: Eliminar un usuario por ID (soft delete)
+      tags:
+        - usuarios
+  /auth/login:
+    post:
+      operationId: AuthController_login
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDto'
+      responses:
+        '200':
+          description: Usuario autenticado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Token JWT de autenticación
+                  usuarioId:
+                    type: number
+                    description: ID del usuario
+                  nombre:
+                    type: string
+                    description: Nombre del usuario
+                  rol:
+                    type: string
+                    description: Rol del usuario
+        '400':
+          description: Error al procesar el login
+        '401':
+          description: Credenciales inválidas
+      summary: Autenticar usuario
+      tags:
+        - auth
+  /auth/logout:
+    post:
+      operationId: AuthController_logout
+      parameters:
+        - name: authorization
+          required: true
+          in: header
+          schema:
+            type: string
+        - name: Authorization
+          in: header
+          description: Token JWT en formato Bearer
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sesión cerrada correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Mensaje de éxito
+        '401':
+          description: Token inválido o expirado
+      summary: Cerrar sesión del usuario
+      tags:
+        - auth
+  /auth/validate:
+    post:
+      operationId: AuthController_validateToken
+      parameters:
+        - name: authorization
+          required: true
+          in: header
+          schema:
+            type: string
+        - name: Authorization
+          in: header
+          description: Token JWT en formato Bearer
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Token válido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isValid:
+                    type: boolean
+                    description: Indica si el token es válido
+                  usuarioId:
+                    type: number
+                    description: ID del usuario
+                  nombre:
+                    type: string
+                    description: Nombre del usuario
+                  rol:
+                    type: string
+                    description: Rol del usuario
+        '401':
+          description: Token inválido o expirado
+      summary: Validar token JWT
+      tags:
+        - auth
+  /huespedes:
+    post:
+      operationId: HuespedesController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHuespedDto'
+      responses:
+        '201':
+          description: Huésped creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Huesped'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Crear un nuevo huésped
+      tags:
+        - huespedes
+    get:
+      operationId: HuespedesController_findAll
+      parameters:
+        - name: page
+          required: false
+          in: query
+          description: 'Número de página (por defecto: 1)'
+          schema:
+            minimum: 1
+            default: 1
+            example: 1
+            type: number
+        - name: limit
+          required: false
+          in: query
+          description: 'Límite de resultados por página (por defecto: 10)'
+          schema:
+            minimum: 1
+            default: 10
+            example: 10
+            type: number
+      responses:
+        '200':
+          description: Lista paginada de huéspedes con metadatos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Huesped'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                        description: Página actual
+                      limit:
+                        type: number
+                        description: Límite por página
+                      totalHuespedes:
+                        type: number
+                        description: Total de huéspedes
+                      lastPage:
+                        type: number
+                        description: Última página
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Listar todos los huéspedes con paginación
+      tags:
+        - huespedes
+  /huespedes/{id}:
+    get:
+      operationId: HuespedesController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del huésped
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Huésped encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Huesped'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Huésped no encontrado
+      security:
+        - bearer: []
+      summary: Obtener un huésped por ID
+      tags:
+        - huespedes
+    patch:
+      operationId: HuespedesController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del huésped
+          schema:
+            example: 1
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateHuespedDto'
+      responses:
+        '200':
+          description: Huésped actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Huesped'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Huésped no encontrado
+      security:
+        - bearer: []
+      summary: Actualizar un huésped por ID
+      tags:
+        - huespedes
+    delete:
+      operationId: HuespedesController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del huésped
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Huésped eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Huesped'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Huésped no encontrado
+      security:
+        - bearer: []
+      summary: Eliminar un huésped por ID (soft delete)
+      tags:
+        - huespedes
+  /huespedes/documento/{documentoId}:
+    get:
+      operationId: HuespedesController_findByDocumentoId
+      parameters:
+        - name: documentoId
+          required: true
+          in: path
+          description: Número de documento del huésped
+          schema:
+            example: '12345678'
+            type: string
+      responses:
+        '200':
+          description: Huésped encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Huesped'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Huésped no encontrado
+      security:
+        - bearer: []
+      summary: Obtener un huésped por número de documento
+      tags:
+        - huespedes
+  /documentos:
+    post:
+      operationId: DocumentosController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentoDto'
+      responses:
+        '201':
+          description: Documento creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Huésped o huésped secundario no encontrado
+      security:
+        - bearer: []
+      summary: Crear un nuevo documento
+      tags:
+        - documentos
+  /documentos/huesped/{huespedId}:
+    get:
+      operationId: DocumentosController_findAll
+      parameters:
+        - name: huespedId
+          required: true
+          in: path
+          description: ID del huésped
+          schema:
+            example: 1
+            type: number
+        - name: page
+          required: false
+          in: query
+          description: 'Número de página (por defecto: 1)'
+          schema:
+            minimum: 1
+            default: 1
+            example: 1
+            type: number
+        - name: limit
+          required: false
+          in: query
+          description: 'Límite de resultados por página (por defecto: 10)'
+          schema:
+            minimum: 1
+            default: 10
+            example: 10
+            type: number
+      responses:
+        '200':
+          description: Lista paginada de documentos del huésped con metadatos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Documento'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                        description: Página actual
+                      limit:
+                        type: number
+                        description: Límite por página
+                      total:
+                        type: number
+                        description: Total de elementos
+                      lastPage:
+                        type: number
+                        description: Última página
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Buscar documentos por ID de huésped
+      tags:
+        - documentos
+  /documentos/{id}:
+    get:
+      operationId: DocumentosController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del documento
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Documento encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Documento no encontrado
+      security:
+        - bearer: []
+      summary: Buscar un documento por ID
+      tags:
+        - documentos
+    patch:
+      operationId: DocumentosController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del documento
+          schema:
+            example: 1
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDocumentoDto'
+      responses:
+        '200':
+          description: Documento actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Documento no encontrado
+      security:
+        - bearer: []
+      summary: Actualizar un documento por ID
+      tags:
+        - documentos
+    delete:
+      operationId: DocumentosController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del documento
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Documento eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Documento no encontrado
+      security:
+        - bearer: []
+      summary: Eliminar un documento por ID (hard delete)
+      tags:
+        - documentos
+  /habitaciones:
+    post:
+      operationId: HabitacionesController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHabitacionDto'
+      responses:
+        '201':
+          description: Habitación creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habitacion'
+        '400':
+          description: Datos de entrada inválidos o ya existe una habitación con ese número
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes - Solo administradores
+      security:
+        - bearer: []
+      summary: Crear una nueva habitación
+      tags:
+        - habitaciones
+    get:
+      operationId: HabitacionesController_findAll
+      parameters:
+        - name: page
+          required: false
+          in: query
+          description: 'Número de página (por defecto: 1)'
+          schema:
+            minimum: 1
+            default: 1
+            example: 1
+            type: number
+        - name: limit
+          required: false
+          in: query
+          description: 'Límite de resultados por página (por defecto: 10)'
+          schema:
+            minimum: 1
+            default: 10
+            example: 10
+            type: number
+      responses:
+        '200':
+          description: Lista paginada de habitaciones con metadatos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Habitacion'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                        description: Página actual
+                      limit:
+                        type: number
+                        description: Límite por página
+                      totalHabitaciones:
+                        type: number
+                        description: Total de habitaciones
+                      lastPage:
+                        type: number
+                        description: Última página
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Listar todas las habitaciones con paginación
+      tags:
+        - habitaciones
+  /habitaciones/numero_habitacion/{numeroHabitacion}:
+    get:
+      operationId: HabitacionesController_findByNumeroHabitacion
+      parameters:
+        - name: numeroHabitacion
+          required: true
+          in: path
+          description: Número de la habitación
+          schema:
+            example: 101
+            type: number
+      responses:
+        '200':
+          description: Habitación encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habitacion'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Habitación no encontrada
+      security:
+        - bearer: []
+      summary: Buscar habitación por número de habitación
+      tags:
+        - habitaciones
+  /habitaciones/{id}:
+    get:
+      operationId: HabitacionesController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID de la habitación
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Habitación encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habitacion'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Habitación no encontrada
+      security:
+        - bearer: []
+      summary: Buscar habitación por ID
+      tags:
+        - habitaciones
+    patch:
+      operationId: HabitacionesController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID de la habitación
+          schema:
+            example: 1
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateHabitacionDto'
+      responses:
+        '200':
+          description: Habitación actualizada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habitacion'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Habitación no encontrada
+      security:
+        - bearer: []
+      summary: Actualizar habitación por ID
+      tags:
+        - habitaciones
+    delete:
+      operationId: HabitacionesController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID de la habitación
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Habitación eliminada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habitacion'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes - Solo administradores
+        '404':
+          description: Habitación no encontrada
+      security:
+        - bearer: []
+      summary: Eliminar habitación por ID
+      tags:
+        - habitaciones
+  /habitaciones/disponibles:
+    post:
+      description: >-
+        Obtiene las habitaciones disponibles entre dos fechas. Las fechas se
+        validan solo por día, sin considerar la hora exacta. La fecha de inicio
+        debe ser igual o posterior al día actual, y la fecha de fin debe ser
+        posterior a la fecha de inicio.
+      operationId: HabitacionesController_getHabitacionesDisponiblesEntreFechas
+      parameters: []
+      requestBody:
+        required: true
+        description: >-
+          Rango de fechas para buscar habitaciones disponibles. Las fechas se
+          validan solo por día.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RangoFechasDto'
+      responses:
+        '200':
+          description: Lista de habitaciones disponibles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Habitacion'
+        '400':
+          description: Rango de fechas inválido
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Obtener habitaciones disponibles entre dos fechas
+      tags:
+        - habitaciones
+  /sse/habitaciones-cambios:
+    get:
+      description: >-
+        Endpoint SSE que emite eventos cuando cambia el estado de las
+        habitaciones. Los clientes se conectan y reciben actualizaciones
+        automáticas.
+      operationId: SseController_cambios
+      parameters: []
+      responses:
+        '200':
+          description: >-
+            Stream SSE con actualizaciones de estado de habitaciones en tiempo
+            real
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Stream de cambios de estado de habitaciones en tiempo real
+      tags:
+        - sse
+  /sse/{id}/reservas:
+    get:
+      description: >-
+        Endpoint SSE que emite eventos cuando cambian las reservas de una
+        habitación específica.
+      operationId: SseController_streamReservas
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID de la habitación
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: >-
+            Stream SSE con actualizaciones de reservas de la habitación
+            especificada
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Stream de cambios de reservas por habitación
+      tags:
+        - sse
+  /huespedes-secundarios:
+    post:
+      operationId: HuespedesSecundariosController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHuespedSecundarioDto'
+      responses:
+        '201':
+          description: Huésped secundario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HuespedSecundario'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Crear un nuevo huésped secundario
+      tags:
+        - huespedes-secundarios
+    get:
+      operationId: HuespedesSecundariosController_findAll
+      parameters:
+        - name: page
+          required: false
+          in: query
+          description: 'Número de página (por defecto: 1)'
+          schema:
+            minimum: 1
+            default: 1
+            example: 1
+            type: number
+        - name: limit
+          required: false
+          in: query
+          description: 'Límite de resultados por página (por defecto: 10)'
+          schema:
+            minimum: 1
+            default: 10
+            example: 10
+            type: number
+      responses:
+        '200':
+          description: Lista paginada de huéspedes secundarios con metadatos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HuespedSecundario'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                        description: Página actual
+                      limit:
+                        type: number
+                        description: Límite por página
+                      totalHuespedesSecundarios:
+                        type: number
+                        description: Total de huéspedes secundarios
+                      lastPage:
+                        type: number
+                        description: Última página
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Listar todos los huéspedes secundarios con paginación
+      tags:
+        - huespedes-secundarios
+  /huespedes-secundarios/huespedId/{huespedId}:
+    get:
+      operationId: HuespedesSecundariosController_findAllByHuespedId
+      parameters:
+        - name: huespedId
+          required: true
+          in: path
+          description: ID del huésped principal
+          schema:
+            example: 1
+            type: number
+        - name: page
+          required: false
+          in: query
+          description: 'Número de página (por defecto: 1)'
+          schema:
+            minimum: 1
+            default: 1
+            example: 1
+            type: number
+        - name: limit
+          required: false
+          in: query
+          description: 'Límite de resultados por página (por defecto: 10)'
+          schema:
+            minimum: 1
+            default: 10
+            example: 10
+            type: number
+      responses:
+        '200':
+          description: >-
+            Lista paginada de huéspedes secundarios del huésped principal con
+            metadatos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HuespedSecundario'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                        description: Página actual
+                      limit:
+                        type: number
+                        description: Límite por página
+                      totalHuespedesSecundarios:
+                        type: number
+                        description: Total de huéspedes secundarios
+                      lastPage:
+                        type: number
+                        description: Última página
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Listar huéspedes secundarios por ID de huésped principal
+      tags:
+        - huespedes-secundarios
+  /huespedes-secundarios/{id}:
+    get:
+      operationId: HuespedesSecundariosController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del huésped secundario
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Huésped secundario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HuespedSecundario'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Huésped secundario no encontrado
+      security:
+        - bearer: []
+      summary: Obtener un huésped secundario por ID
+      tags:
+        - huespedes-secundarios
+    patch:
+      operationId: HuespedesSecundariosController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del huésped secundario
+          schema:
+            example: 1
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateHuespedSecundarioDto'
+      responses:
+        '200':
+          description: Huésped secundario actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HuespedSecundario'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Huésped secundario no encontrado
+      security:
+        - bearer: []
+      summary: Actualizar un huésped secundario por ID
+      tags:
+        - huespedes-secundarios
+    delete:
+      operationId: HuespedesSecundariosController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del huésped secundario
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Huésped secundario eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HuespedSecundario'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Huésped secundario no encontrado
+      security:
+        - bearer: []
+      summary: Eliminar un huésped secundario por ID (soft delete)
+      tags:
+        - huespedes-secundarios
+  /huespedes-secundarios/numeroDocumento/{numeroDocumento}:
+    get:
+      operationId: HuespedesSecundariosController_findByNumeroDocumento
+      parameters:
+        - name: numeroDocumento
+          required: true
+          in: path
+          description: Número de documento del huésped secundario
+          schema:
+            example: '87654321'
+            type: string
+      responses:
+        '200':
+          description: Huésped secundario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HuespedSecundario'
+        '400':
+          description: El número de documento no existe
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Obtener un huésped secundario por número de documento
+      tags:
+        - huespedes-secundarios
+  /facturas:
+    post:
+      operationId: FacturasController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFacturaDto'
+      responses:
+        '201':
+          description: Factura creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Factura'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Huésped no encontrado
+      security:
+        - bearer: []
+      summary: Crear una nueva factura
+      tags:
+        - facturas
+    get:
+      operationId: FacturasController_findAll
+      parameters:
+        - name: page
+          required: false
+          in: query
+          description: 'Número de página (por defecto: 1)'
+          schema:
+            minimum: 1
+            default: 1
+            example: 1
+            type: number
+        - name: limit
+          required: false
+          in: query
+          description: 'Límite de resultados por página (por defecto: 10)'
+          schema:
+            minimum: 1
+            default: 10
+            example: 10
+            type: number
+      responses:
+        '200':
+          description: Lista paginada de facturas con metadatos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Factura'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                        description: Página actual
+                      limit:
+                        type: number
+                        description: Límite por página
+                      totalFacturas:
+                        type: number
+                        description: Total de facturas
+                      lastPage:
+                        type: number
+                        description: Última página
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Listar todas las facturas con paginación
+      tags:
+        - facturas
+  /facturas/{id}:
+    get:
+      operationId: FacturasController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID de la factura
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Factura encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Factura'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Factura no encontrada
+      security:
+        - bearer: []
+      summary: Obtener una factura por ID
+      tags:
+        - facturas
+    patch:
+      operationId: FacturasController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID de la factura
+          schema:
+            example: 1
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFacturaDto'
+      responses:
+        '200':
+          description: Factura actualizada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Factura'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Factura no encontrada
+      security:
+        - bearer: []
+      summary: Actualizar una factura por ID
+      tags:
+        - facturas
+    delete:
+      operationId: FacturasController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID de la factura
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Factura eliminada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Factura'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Factura no encontrada
+      security:
+        - bearer: []
+      summary: Eliminar una factura por ID (soft delete)
+      tags:
+        - facturas
+  /reservas:
+    post:
+      operationId: ReservasController_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReservaDto'
+      responses:
+        '201':
+          description: Reserva creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reserva'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Crear una nueva reserva
+      tags:
+        - reservas
+    get:
+      operationId: ReservasController_findAll
+      parameters:
+        - name: page
+          required: false
+          in: query
+          description: 'Número de página (por defecto: 1)'
+          schema:
+            minimum: 1
+            default: 1
+            example: 1
+            type: number
+        - name: limit
+          required: false
+          in: query
+          description: 'Límite de resultados por página (por defecto: 10)'
+          schema:
+            minimum: 1
+            default: 10
+            example: 10
+            type: number
+      responses:
+        '200':
+          description: Lista paginada de reservas con metadatos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Reserva'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                        description: Página actual
+                      limit:
+                        type: number
+                        description: Límite por página
+                      totalReservas:
+                        type: number
+                        description: Total de reservas
+                      lastPage:
+                        type: number
+                        description: Última página
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Listar todas las reservas con paginación
+      tags:
+        - reservas
+  /reservas/{id}:
+    get:
+      operationId: ReservasController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID de la reserva
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Reserva encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reserva'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Reserva no encontrada
+      security:
+        - bearer: []
+      summary: Obtener una reserva por ID
+      tags:
+        - reservas
+    patch:
+      operationId: ReservasController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID de la reserva
+          schema:
+            example: 1
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReservaDto'
+      responses:
+        '200':
+          description: Reserva actualizada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reserva'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Reserva no encontrada
+      security:
+        - bearer: []
+      summary: Actualizar una reserva por ID
+      tags:
+        - reservas
+    delete:
+      operationId: ReservasController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID de la reserva
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Reserva eliminada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reserva'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Reserva no encontrada
+      security:
+        - bearer: []
+      summary: Eliminar una reserva por ID (soft delete)
+      tags:
+        - reservas
+  /registro-formulario/{token}:
+    post:
+      operationId: RegistroFormularioController_create
+      parameters:
+        - name: token
+          required: true
+          in: path
+          description: Token del formulario
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRegistroFormularioDto'
+      responses:
+        '201':
+          description: Registro de formulario creado exitosamente
+        '400':
+          description: Bad Request - Error en los datos proporcionados
+        '404':
+          description: Not Found - Habitación o recurso no encontrado
+        '409':
+          description: Conflict - Ya existe un formulario completado para este token
+        '500':
+          description: Internal Server Error - Error durante el procesamiento
+      security:
+        - bearer: []
+      summary: Crear un registro de formulario sin integración TRA
+      tags:
+        - registro-formulario
+  /registro-formulario/tra/{token}:
+    post:
+      operationId: RegistroFormularioController_createWithTra
+      parameters:
+        - name: token
+          required: true
+          in: path
+          description: Token del formulario
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRegistroFormularioDto'
+      responses:
+        '201':
+          description: Registro de formulario creado exitosamente
+        '207':
+          description: Multi-Status - Formulario registrado pero falló integración con TRA
+        '400':
+          description: Bad Request - Error en los datos proporcionados
+        '404':
+          description: Not Found - Habitación o recurso no encontrado
+        '409':
+          description: Conflict - Ya existe un formulario completado para este token
+        '500':
+          description: Internal Server Error - Error durante el procesamiento
+      security:
+        - bearer: []
+      summary: Crear un registro de formulario con integración TRA
+      tags:
+        - registro-formulario
+  /registro-formulario/tra/formulario/{id}:
+    post:
+      operationId: RegistroFormularioController_registerFormularioInTra
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del formulario a registrar en TRA
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Formulario registrado exitosamente en TRA
+        '400':
+          description: Bad Request - Error al registrar en TRA
+        '404':
+          description: Not Found - Formulario no encontrado
+      security:
+        - bearer: []
+      summary: Registrar un formulario existente en TRA
+      tags:
+        - registro-formulario
+  /tra/test:
+    post:
+      description: Endpoint de prueba para verificar la integración con el sistema TRA
+      operationId: TraController_test
+      parameters: []
+      requestBody:
+        required: true
+        description: Datos del formulario para registrar en TRA
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRegistroFormularioDto'
+      responses:
+        '201':
+          description: Formulario registrado exitosamente en TRA
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '500':
+          description: Error en la integración con TRA
+      security:
+        - bearer: []
+      summary: Probar integración con TRA
+      tags:
+        - tra
+  /formularios:
+    get:
+      operationId: FormulariosController_findAll
+      parameters:
+        - name: page
+          required: false
+          in: query
+          description: 'Número de página (por defecto: 1)'
+          schema:
+            minimum: 1
+            default: 1
+            example: 1
+            type: number
+        - name: limit
+          required: false
+          in: query
+          description: 'Límite de resultados por página (por defecto: 10)'
+          schema:
+            minimum: 1
+            default: 10
+            example: 10
+            type: number
+      responses:
+        '200':
+          description: Lista paginada de formularios con metadatos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Formulario'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                        description: Página actual
+                      limit:
+                        type: number
+                        description: Límite por página
+                      totalFormularios:
+                        type: number
+                        description: Total de formularios
+                      lastPage:
+                        type: number
+                        description: Última página
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Listar todos los formularios con paginación
+      tags:
+        - formularios
+  /formularios/{id}:
+    get:
+      operationId: FormulariosController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del formulario
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Formulario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Formulario'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Formulario no encontrado
+      security:
+        - bearer: []
+      summary: Obtener un formulario por ID
+      tags:
+        - formularios
+    patch:
+      operationId: FormulariosController_update
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del formulario
+          schema:
+            example: 1
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFormularioDto'
+      responses:
+        '200':
+          description: Formulario actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Formulario'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Formulario no encontrado
+      security:
+        - bearer: []
+      summary: Actualizar un formulario por ID
+      tags:
+        - formularios
+    delete:
+      operationId: FormulariosController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del formulario
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Formulario eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Formulario'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Formulario no encontrado
+      security:
+        - bearer: []
+      summary: Eliminar un formulario por ID (soft delete)
+      tags:
+        - formularios
+  /sire/test:
+    post:
+      description: Endpoint de prueba para cargar información de un huésped al sistema SIRE
+      operationId: SireController_test
+      parameters: []
+      requestBody:
+        required: true
+        description: Datos del huésped para cargar en SIRE
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HuespedesSireDto'
+      responses:
+        '200':
+          description: Huésped cargado exitosamente en SIRE
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '500':
+          description: Error en la integración con SIRE
+      security:
+        - bearer: []
+      summary: Probar carga de huésped a SIRE
+      tags:
+        - sire
+  /link-formulario:
+    post:
+      operationId: LinkFormularioController_createLinkTemporal
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLinkFormularioDto'
+      responses:
+        '201':
+          description: Enlace temporal creado exitosamente
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Habitación no encontrada
+      security:
+        - bearer: []
+      summary: Crear enlace temporal para formulario
+      tags:
+        - link-formulario
+    get:
+      operationId: LinkFormularioController_findAll
+      parameters:
+        - name: page
+          required: false
+          in: query
+          description: 'Número de página (por defecto: 1)'
+          schema:
+            minimum: 1
+            default: 1
+            example: 1
+            type: number
+        - name: limit
+          required: false
+          in: query
+          description: 'Límite de resultados por página (por defecto: 10)'
+          schema:
+            minimum: 1
+            default: 10
+            example: 10
+            type: number
+      responses:
+        '200':
+          description: Lista paginada de elementos con metadatos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LinkFormulario'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                        description: Página actual
+                      limit:
+                        type: number
+                        description: Límite por página
+                      totalLinks:
+                        type: number
+                        description: Total de elementos
+                      lastPage:
+                        type: number
+                        description: Última página
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Obtener todos los links de formulario
+      tags:
+        - link-formulario
+  /link-formulario/habitacion/{numeroHabitacion}:
+    get:
+      operationId: LinkFormularioController_findAllByHabitacion
+      parameters:
+        - name: numeroHabitacion
+          required: true
+          in: path
+          description: Número de habitación
+          schema:
+            example: 101
+            type: number
+        - name: page
+          required: false
+          in: query
+          description: 'Número de página (por defecto: 1)'
+          schema:
+            minimum: 1
+            default: 1
+            example: 1
+            type: number
+        - name: limit
+          required: false
+          in: query
+          description: 'Límite de resultados por página (por defecto: 10)'
+          schema:
+            minimum: 1
+            default: 10
+            example: 10
+            type: number
+      responses:
+        '200':
+          description: Lista paginada de links de formulario por habitación con metadatos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LinkFormulario'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: number
+                        description: Página actual
+                      limit:
+                        type: number
+                        description: Límite por página
+                      totalLinks:
+                        type: number
+                        description: Total de elementos
+                      lastPage:
+                        type: number
+                        description: Última página
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+      security:
+        - bearer: []
+      summary: Obtener links de formulario por número de habitación
+      tags:
+        - link-formulario
+  /link-formulario/validate-token/{token}:
+    get:
+      operationId: LinkFormularioController_validateToken
+      parameters:
+        - name: token
+          required: true
+          in: path
+          description: Token
+          schema:
+            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+            type: string
+      responses:
+        '200':
+          description: Token válido
+        '401':
+          description: >-
+            No autorizado - Token inválido, expirado, en lista negra o
+            formulario ya completado
+      security:
+        - bearer: []
+      summary: Validar token
+      tags:
+        - link-formulario
+  /link-formulario/{id}:
+    get:
+      operationId: LinkFormularioController_findOne
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del link
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Link encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkFormulario'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Link no encontrado
+      security:
+        - bearer: []
+      summary: Obtener link por ID
+      tags:
+        - link-formulario
+    delete:
+      operationId: LinkFormularioController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del link
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Link eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkFormulario'
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Link no encontrado
+      security:
+        - bearer: []
+      summary: Eliminar link por ID
+      tags:
+        - link-formulario
+  /link-formulario/{id}/regenerate:
+    post:
+      operationId: LinkFormularioController_regenerateLink
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del link
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: Link regenerado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkFormulario'
+        '400':
+          description: El link ya ha sido completado
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '404':
+          description: Link no encontrado
+      security:
+        - bearer: []
+      summary: Regenerar link temporal para formulario
+      tags:
+        - link-formulario
+  /eliminar-booking/{id}:
+    delete:
+      description: Elimina tanto el link del formulario como la reserva asociada por ID
+      operationId: EliminarBookingController_remove
+      parameters:
+        - name: id
+          required: true
+          in: path
+          description: ID del booking a eliminar
+          schema:
+            example: 1
+            type: number
+      responses:
+        '200':
+          description: >-
+            Booking eliminado exitosamente. Si el formulario estaba completado,
+            retorna datos completos de eliminación. Si no estaba completado,
+            retorna solo el link de formulario eliminado.
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes - Solo administradores
+        '404':
+          description: Booking no encontrado
+        '500':
+          description: Error interno durante la eliminación del booking
+      security:
+        - bearer: []
+      summary: Eliminar un booking completo por ID
+      tags:
+        - eliminar-booking
+  /cron/marcar-estados-habitaciones:
+    get:
+      description: >-
+        Ejecuta el proceso que normalmente corre cada minuto para actualizar los
+        estados de las habitaciones según sus reservas y marca como finalizadas
+        las reservas vencidas.
+      operationId: CronController_manualMarcarEstados
+      parameters: []
+      responses:
+        '200':
+          description: Resumen de habitaciones y reservas actualizadas por estado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  habitaciones:
+                    type: object
+                    properties:
+                      near:
+                        type: number
+                        description: Cantidad de habitaciones marcadas como RESERVADAS
+                      occupied:
+                        type: number
+                        description: Cantidad de habitaciones marcadas como OCUPADAS
+                      free:
+                        type: number
+                        description: Cantidad de habitaciones marcadas como LIBRES
+                  reservas:
+                    type: object
+                    properties:
+                      finalizadas:
+                        type: number
+                        description: Cantidad de reservas marcadas como FINALIZADAS
+        '401':
+          description: Token de autenticación inválido
+        '403':
+          description: Sin permisos suficientes
+        '500':
+          description: Error interno durante la actualización de estados
+      security:
+        - bearer: []
+      summary: Ejecutar manualmente la actualización de estados de habitaciones
+      tags:
+        - cron
+info:
+  title: Hotel San Miguel API
+  description: Documentación de la API del Hotel San Miguel
+  version: 1.0.0
+  contact: {}
+tags: []
+servers: []
+components:
+  securitySchemes:
+    bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+  schemas:
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: number
+          description: Identificador único del usuario
+          example: 1
+        nombre:
+          type: string
+          description: El nombre del usuario debe ser algo sencillo y corto
+          example: Juan Pérez
+        rol:
+          type: string
+          description: >-
+            El rol del usuario es el rol que tiene el usuario dentro de la
+            compañía
+          enum:
+            - ADMINISTRADOR
+            - CAJERO
+            - ASEO
+            - REGISTRO_FORMULARIO
+          example: ADMINISTRADOR
+          default: CAJERO
+        password:
+          type: string
+          description: Contraseña del usuario
+          example: contraseña123
+        createdAt:
+          format: date-time
+          type: string
+          description: Fecha de creación del usuario
+          example: '2024-01-15T10:30:00Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Fecha de última actualización del usuario
+          example: '2024-01-15T10:30:00Z'
+        deleted:
+          type: boolean
+          description: Indica si el usuario ha sido eliminado (soft delete)
+          example: false
+          default: false
+      required:
+        - id
+        - nombre
+        - rol
+        - password
+        - createdAt
+        - updatedAt
+        - deleted
+    CreateUsuarioDto:
+      type: object
+      properties:
+        nombre:
+          type: string
+          description: El nombre del usuario. Debe ser un texto sencillo y corto.
+          example: Juan Pérez
+        rol:
+          type: string
+          description: >-
+            El rol del usuario. Debe ser uno de los siguientes: ADMINISTRADOR,
+            CAJERO, ASEO, REGISTRO_FORMULARIO
+          example: ADMINISTRADOR
+          enum:
+            - ADMINISTRADOR
+            - CAJERO
+            - ASEO
+            - REGISTRO_FORMULARIO
+        password:
+          type: string
+          description: >-
+            La contraseña del usuario. Debe ser un texto con una longitud mínima
+            de 6 caracteres.
+          example: contraseña123
+      required:
+        - nombre
+        - rol
+        - password
+    UpdateUsuarioDto:
+      type: object
+      properties:
+        nombre:
+          type: string
+          description: El nombre del usuario. Debe ser un texto sencillo y corto.
+          example: Juan Pérez
+        rol:
+          type: string
+          description: >-
+            El rol del usuario. Debe ser uno de los siguientes: ADMINISTRADOR,
+            CAJERO, ASEO, REGISTRO_FORMULARIO
+          example: ADMINISTRADOR
+          enum:
+            - ADMINISTRADOR
+            - CAJERO
+            - ASEO
+            - REGISTRO_FORMULARIO
+        password:
+          type: string
+          description: >-
+            La contraseña del usuario. Debe ser un texto con una longitud mínima
+            de 6 caracteres.
+          example: contraseña123
+    LoginDto:
+      type: object
+      properties:
+        nombre:
+          type: string
+          description: Nombre de usuario
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          description: Contraseña del usuario
+          minLength: 6
+          maxLength: 50
+      required:
+        - nombre
+        - password
+    Documento:
+      type: object
+      properties:
+        id:
+          type: number
+          description: Identificador único del documento
+          example: 1
+        url:
+          type: string
+          description: URL del documento
+          example: https://example.com/archivo.pdf
+        nombre:
+          type: string
+          description: Nombre del documento
+          example: Contrato.pdf
+        huespedId:
+          type: number
+          description: Identificador del huésped al que pertenece el documento (opcional)
+          example: 10
+        huespedSecundarioId:
+          type: number
+          description: >-
+            Identificador del huésped secundario al que pertenece el documento
+            (opcional)
+          example: 5
+        huesped:
+          description: Huésped al que pertenece el documento
+          allOf:
+            - $ref: '#/components/schemas/Huesped'
+        huespedSecundario:
+          description: Huésped secundario al que pertenece el documento
+          allOf:
+            - $ref: '#/components/schemas/HuespedSecundario'
+        createdAt:
+          format: date-time
+          type: string
+          description: Fecha de creación del documento
+          example: '2023-01-01T00:00:00.000Z'
+      required:
+        - id
+        - url
+        - nombre
+        - createdAt
+    Factura:
+      type: object
+      properties:
+        id:
+          type: number
+          description: Identificador único de la factura
+          example: 1
+        total:
+          type: number
+          description: Total de la factura
+          example: 150.75
+        fecha_factura:
+          format: date-time
+          type: string
+          description: Fecha de la factura
+          example: '2023-08-15T00:00:00.000Z'
+        huespedId:
+          type: number
+          description: Identificador del huésped asociado a la factura
+          example: 1
+        reserva:
+          description: Reserva asociada a la factura (opcional)
+          allOf:
+            - $ref: '#/components/schemas/Reserva'
+        huesped:
+          description: Huésped asociado a la factura
+          allOf:
+            - $ref: '#/components/schemas/Huesped'
+        createdAt:
+          format: date-time
+          type: string
+          description: Fecha de creación del registro
+          example: '2023-01-01T00:00:00.000Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Fecha de última actualización del registro
+          example: '2023-01-02T00:00:00.000Z'
+        deleted:
+          type: boolean
+          description: Indica si el registro ha sido eliminado (soft delete)
+          example: false
+          default: false
+      required:
+        - id
+        - total
+        - fecha_factura
+        - huespedId
+        - huesped
+        - createdAt
+        - updatedAt
+        - deleted
+    LinkFormulario:
+      type: object
+      properties:
+        id:
+          type: number
+          description: Identificador único del link de formulario
+          example: 1
+        url:
+          type: string
+          description: URL del link de formulario
+          example: https://formulario.example.com/abc123
+        completado:
+          type: boolean
+          description: Indica si el formulario ha sido completado
+          example: false
+          default: false
+        expirado:
+          type: boolean
+          description: Indica si el link ha expirado
+          example: false
+          default: false
+        vencimiento:
+          format: date-time
+          type: string
+          description: Fecha y hora de vencimiento del link
+          example: '2024-12-31T23:59:59Z'
+        formularioId:
+          type: number
+          description: Identificador del formulario asociado (opcional)
+          example: 1
+        numeroHabitacion:
+          type: number
+          description: Número de habitación asociada
+          example: 101
+        fechaInicio:
+          format: date-time
+          type: string
+          description: Fecha de inicio de la reserva
+          example: '2024-01-15T00:00:00Z'
+        fechaFin:
+          format: date-time
+          type: string
+          description: Fecha de fin de la reserva
+          example: '2024-01-20T00:00:00Z'
+        costo:
+          type: number
+          description: Costo de la reserva
+          example: 500.5
+        formulario:
+          description: Formulario asociado al link (opcional)
+          allOf:
+            - $ref: '#/components/schemas/Formulario'
+        createdAt:
+          format: date-time
+          type: string
+          description: Fecha de creación del registro
+          example: '2023-01-01T00:00:00.000Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Fecha de última actualización del registro
+          example: '2023-01-02T00:00:00.000Z'
+        deleted:
+          type: boolean
+          description: Indica si el registro ha sido eliminado (soft delete)
+          example: false
+          default: false
+      required:
+        - id
+        - url
+        - completado
+        - expirado
+        - vencimiento
+        - numeroHabitacion
+        - fechaInicio
+        - fechaFin
+        - costo
+        - createdAt
+        - updatedAt
+        - deleted
+    Formulario:
+      type: object
+      properties:
+        id:
+          type: number
+          description: Identificador único del formulario
+          example: 1
+        huespedId:
+          type: number
+          description: Identificador del huésped asociado al formulario
+          example: 1
+        reservaId:
+          type: number
+          description: Identificador de la reserva asociada al formulario
+          example: 1
+        SubidoATra:
+          type: boolean
+          description: Indica si el formulario ha sido subido a TRA
+          example: false
+          default: false
+        traId:
+          type: number
+          description: Identificador del TRA (opcional)
+          example: 123
+        SubidoASire:
+          type: boolean
+          description: Indica si el formulario ha sido subido a SIRE
+          example: false
+          default: false
+        LinkFormulario:
+          description: Link de formulario asociado (opcional)
+          allOf:
+            - $ref: '#/components/schemas/LinkFormulario'
+        Huesped:
+          description: Huésped asociado al formulario
+          allOf:
+            - $ref: '#/components/schemas/Huesped'
+        Reserva:
+          description: Reserva asociada al formulario
+          allOf:
+            - $ref: '#/components/schemas/Reserva'
+        createdAt:
+          format: date-time
+          type: string
+          description: Fecha de creación del registro
+          example: '2023-01-01T00:00:00.000Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Fecha de última actualización del registro
+          example: '2023-01-02T00:00:00.000Z'
+        deleted:
+          type: boolean
+          description: Indica si el registro ha sido eliminado (soft delete)
+          example: false
+          default: false
+      required:
+        - id
+        - huespedId
+        - reservaId
+        - SubidoATra
+        - SubidoASire
+        - Huesped
+        - Reserva
+        - createdAt
+        - updatedAt
+        - deleted
+    Huesped:
+      type: object
+      properties:
+        id:
+          type: number
+          description: Identificador único del huésped
+          example: 1
+        tipo_documento:
+          type: string
+          description: Tipo de documento del huésped
+          enum:
+            - CC
+            - CE
+            - TI
+            - PASAPORTE
+            - PPT
+            - PEP
+            - DNI
+          example: CC
+        numero_documento:
+          type: string
+          description: Número de documento del huésped (debe ser único)
+          example: '123456789'
+        primer_apellido:
+          type: string
+          description: Primer apellido del huésped
+          example: Pérez
+        segundo_apellido:
+          type: string
+          description: Segundo apellido del huésped (opcional)
+          example: García
+        nombres:
+          type: string
+          description: Nombres del huésped
+          example: Juan Carlos
+        pais_residencia:
+          type: string
+          description: País de residencia del huésped
+          example: Colombia
+        ciudad_residencia:
+          type: string
+          description: Ciudad de residencia del huésped
+          example: Medellín
+        pais_procedencia:
+          type: string
+          description: País de procedencia del huésped
+          example: Colombia
+        ciudad_procedencia:
+          type: string
+          description: Ciudad de procedencia del huésped
+          example: Bogotá
+        lugar_nacimiento:
+          type: string
+          description: Lugar de nacimiento del huésped
+          example: Medellín, Colombia
+        fecha_nacimiento:
+          format: date-time
+          type: string
+          description: Fecha de nacimiento del huésped
+          example: '1990-01-01T00:00:00.000Z'
+        nacionalidad:
+          type: string
+          description: Nacionalidad del huésped
+          example: Colombiana
+        ocupacion:
+          type: string
+          description: Ocupación del huésped
+          example: Ingeniero
+        genero:
+          type: string
+          description: Género del huésped
+          enum:
+            - MASCULINO
+            - FEMENINO
+            - OTRO
+          example: MASCULINO
+        telefono:
+          type: string
+          description: Teléfono del huésped (opcional)
+          example: '+573001112233'
+        correo:
+          type: string
+          description: Correo electrónico del huésped (opcional)
+          example: juan.perez@example.com
+        reservas:
+          description: Lista de reservas del huésped
+          example: []
+          type: array
+          items:
+            $ref: '#/components/schemas/Reserva'
+        huespedes_secundarios:
+          description: Lista de huéspedes secundarios asociados
+          example: []
+          type: array
+          items:
+            $ref: '#/components/schemas/HuespedSecundario'
+        documentos_subidos:
+          description: Lista de documentos subidos por el huésped
+          example: []
+          type: array
+          items:
+            $ref: '#/components/schemas/Documento'
+        facturas:
+          description: Lista de facturas asociadas al huésped
+          example: []
+          type: array
+          items:
+            $ref: '#/components/schemas/Factura'
+        createdAt:
+          format: date-time
+          type: string
+          description: Fecha de creación del registro
+          example: '2023-01-01T00:00:00.000Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Fecha de la última actualización del registro
+          example: '2023-01-02T00:00:00.000Z'
+        deleted:
+          type: boolean
+          description: Indica si el registro ha sido eliminado (soft delete)
+          example: false
+          default: false
+        Formulario:
+          description: Lista de formularios asociados al huésped
+          example: []
+          type: array
+          items:
+            $ref: '#/components/schemas/Formulario'
+      required:
+        - id
+        - tipo_documento
+        - numero_documento
+        - primer_apellido
+        - nombres
+        - pais_residencia
+        - ciudad_residencia
+        - pais_procedencia
+        - ciudad_procedencia
+        - lugar_nacimiento
+        - fecha_nacimiento
+        - nacionalidad
+        - ocupacion
+        - genero
+        - reservas
+        - huespedes_secundarios
+        - documentos_subidos
+        - facturas
+        - createdAt
+        - updatedAt
+        - deleted
+        - Formulario
+    HuespedSecundario:
+      type: object
+      properties:
+        id:
+          type: number
+          description: Identificador único del huésped secundario
+          example: 1
+        tipo_documento:
+          type: string
+          description: Tipo de documento del huésped secundario
+          enum:
+            - CC
+            - CE
+            - TI
+            - PASAPORTE
+            - PPT
+            - PEP
+            - DNI
+          example: CC
+        numero_documento:
+          type: string
+          description: Número de documento del huésped secundario (debe ser único)
+          example: '12345678'
+        primer_apellido:
+          type: string
+          description: Primer apellido del huésped secundario
+          example: Pérez
+        segundo_apellido:
+          type: string
+          description: Segundo apellido del huésped secundario (opcional)
+          example: García
+        nombres:
+          type: string
+          description: Nombres del huésped secundario
+          example: Juan Carlos
+        pais_residencia:
+          type: string
+          description: País de residencia del huésped secundario
+          example: Colombia
+        ciudad_residencia:
+          type: string
+          description: Ciudad de residencia del huésped secundario
+          example: Medellín
+        pais_procedencia:
+          type: string
+          description: País de procedencia del huésped secundario
+          example: Colombia
+        ciudad_procedencia:
+          type: string
+          description: Ciudad de procedencia del huésped secundario
+          example: Medellín
+        fecha_nacimiento:
+          format: date-time
+          type: string
+          description: Fecha de nacimiento del huésped secundario
+          example: '1990-01-01T00:00:00.000Z'
+        nacionalidad:
+          type: string
+          description: Nacionalidad del huésped secundario
+          example: Colombiana
+        ocupacion:
+          type: string
+          description: Ocupación del huésped secundario
+          example: Estudiante
+        genero:
+          type: string
+          description: Género del huésped secundario
+          enum:
+            - MASCULINO
+            - FEMENINO
+            - OTRO
+          example: MASCULINO
+        telefono:
+          type: string
+          description: Teléfono del huésped secundario (opcional)
+          example: '+573001112233'
+        correo:
+          type: string
+          description: Correo del huésped secundario (opcional)
+          example: correo@example.com
+        huespedId:
+          type: number
+          description: Identificador del huésped principal al que pertenece (opcional)
+          example: 1
+        huesped:
+          description: Huésped principal asociado
+          allOf:
+            - $ref: '#/components/schemas/Huesped'
+        Reserva:
+          description: Lista de reservas asociadas al huésped secundario
+          example: []
+          type: array
+          items:
+            $ref: '#/components/schemas/Reserva'
+        documentos_subidos:
+          description: Lista de documentos subidos por el huésped secundario
+          example: []
+          type: array
+          items:
+            $ref: '#/components/schemas/Documento'
+        createdAt:
+          format: date-time
+          type: string
+          description: Fecha de creación del registro
+          example: '2023-01-01T00:00:00.000Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Fecha de última actualización del registro
+          example: '2023-01-02T00:00:00.000Z'
+        deleted:
+          type: boolean
+          description: Indica si el registro ha sido eliminado (soft delete)
+          example: false
+          default: false
+      required:
+        - id
+        - tipo_documento
+        - numero_documento
+        - primer_apellido
+        - nombres
+        - pais_residencia
+        - ciudad_residencia
+        - pais_procedencia
+        - ciudad_procedencia
+        - fecha_nacimiento
+        - nacionalidad
+        - ocupacion
+        - genero
+        - huesped
+        - Reserva
+        - documentos_subidos
+        - createdAt
+        - updatedAt
+        - deleted
+    Habitacion:
+      type: object
+      properties:
+        id:
+          type: number
+          description: Identificador único de la habitación
+          example: 1
+        numero_habitacion:
+          type: number
+          description: Número de la habitación (debe ser único)
+          example: 101
+        tipo:
+          type: string
+          description: Tipo de habitación
+          enum:
+            - APARTAMENTO
+            - HAMACA
+            - CAMPING
+            - MÚLTIPLE
+            - CASA
+            - FINCA
+            - CAMA
+            - PLAZA
+            - SENCILLA
+            - SUITE
+            - DOBLE
+            - OTRO
+          example: SENCILLA
+        estado:
+          type: string
+          description: Estado actual de la habitación
+          enum:
+            - LIBRE
+            - OCUPADO
+            - RESERVADO
+            - EN_DESINFECCION
+            - EN_MANTENIMIENTO
+            - EN_LIMPIEZA
+          example: LIBRE
+        precio_por_noche:
+          type: number
+          description: Precio por noche de la habitación
+          example: 150.5
+        reservas:
+          description: Reservas asociadas a la habitación
+          type: array
+          items:
+            $ref: '#/components/schemas/Reserva'
+        createdAt:
+          format: date-time
+          type: string
+          description: Fecha de creación de la habitación
+          example: '2024-01-15T10:30:00Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Fecha de última actualización de la habitación
+          example: '2024-01-15T10:30:00Z'
+        deleted:
+          type: boolean
+          description: Indica si la habitación ha sido eliminada (soft delete)
+          example: false
+          default: false
+      required:
+        - id
+        - numero_habitacion
+        - tipo
+        - estado
+        - precio_por_noche
+        - reservas
+        - createdAt
+        - updatedAt
+        - deleted
+    Reserva:
+      type: object
+      properties:
+        id:
+          type: number
+          description: Identificador único de la reserva
+          example: 1
+        fecha_inicio:
+          format: date-time
+          type: string
+          description: Fecha de inicio de la reserva
+          example: '2023-08-15T00:00:00.000Z'
+        fecha_fin:
+          format: date-time
+          type: string
+          description: Fecha de fin de la reserva
+          example: '2023-08-20T00:00:00.000Z'
+        estado:
+          type: string
+          description: Estado de la reserva
+          enum:
+            - RESERVADO
+            - CANCELADO
+            - FINALIZADO
+            - PENDIENTE
+          example: RESERVADO
+        pais_procedencia:
+          type: string
+          description: País de procedencia de la reserva
+          example: Colombia
+        departamento_procedencia:
+          type: string
+          description: Departamento de procedencia de la reserva
+          example: Antioquia
+        ciudad_procedencia:
+          type: string
+          description: Ciudad de procedencia de la reserva
+          example: Medellín
+        pais_destino:
+          type: string
+          description: País de destino de la reserva
+          example: Estados Unidos
+        motivo_viaje:
+          type: string
+          description: Motivo del viaje
+          enum:
+            - NEGOCIOS_Y_MOTIVOS_PROFESIONALES
+            - VACACIONES_RECREO_Y_OCIO
+            - VISITAS_A_FAMILIARES_Y_AMIGOS
+            - EDUCACION_Y_FORMACION
+            - SALUD_Y_ATENCION_MEDICA
+            - RELIGION_Y_PEREGRINACIONES
+            - COMPRAS
+            - TRANSITO
+            - OTROS_MOTIVOS
+          example: VACACIONES_RECREO_Y_OCIO
+        check_in:
+          format: date-time
+          type: string
+          description: Fecha de check-in (llegada)
+          example: '2023-08-15T14:00:00.000Z'
+        check_out:
+          format: date-time
+          type: string
+          description: Fecha de check-out (salida)
+          example: '2023-08-20T12:00:00.000Z'
+        costo:
+          type: number
+          description: Costo de la reserva
+          example: 500.5
+        numero_acompaniantes:
+          type: number
+          description: Número de acompañantes
+          example: 2
+        habitacionId:
+          type: number
+          description: ID de la habitación asignada a la reserva
+          example: 101
+        huespedId:
+          type: number
+          description: ID del huésped que realiza la reserva
+          example: 1
+        huespedes_secundarios:
+          description: Lista de huéspedes secundarios asociados a la reserva
+          example: []
+          type: array
+          items:
+            $ref: '#/components/schemas/HuespedSecundario'
+        facturaId:
+          type: number
+          description: ID de la factura asociada a la reserva (opcional)
+          example: 1
+        huesped:
+          description: Huésped que realiza la reserva
+          allOf:
+            - $ref: '#/components/schemas/Huesped'
+        habitacion:
+          description: Habitación asignada a la reserva
+          allOf:
+            - $ref: '#/components/schemas/Habitacion'
+        factura:
+          description: Factura asociada a la reserva (opcional)
+          allOf:
+            - $ref: '#/components/schemas/Factura'
+        createdAt:
+          format: date-time
+          type: string
+          description: Fecha de creación del registro
+          example: '2023-01-01T00:00:00.000Z'
+        updatedAt:
+          format: date-time
+          type: string
+          description: Fecha de última actualización del registro
+          example: '2023-01-02T00:00:00.000Z'
+        deleted:
+          type: boolean
+          description: Indica si el registro ha sido eliminado (soft delete)
+          example: false
+          default: false
+        Formulario:
+          description: Lista de formularios asociados a la reserva
+          example: []
+          type: array
+          items:
+            $ref: '#/components/schemas/Formulario'
+      required:
+        - id
+        - fecha_inicio
+        - fecha_fin
+        - estado
+        - pais_procedencia
+        - departamento_procedencia
+        - ciudad_procedencia
+        - pais_destino
+        - motivo_viaje
+        - check_in
+        - check_out
+        - costo
+        - numero_acompaniantes
+        - habitacionId
+        - huespedId
+        - huespedes_secundarios
+        - huesped
+        - habitacion
+        - createdAt
+        - updatedAt
+        - deleted
+        - Formulario
+    CreateHuespedDto:
+      type: object
+      properties:
+        tipo_documento:
+          type: string
+          description: Tipo de documento del huésped
+          enum:
+            - CC
+            - CE
+            - TI
+            - PASAPORTE
+            - PPT
+            - PEP
+            - DNI
+          example: CC
+        numero_documento:
+          type: string
+          description: Número de documento del huésped
+          example: '123456789'
+        primer_apellido:
+          type: string
+          description: Primer apellido del huésped
+          example: Pérez
+        segundo_apellido:
+          type: string
+          description: Segundo apellido del huésped (opcional)
+          example: García
+        nombres:
+          type: string
+          description: Nombres del huésped
+          example: Juan Carlos
+        pais_residencia:
+          type: string
+          description: País de residencia del huésped
+          example: Colombia
+        ciudad_residencia:
+          type: string
+          description: Ciudad de residencia del huésped
+          example: Medellín
+        pais_procedencia:
+          type: string
+          description: País de procedencia del huésped
+          example: Colombia
+        ciudad_procedencia:
+          type: string
+          description: Ciudad de procedencia del huésped
+          example: Medellín
+        lugar_nacimiento:
+          type: string
+          description: Lugar de nacimiento del huésped
+          example: Bogotá
+        fecha_nacimiento:
+          format: date-time
+          type: string
+          description: Fecha de nacimiento del huésped
+          example: '1990-01-01T00:00:00.000Z'
+        nacionalidad:
+          type: string
+          description: Nacionalidad del huésped
+          example: Colombiano
+        ocupacion:
+          type: string
+          description: Ocupación del huésped
+          example: Ingeniero
+        genero:
+          type: string
+          description: Género del huésped
+          enum:
+            - MASCULINO
+            - FEMENINO
+            - OTRO
+          example: MASCULINO
+        telefono:
+          type: string
+          description: Teléfono del huésped
+          example: '+573001112233'
+        correo:
+          type: string
+          description: Correo electrónico del huésped
+          example: juan.perez@example.com
+      required:
+        - tipo_documento
+        - numero_documento
+        - primer_apellido
+        - nombres
+        - pais_residencia
+        - ciudad_residencia
+        - pais_procedencia
+        - ciudad_procedencia
+        - lugar_nacimiento
+        - fecha_nacimiento
+        - nacionalidad
+        - ocupacion
+        - genero
+    UpdateHuespedDto:
+      type: object
+      properties:
+        tipo_documento:
+          type: string
+          description: Tipo de documento del huésped
+          enum:
+            - CC
+            - CE
+            - TI
+            - PASAPORTE
+            - PPT
+            - PEP
+            - DNI
+          example: CC
+        numero_documento:
+          type: string
+          description: Número de documento del huésped
+          example: '123456789'
+        primer_apellido:
+          type: string
+          description: Primer apellido del huésped
+          example: Pérez
+        segundo_apellido:
+          type: string
+          description: Segundo apellido del huésped (opcional)
+          example: García
+        nombres:
+          type: string
+          description: Nombres del huésped
+          example: Juan Carlos
+        pais_residencia:
+          type: string
+          description: País de residencia del huésped
+          example: Colombia
+        ciudad_residencia:
+          type: string
+          description: Ciudad de residencia del huésped
+          example: Medellín
+        pais_procedencia:
+          type: string
+          description: País de procedencia del huésped
+          example: Colombia
+        ciudad_procedencia:
+          type: string
+          description: Ciudad de procedencia del huésped
+          example: Medellín
+        lugar_nacimiento:
+          type: string
+          description: Lugar de nacimiento del huésped
+          example: Bogotá
+        fecha_nacimiento:
+          format: date-time
+          type: string
+          description: Fecha de nacimiento del huésped
+          example: '1990-01-01T00:00:00.000Z'
+        nacionalidad:
+          type: string
+          description: Nacionalidad del huésped
+          example: Colombiano
+        ocupacion:
+          type: string
+          description: Ocupación del huésped
+          example: Ingeniero
+        genero:
+          type: string
+          description: Género del huésped
+          enum:
+            - MASCULINO
+            - FEMENINO
+            - OTRO
+          example: MASCULINO
+        telefono:
+          type: string
+          description: Teléfono del huésped
+          example: '+573001112233'
+        correo:
+          type: string
+          description: Correo electrónico del huésped
+          example: juan.perez@example.com
+    CreateDocumentoDto:
+      type: object
+      properties:
+        url:
+          type: string
+          description: URL del documento
+          example: https://example.com/archivo.pdf
+        nombre:
+          type: string
+          description: Nombre del documento
+          example: Contrato.pdf
+        huespedId:
+          type: number
+          description: Identificador del huésped asociado al documento
+          example: 10
+        huespedSecundarioId:
+          type: number
+          description: Identificador del huésped secundario asociado al documento
+          example: 20
+      required:
+        - url
+        - nombre
+    UpdateDocumentoDto:
+      type: object
+      properties:
+        url:
+          type: string
+          description: URL del documento
+          example: https://example.com/archivo.pdf
+        nombre:
+          type: string
+          description: Nombre del documento
+          example: Contrato.pdf
+        huespedSecundarioId:
+          type: number
+          description: Identificador del huésped secundario asociado al documento
+          example: 20
+    CreateHabitacionDto:
+      type: object
+      properties:
+        numero_habitacion:
+          type: number
+          description: El número de habitación es obligatorio y debe ser un número entero
+          example: 101
+        tipo:
+          type: string
+          description: >-
+            El tipo de habitación es obligatorio y debe ser uno de los
+            siguientes: APARTAMENTO, HAMACA, CAMPING, MÚLTIPLE, CASA, FINCA,
+            CAMA, PLAZA, SENCILLA, SUITE, DOBLE, OTRO
+          enum:
+            - APARTAMENTO
+            - HAMACA
+            - CAMPING
+            - MÚLTIPLE
+            - CASA
+            - FINCA
+            - CAMA
+            - PLAZA
+            - SENCILLA
+            - SUITE
+            - DOBLE
+            - OTRO
+          example: SENCILLA
+        estado:
+          type: string
+          description: >-
+            El estado de la habitación es obligatorio y debe ser uno de los
+            siguientes: LIBRE, OCUPADO, RESERVADO, EN_DESINFECCION,
+            EN_MANTENIMIENTO, EN_LIMPIEZA
+          enum:
+            - LIBRE
+            - OCUPADO
+            - RESERVADO
+            - EN_DESINFECCION
+            - EN_MANTENIMIENTO
+            - EN_LIMPIEZA
+          example: LIBRE
+        precio_por_noche:
+          type: number
+          description: El precio por noche es obligatorio y debe ser un número positivo
+          example: 150.5
+      required:
+        - numero_habitacion
+        - tipo
+        - estado
+        - precio_por_noche
+    UpdateHabitacionDto:
+      type: object
+      properties:
+        numero_habitacion:
+          type: number
+          description: El número de habitación es obligatorio y debe ser un número entero
+          example: 101
+        tipo:
+          type: string
+          description: >-
+            El tipo de habitación es obligatorio y debe ser uno de los
+            siguientes: APARTAMENTO, HAMACA, CAMPING, MÚLTIPLE, CASA, FINCA,
+            CAMA, PLAZA, SENCILLA, SUITE, DOBLE, OTRO
+          enum:
+            - APARTAMENTO
+            - HAMACA
+            - CAMPING
+            - MÚLTIPLE
+            - CASA
+            - FINCA
+            - CAMA
+            - PLAZA
+            - SENCILLA
+            - SUITE
+            - DOBLE
+            - OTRO
+          example: SENCILLA
+        estado:
+          type: string
+          description: >-
+            El estado de la habitación es obligatorio y debe ser uno de los
+            siguientes: LIBRE, OCUPADO, RESERVADO, EN_DESINFECCION,
+            EN_MANTENIMIENTO, EN_LIMPIEZA
+          enum:
+            - LIBRE
+            - OCUPADO
+            - RESERVADO
+            - EN_DESINFECCION
+            - EN_MANTENIMIENTO
+            - EN_LIMPIEZA
+          example: LIBRE
+        precio_por_noche:
+          type: number
+          description: El precio por noche es obligatorio y debe ser un número positivo
+          example: 150.5
+    RangoFechasDto:
+      type: object
+      properties:
+        fechaInicio:
+          format: date-time
+          type: string
+          description: >-
+            Fecha de inicio para la búsqueda de habitaciones disponibles. Se
+            valida solo por día, sin considerar la hora exacta.
+          example: '2025-01-01'
+        fechaFin:
+          format: date-time
+          type: string
+          description: >-
+            Fecha de fin para la búsqueda de habitaciones disponibles. Se valida
+            solo por día, sin considerar la hora exacta.
+          example: '2025-01-02'
+    CreateHuespedSecundarioDto:
+      type: object
+      properties:
+        tipo_documento:
+          type: string
+          description: >-
+            Tipo de documento del huésped secundario. Debe ser uno de los
+            valores definidos en el enum.
+          enum:
+            - CC
+            - CE
+            - TI
+            - PASAPORTE
+            - PPT
+            - PEP
+            - DNI
+          example: CC
+        numero_documento:
+          type: string
+          description: Número de documento del huésped secundario
+          example: '12345678'
+        primer_apellido:
+          type: string
+          description: Primer apellido del huésped secundario
+          example: Pérez
+        segundo_apellido:
+          type: string
+          description: Segundo apellido del huésped secundario (opcional)
+          example: García
+        nombres:
+          type: string
+          description: Nombres del huésped secundario
+          example: Juan Carlos
+        pais_residencia:
+          type: string
+          description: País de residencia del huésped secundario
+          example: Colombia
+        ciudad_residencia:
+          type: string
+          description: Ciudad de residencia del huésped secundario
+          example: Medellín
+        pais_procedencia:
+          type: string
+          description: País de procedencia del huésped secundario
+          example: Colombia
+        ciudad_procedencia:
+          type: string
+          description: Ciudad de procedencia del huésped secundario
+          example: Bogotá
+        fecha_nacimiento:
+          format: date-time
+          type: string
+          description: Fecha de nacimiento del huésped secundario
+          example: '1990-01-01T00:00:00.000Z'
+        nacionalidad:
+          type: string
+          description: Nacionalidad del huésped secundario
+          example: Colombiano
+        ocupacion:
+          type: string
+          description: Ocupación del huésped secundario
+          example: Estudiante
+        genero:
+          type: string
+          description: >-
+            Género del huésped secundario. Debe ser uno de los valores definidos
+            en el enum.
+          enum:
+            - MASCULINO
+            - FEMENINO
+            - OTRO
+          example: MASCULINO
+        telefono:
+          type: string
+          description: Teléfono del huésped secundario (opcional)
+          example: '+573001112233'
+        correo:
+          type: string
+          description: Correo del huésped secundario (opcional)
+          example: correo@example.com
+        huespedId:
+          type: number
+          description: Identificador del huésped al que pertenece
+          example: 1
+      required:
+        - tipo_documento
+        - numero_documento
+        - primer_apellido
+        - nombres
+        - pais_residencia
+        - ciudad_residencia
+        - pais_procedencia
+        - ciudad_procedencia
+        - fecha_nacimiento
+        - nacionalidad
+        - ocupacion
+        - genero
+        - huespedId
+    UpdateHuespedSecundarioDto:
+      type: object
+      properties:
+        tipo_documento:
+          type: string
+          description: >-
+            Tipo de documento del huésped secundario. Debe ser uno de los
+            valores definidos en el enum.
+          enum:
+            - CC
+            - CE
+            - TI
+            - PASAPORTE
+            - PPT
+            - PEP
+            - DNI
+          example: CC
+        numero_documento:
+          type: string
+          description: Número de documento del huésped secundario
+          example: '12345678'
+        primer_apellido:
+          type: string
+          description: Primer apellido del huésped secundario
+          example: Pérez
+        segundo_apellido:
+          type: string
+          description: Segundo apellido del huésped secundario (opcional)
+          example: García
+        nombres:
+          type: string
+          description: Nombres del huésped secundario
+          example: Juan Carlos
+        pais_residencia:
+          type: string
+          description: País de residencia del huésped secundario
+          example: Colombia
+        ciudad_residencia:
+          type: string
+          description: Ciudad de residencia del huésped secundario
+          example: Medellín
+        pais_procedencia:
+          type: string
+          description: País de procedencia del huésped secundario
+          example: Colombia
+        ciudad_procedencia:
+          type: string
+          description: Ciudad de procedencia del huésped secundario
+          example: Bogotá
+        fecha_nacimiento:
+          format: date-time
+          type: string
+          description: Fecha de nacimiento del huésped secundario
+          example: '1990-01-01T00:00:00.000Z'
+        nacionalidad:
+          type: string
+          description: Nacionalidad del huésped secundario
+          example: Colombiano
+        ocupacion:
+          type: string
+          description: Ocupación del huésped secundario
+          example: Estudiante
+        genero:
+          type: string
+          description: >-
+            Género del huésped secundario. Debe ser uno de los valores definidos
+            en el enum.
+          enum:
+            - MASCULINO
+            - FEMENINO
+            - OTRO
+          example: MASCULINO
+        telefono:
+          type: string
+          description: Teléfono del huésped secundario (opcional)
+          example: '+573001112233'
+        correo:
+          type: string
+          description: Correo del huésped secundario (opcional)
+          example: correo@example.com
+        huespedId:
+          type: number
+          description: Identificador del huésped al que pertenece
+          example: 1
+    CreateFacturaDto:
+      type: object
+      properties:
+        total:
+          type: number
+          description: El total de la factura, que debe ser un número positivo
+          example: 150.75
+        fecha_factura:
+          format: date-time
+          type: string
+          description: La fecha de la factura
+          example: '2023-08-15T00:00:00.000Z'
+        huespedId:
+          type: number
+          description: >-
+            Identificador del huésped asociado a la factura, debe ser un número
+            positivo
+          example: 1
+      required:
+        - total
+        - fecha_factura
+        - huespedId
+    UpdateFacturaDto:
+      type: object
+      properties:
+        total:
+          type: number
+          description: El total de la factura, que debe ser un número positivo
+          example: 150.75
+        fecha_factura:
+          format: date-time
+          type: string
+          description: La fecha de la factura
+          example: '2023-08-15T00:00:00.000Z'
+        huespedId:
+          type: number
+          description: >-
+            Identificador del huésped asociado a la factura, debe ser un número
+            positivo
+          example: 1
+    CreateReservaDto:
+      type: object
+      properties:
+        fecha_inicio:
+          format: date-time
+          type: string
+          description: Fecha de inicio de la reserva
+          example: '2023-08-15T00:00:00.000Z'
+        fecha_fin:
+          format: date-time
+          type: string
+          description: Fecha de fin de la reserva
+          example: '2023-08-20T00:00:00.000Z'
+        estado:
+          type: string
+          description: Estado de la reserva
+          enum:
+            - RESERVADO
+            - CANCELADO
+            - FINALIZADO
+            - PENDIENTE
+          example: RESERVADO
+        pais_procedencia:
+          type: string
+          description: País de procedencia
+          example: Colombia
+        ciudad_procedencia:
+          type: string
+          description: Ciudad de procedencia
+          example: Medellín
+        pais_destino:
+          type: string
+          description: País de destino
+          example: Estados Unidos
+        motivo_viaje:
+          type: string
+          description: Motivo del viaje
+          enum:
+            - NEGOCIOS_Y_MOTIVOS_PROFESIONALES
+            - VACACIONES_RECREO_Y_OCIO
+            - VISITAS_A_FAMILIARES_Y_AMIGOS
+            - EDUCACION_Y_FORMACION
+            - SALUD_Y_ATENCION_MEDICA
+            - RELIGION_Y_PEREGRINACIONES
+            - COMPRAS
+            - TRANSITO
+            - OTROS_MOTIVOS
+          example: COMPRAS
+        check_in:
+          format: date-time
+          type: string
+          description: Fecha de check-in (llegada)
+          example: '2023-08-15T14:00:00.000Z'
+        check_out:
+          format: date-time
+          type: string
+          description: Fecha de check-out (salida)
+          example: '2023-08-20T12:00:00.000Z'
+        costo:
+          type: number
+          description: Costo de la reserva
+          example: 500.5
+        numero_acompaniantes:
+          type: number
+          description: Número de acompañantes
+          example: 2
+        habitacionId:
+          type: number
+          description: ID de la habitación asignada
+          example: 101
+        huespedId:
+          type: number
+          description: ID del huésped que realiza la reserva
+          example: 1
+        facturaId:
+          type: number
+          description: ID de la factura asociada a la reserva (opcional)
+          example: 1
+      required:
+        - fecha_inicio
+        - fecha_fin
+        - estado
+        - pais_procedencia
+        - ciudad_procedencia
+        - pais_destino
+        - motivo_viaje
+        - check_in
+        - check_out
+        - costo
+        - numero_acompaniantes
+        - habitacionId
+        - huespedId
+    UpdateReservaDto:
+      type: object
+      properties:
+        fecha_inicio:
+          format: date-time
+          type: string
+          description: Fecha de inicio de la reserva
+          example: '2023-08-15T00:00:00.000Z'
+        fecha_fin:
+          format: date-time
+          type: string
+          description: Fecha de fin de la reserva
+          example: '2023-08-20T00:00:00.000Z'
+        estado:
+          type: string
+          description: Estado de la reserva
+          enum:
+            - RESERVADO
+            - CANCELADO
+            - FINALIZADO
+            - PENDIENTE
+          example: RESERVADO
+        pais_procedencia:
+          type: string
+          description: País de procedencia
+          example: Colombia
+        ciudad_procedencia:
+          type: string
+          description: Ciudad de procedencia
+          example: Medellín
+        pais_destino:
+          type: string
+          description: País de destino
+          example: Estados Unidos
+        motivo_viaje:
+          type: string
+          description: Motivo del viaje
+          enum:
+            - NEGOCIOS_Y_MOTIVOS_PROFESIONALES
+            - VACACIONES_RECREO_Y_OCIO
+            - VISITAS_A_FAMILIARES_Y_AMIGOS
+            - EDUCACION_Y_FORMACION
+            - SALUD_Y_ATENCION_MEDICA
+            - RELIGION_Y_PEREGRINACIONES
+            - COMPRAS
+            - TRANSITO
+            - OTROS_MOTIVOS
+          example: COMPRAS
+        check_in:
+          format: date-time
+          type: string
+          description: Fecha de check-in (llegada)
+          example: '2023-08-15T14:00:00.000Z'
+        check_out:
+          format: date-time
+          type: string
+          description: Fecha de check-out (salida)
+          example: '2023-08-20T12:00:00.000Z'
+        costo:
+          type: number
+          description: Costo de la reserva
+          example: 500.5
+        numero_acompaniantes:
+          type: number
+          description: Número de acompañantes
+          example: 2
+        habitacionId:
+          type: number
+          description: ID de la habitación asignada
+          example: 101
+        huespedId:
+          type: number
+          description: ID del huésped que realiza la reserva
+          example: 1
+        facturaId:
+          type: number
+          description: ID de la factura asociada a la reserva (opcional)
+          example: 1
+    CreateHuespedSecundarioWithoutIdDto:
+      type: object
+      properties: {}
+    CreateRegistroFormularioDto:
+      type: object
+      properties:
+        fecha_inicio:
+          format: date-time
+          type: string
+          description: Fecha de inicio de la reserva
+          example: '2023-08-15T00:00:00.000Z'
+        fecha_fin:
+          format: date-time
+          type: string
+          description: Fecha de fin de la reserva
+          example: '2023-08-20T00:00:00.000Z'
+        motivo_viaje:
+          type: string
+          description: Motivo del viaje
+          enum:
+            - NEGOCIOS_Y_MOTIVOS_PROFESIONALES
+            - VACACIONES_RECREO_Y_OCIO
+            - VISITAS_A_FAMILIARES_Y_AMIGOS
+            - EDUCACION_Y_FORMACION
+            - SALUD_Y_ATENCION_MEDICA
+            - RELIGION_Y_PEREGRINACIONES
+            - COMPRAS
+            - TRANSITO
+            - OTROS_MOTIVOS
+          example: COMPRAS
+        costo:
+          type: number
+          description: Costo de la reserva (número positivo con hasta 2 decimales)
+          example: 500.5
+        numero_habitacion:
+          type: number
+          description: ID de la habitación asignada a la reserva
+          example: 101
+        numero_acompaniantes:
+          type: number
+          description: Número de acompañantes en la reserva
+          example: 2
+        tipo_documento:
+          type: string
+          description: Tipo de documento del huésped
+          enum:
+            - CC
+            - CE
+            - TI
+            - PASAPORTE
+            - PPT
+            - PEP
+            - DNI
+          example: CC
+        numero_documento:
+          type: string
+          description: Número de documento del huésped
+          example: '12345678'
+        primer_apellido:
+          type: string
+          description: Primer apellido del huésped
+          example: Pérez
+        segundo_apellido:
+          type: string
+          description: Segundo apellido del huésped (opcional)
+          example: García
+        nombres:
+          type: string
+          description: Nombres del huésped
+          example: Juan Carlos
+        pais_residencia:
+          type: string
+          description: País de residencia del huésped
+          example: Colombia
+        ciudad_residencia:
+          type: string
+          description: Ciudad de residencia del huésped
+          example: Medellín
+        pais_procedencia:
+          type: string
+          description: País de procedencia del huésped
+          example: Colombia
+        ciudad_procedencia:
+          type: string
+          description: Ciudad de procedencia del huésped
+          example: Medellín
+        fecha_nacimiento:
+          format: date-time
+          type: string
+          description: Fecha de nacimiento del huésped
+          example: '1990-01-01T00:00:00.000Z'
+        nacionalidad:
+          type: string
+          description: Nacionalidad del huésped
+          example: Colombiano
+        ocupacion:
+          type: string
+          description: Ocupación del huésped
+          example: Ingeniero
+        genero:
+          type: string
+          description: Género del huésped
+          enum:
+            - MASCULINO
+            - FEMENINO
+            - OTRO
+          example: MASCULINO
+        telefono:
+          type: string
+          description: Teléfono del huésped (opcional)
+          example: '+573001112233'
+        correo:
+          type: string
+          description: Correo electrónico del huésped (opcional)
+          example: correo@ejemplo.com
+        huespedes_secundarios:
+          description: Lista de huespedes secundarios asociados al registro
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateHuespedSecundarioWithoutIdDto'
+      required:
+        - fecha_inicio
+        - fecha_fin
+        - motivo_viaje
+        - costo
+        - numero_habitacion
+        - numero_acompaniantes
+        - tipo_documento
+        - numero_documento
+        - primer_apellido
+        - nombres
+        - pais_residencia
+        - ciudad_residencia
+        - pais_procedencia
+        - ciudad_procedencia
+        - fecha_nacimiento
+        - nacionalidad
+        - ocupacion
+        - genero
+    UpdateFormularioDto:
+      type: object
+      properties: {}
+    HuespedesSireDto:
+      type: object
+      properties: {}
+    CreateLinkFormularioDto:
+      type: object
+      properties:
+        numeroHabitacion:
+          type: number
+          description: Numero de habitacion
+        fechaInicio:
+          format: date-time
+          type: string
+          description: Fecha de inicio
+        fechaFin:
+          format: date-time
+          type: string
+          description: Fecha de fin
+        costo:
+          type: number
+          description: Costo
+      required:
+        - numeroHabitacion
+        - fechaInicio
+        - fechaFin
+        - costo

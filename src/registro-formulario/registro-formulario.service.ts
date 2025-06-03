@@ -74,6 +74,7 @@ export class RegistroFormularioService {
         reserva,
       );
 
+      // Primero ejecutar la transacción principal del formulario
       const transactionResult = await this.executeTransaction(
         createRegistroFormularioDto,
         reserva,
@@ -88,9 +89,12 @@ export class RegistroFormularioService {
         );
       }
 
-      let traFormulario;
+      // Luego registrar en TRA como operación separada pero controlada
+      let traResult = null;
       try {
-        traFormulario = await this.registerTra(transactionResult);
+        traResult = await this.registerTraSeparate(
+          transactionResult.formulario.id,
+        );
         // TODO: Registrar en Sire pendiente
       } catch (traError) {
         this.logger.warn(
@@ -110,7 +114,7 @@ export class RegistroFormularioService {
       return {
         success: true,
         result: transactionResult,
-        traFormulario,
+        traFormulario: traResult,
         message: 'Formulario registrado exitosamente',
       };
     } catch (error) {
@@ -177,6 +181,13 @@ export class RegistroFormularioService {
           );
         }
 
+        // Verificar que el link existe y está disponible
+        if (!existingLink) {
+          throw new NotFoundException(
+            `Link de formulario con ID ${tokenId} no encontrado`,
+          );
+        }
+
         const facturaCreated = await this.facturaService.createTransaction(
           factura,
           tx,
@@ -192,12 +203,6 @@ export class RegistroFormularioService {
             huesped.id,
             reservaCreated.id,
           );
-        const linkFormulario =
-          await this.linkFormularioService.UpdateTransaction(
-            { completado: true, formularioId: formularioCreated.id },
-            tx,
-            tokenId,
-          );
 
         const huespedesSecundariosCreated = await this.handleSecondaryGuests(
           dto.huespedes_secundarios,
@@ -205,6 +210,14 @@ export class RegistroFormularioService {
           huesped.id,
           reservaCreated.id,
         );
+
+        // Actualizar el link como completado al final de la transacción
+        const linkFormulario =
+          await this.linkFormularioService.UpdateTransaction(
+            { completado: true, formularioId: formularioCreated.id },
+            tx,
+            tokenId,
+          );
 
         return {
           success: true,
@@ -251,39 +264,56 @@ export class RegistroFormularioService {
   }
 
   /**
-   * Registra un formulario en el sistema TRA
+   * Registra un formulario en el sistema TRA como operación separada
    */
-  private async registerTra(
-    result: ProcessTransactionResult,
-  ): Promise<Formulario> {
-    try {
-      // Ahora usamos el ID del formulario directamente
-      const traData = await this.traService.postTra(result.formulario.id);
+  private async registerTraSeparate(formularioId: number): Promise<Formulario> {
+    return await this.prisma.$transaction(async (tx) => {
+      try {
+        // Verificar que el formulario existe
+        const formulario = await tx.formulario.findFirstOrThrow({
+          where: { id: formularioId },
+        });
 
-      if (!traData || !traData.huespedPrincipal?.code) {
-        throw new BadRequestException('Respuesta inválida del servicio TRA');
+        // Si ya está registrado en TRA, retornar el formulario actual
+        if (formulario.SubidoATra) {
+          return formulario;
+        }
+
+        // Registrar en TRA
+        const traData = await this.traService.postTra(formularioId);
+
+        if (!traData || !traData.huespedPrincipal?.code) {
+          throw new BadRequestException('Respuesta inválida del servicio TRA');
+        }
+
+        // Actualizar formulario dentro de la transacción
+        return await tx.formulario.update({
+          where: { id: formularioId },
+          data: { SubidoATra: true, traId: traData.huespedPrincipal.code },
+        });
+      } catch (error) {
+        this.logger.error(
+          `Error al registrar en TRA: ${error.message}`,
+          error.stack,
+        );
+
+        // Asegurar que el formulario se marque como no subido a TRA
+        try {
+          await tx.formulario.update({
+            where: { id: formularioId },
+            data: { SubidoATra: false, traId: null },
+          });
+        } catch (updateError) {
+          this.logger.error(
+            `Error adicional al actualizar estado del formulario tras fallo TRA: ${updateError.message}`,
+          );
+        }
+
+        throw new BadRequestException(
+          `Error al registrar en TRA: ${error.message}`,
+        );
       }
-
-      return await this.prisma.formulario.update({
-        where: { id: result.formulario.id },
-        data: { SubidoATra: true, traId: traData.huespedPrincipal.code },
-      });
-    } catch (error) {
-      this.logger.error(
-        `Error al registrar en TRA: ${error.message}`,
-        error.stack,
-      );
-
-      // Marcamos el formulario como no subido a TRA pero mantenemos el registro
-      await this.prisma.formulario.update({
-        where: { id: result.formulario.id },
-        data: { SubidoATra: false, traId: null },
-      });
-
-      throw new BadRequestException(
-        `Error al registrar en TRA: ${error.message}`,
-      );
-    }
+    });
   }
 
   private handleDatabaseError(error: any): never {
@@ -326,74 +356,63 @@ export class RegistroFormularioService {
   }
 
   /**
-   * Intenta registrar un formulario existente en el sistema TRA
+   * Intenta registrar un formulario existente en el sistema TRA con transacción atómica
    * @param formularioId ID del formulario a registrar en TRA
    */
   async registerFormularioInTra(formularioId: number) {
     try {
-      // Verificar si el formulario existe
-      const formulario = await this.formulariosService.findOne(formularioId);
+      return await this.prisma.$transaction(async (tx) => {
+        // Verificar si el formulario existe dentro de la transacción
+        const formulario = await tx.formulario.findFirstOrThrow({
+          where: { id: formularioId },
+        });
 
-      if (!formulario) {
-        throw new NotFoundException(
-          `Formulario con ID ${formularioId} no encontrado`,
-        );
-      }
+        // Verificar si ya está subido a TRA
+        if (formulario.SubidoATra) {
+          return {
+            success: true,
+            message: `El formulario ya estaba registrado en TRA con ID ${formulario.traId}`,
+            formulario,
+          };
+        }
 
-      // Verificar si ya está subido a TRA
-      if (formulario.SubidoATra) {
+        // Registrar en TRA
+        const traData = await this.traService.postTra(formularioId);
+
+        if (!traData || !traData.huespedPrincipal?.code) {
+          throw new BadRequestException('Respuesta inválida del servicio TRA');
+        }
+
+        // Actualizar formulario con el ID de TRA dentro de la transacción
+        const updatedFormulario = await tx.formulario.update({
+          where: { id: formularioId },
+          data: {
+            SubidoATra: true,
+            traId: traData.huespedPrincipal.code,
+          },
+        });
+
         return {
           success: true,
-          message: `El formulario ya estaba registrado en TRA con ID ${formulario.traId}`,
-          formulario,
+          message: 'Formulario registrado exitosamente en TRA',
+          formulario: updatedFormulario,
+          traData,
         };
-      }
-
-      // Registrar en TRA
-      const traData = await this.traService.postTra(formularioId);
-
-      if (!traData || !traData.huespedPrincipal?.code) {
-        throw new BadRequestException('Respuesta inválida del servicio TRA');
-      }
-
-      // Actualizar formulario con el ID de TRA
-      const updatedFormulario = await this.formulariosService.update(
-        formularioId,
-        {
-          SubidoATra: true,
-          traId: traData.huespedPrincipal.code,
-        },
-      );
-
-      return {
-        success: true,
-        message: 'Formulario registrado exitosamente en TRA',
-        formulario: updatedFormulario,
-        traData,
-      };
+      });
     } catch (error) {
       this.logger.error(
         `Error al registrar formulario ${formularioId} en TRA: ${error.message}`,
         error.stack,
       );
 
-      // Si es un error de NotFound, lo relanzamos directamente
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-
-      // Para otros errores, marcamos el formulario como no subido a TRA
-      try {
-        await this.formulariosService.update(formularioId, {
-          SubidoATra: false,
-          traId: null,
-        });
-      } catch (dbError) {
-        this.logger.error(
-          `Error adicional al actualizar estado del formulario: ${dbError.message}`,
+      // Si es un error de NotFound por findFirstOrThrow, lo relanzamos directamente
+      if (error.code === 'P2025') {
+        throw new NotFoundException(
+          `Formulario con ID ${formularioId} no encontrado`,
         );
       }
 
+      // Para otros errores, lanzar BadRequestException
       throw new BadRequestException(
         `Error al registrar formulario en TRA: ${error.message}`,
       );

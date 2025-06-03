@@ -24,65 +24,79 @@ import {
   ApiBody,
   ApiParam,
   ApiQuery,
-  ApiHeader,
+  ApiBearerAuth,
+  ApiExtraModels,
 } from '@nestjs/swagger';
-import { Habitacion } from './entities/habitacion.entity'; // Importa la entidad Habitacion
+import { Habitacion } from './entities/habitacion.entity';
 import { RangoFechasDto } from 'src/auth/dto/rangoFechasDto';
+import {
+  createPaginatedApiResponse,
+  PAGE_QUERY,
+  LIMIT_QUERY,
+  AUTH_INVALID_RESPONSE,
+  PERMISSIONS_RESPONSE,
+} from 'src/common/swagger/pagination-responses';
 
-@ApiTags('habitaciones') // Agrupa las rutas bajo el tag "habitaciones"
-@UseGuards(AuthGuard) // Usa el guard de autenticación
+@ApiTags('habitaciones')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
+@ApiExtraModels(Habitacion)
 @Controller('habitaciones')
 export class HabitacionesController {
   constructor(private readonly habitacionesService: HabitacionesService) {}
 
-  @Roles(Role.ADMINISTRADOR) // Roles permitidos
-  @UseGuards(AuthGuard)
+  // ================================================================
+  // CREATE - Crear nueva habitación
+  // ================================================================
+  @Roles(Role.ADMINISTRADOR)
   @Post()
   @ApiOperation({ summary: 'Crear una nueva habitación' })
   @ApiBody({ type: CreateHabitacionDto })
   @ApiResponse({
     status: 201,
-    description: 'Habitación creada',
+    description: 'Habitación creada exitosamente',
     type: Habitacion,
   })
-  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos suficientes - Solo administradores',
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Datos de entrada inválidos o ya existe una habitación con ese número',
+  })
   create(@Body() createHabitacionDto: CreateHabitacionDto) {
     return this.habitacionesService.create(createHabitacionDto);
   }
 
+  // ================================================================
+  // READ - Listar todas las habitaciones (con paginación)
+  // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
-  @UseGuards(AuthGuard)
   @Get()
-  @ApiOperation({ summary: 'Listar todas las habitaciones' })
-  @ApiQuery({
-    name: 'page',
-    description: 'Número de página',
-    required: false,
-    type: Number,
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Límite de resultados por página',
-    required: false,
-    type: Number,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de habitaciones',
-    type: [Habitacion],
-  })
+  @ApiOperation({ summary: 'Listar todas las habitaciones con paginación' })
+  @ApiQuery(PAGE_QUERY)
+  @ApiQuery(LIMIT_QUERY)
+  @ApiResponse(createPaginatedApiResponse(Habitacion, 'totalHabitaciones'))
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findAll(@Query() paginationDto: PaginationDto) {
     return this.habitacionesService.findAll(paginationDto);
   }
 
+  // ================================================================
+  // READ - Buscar habitación por número
+  // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
-  @UseGuards(AuthGuard)
   @Get('numero_habitacion/:numeroHabitacion')
-  @ApiOperation({ summary: 'Buscar habitación por número' })
+  @ApiOperation({ summary: 'Buscar habitación por número de habitación' })
   @ApiParam({
     name: 'numeroHabitacion',
     description: 'Número de la habitación',
     type: Number,
+    example: 101,
   })
   @ApiResponse({
     status: 200,
@@ -90,39 +104,60 @@ export class HabitacionesController {
     type: Habitacion,
   })
   @ApiResponse({ status: 404, description: 'Habitación no encontrada' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findByNumeroHabitacion(
     @Param('numeroHabitacion', ParseIntPipe) numeroHabitacion: number,
   ) {
     return this.habitacionesService.findByNumeroHabitacion(numeroHabitacion);
   }
 
+  // ================================================================
+  // READ - Buscar habitación por ID
+  // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
-  @UseGuards(AuthGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Buscar habitación por ID' })
-  @ApiParam({ name: 'id', description: 'ID de la habitación', type: Number })
+  @ApiParam({
+    name: 'id',
+    description: 'ID de la habitación',
+    type: Number,
+    example: 1,
+  })
   @ApiResponse({
     status: 200,
     description: 'Habitación encontrada',
     type: Habitacion,
   })
   @ApiResponse({ status: 404, description: 'Habitación no encontrada' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.habitacionesService.findOne(id);
   }
 
+  // ================================================================
+  // UPDATE - Actualizar habitación por ID
+  // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
-  @UseGuards(AuthGuard)
   @Patch(':id')
   @ApiOperation({ summary: 'Actualizar habitación por ID' })
-  @ApiParam({ name: 'id', description: 'ID de la habitación', type: Number })
+  @ApiParam({
+    name: 'id',
+    description: 'ID de la habitación',
+    type: Number,
+    example: 1,
+  })
   @ApiBody({ type: UpdateHabitacionDto })
   @ApiResponse({
     status: 200,
-    description: 'Habitación actualizada',
+    description: 'Habitación actualizada exitosamente',
     type: Habitacion,
   })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   @ApiResponse({ status: 404, description: 'Habitación no encontrada' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateHabitacionDto: UpdateHabitacionDto,
@@ -130,33 +165,42 @@ export class HabitacionesController {
     return this.habitacionesService.update(id, updateHabitacionDto);
   }
 
+  // ================================================================
+  // DELETE - Eliminar habitación por ID
+  // ================================================================
   @Roles(Role.ADMINISTRADOR)
-  @UseGuards(AuthGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar habitación por ID' })
-  @ApiParam({ name: 'id', description: 'ID de la habitación', type: Number })
+  @ApiParam({
+    name: 'id',
+    description: 'ID de la habitación',
+    type: Number,
+    example: 1,
+  })
   @ApiResponse({
     status: 200,
-    description: 'Habitación eliminada',
+    description: 'Habitación eliminada exitosamente',
     type: Habitacion,
   })
   @ApiResponse({ status: 404, description: 'Habitación no encontrada' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos suficientes - Solo administradores',
+  })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.habitacionesService.remove(id);
   }
 
+  // ================================================================
+  // BUSINESS LOGIC - Obtener habitaciones disponibles entre fechas
+  // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
-  @UseGuards(AuthGuard)
   @Post('disponibles')
   @ApiOperation({
     summary: 'Obtener habitaciones disponibles entre dos fechas',
     description:
       'Obtiene las habitaciones disponibles entre dos fechas. Las fechas se validan solo por día, sin considerar la hora exacta. La fecha de inicio debe ser igual o posterior al día actual, y la fecha de fin debe ser posterior a la fecha de inicio.',
-  })
-  @ApiHeader({
-    name: 'Authorization',
-    description: 'Token de autenticación',
-    required: true,
   })
   @ApiBody({
     type: RangoFechasDto,
@@ -168,6 +212,9 @@ export class HabitacionesController {
     description: 'Lista de habitaciones disponibles',
     type: [Habitacion],
   })
+  @ApiResponse({ status: 400, description: 'Rango de fechas inválido' })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
   getHabitacionesDisponiblesEntreFechas(
     @Body() rangoFechasDto: RangoFechasDto,
   ) {
