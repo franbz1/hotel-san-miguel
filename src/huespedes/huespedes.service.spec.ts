@@ -183,6 +183,13 @@ describe('HuespedesService', () => {
         skip: 0, // (page - 1) * limit
         take: 10,
         where: { deleted: false },
+        include: {
+          reservas: {
+            where: {
+              deleted: false,
+            },
+          },
+        },
       });
     });
 
@@ -208,6 +215,13 @@ describe('HuespedesService', () => {
         skip: 10, // (3 - 1) * 5
         take: 5,
         where: { deleted: false },
+        include: {
+          reservas: {
+            where: {
+              deleted: false,
+            },
+          },
+        },
       });
     });
 
