@@ -239,6 +239,15 @@ describe('ReservasService', () => {
         skip: (mockPaginationDto.page - 1) * mockPaginationDto.limit,
         take: mockPaginationDto.limit,
         where: { deleted: false },
+        include: {
+          factura: {
+            where: { deleted: false },
+          },
+          huespedes_secundarios: {
+            where: { deleted: false },
+          },
+          huesped: true,
+        },
       });
     });
 
@@ -291,6 +300,15 @@ describe('ReservasService', () => {
       expect(result).toEqual(mockReservaCreated);
       expect(mockPrismaService.reserva.findFirstOrThrow).toHaveBeenCalledWith({
         where: { id: reservaId, deleted: false },
+        include: {
+          factura: {
+            where: { deleted: false },
+          },
+          huespedes_secundarios: {
+            where: { deleted: false },
+          },
+          huesped: true,
+        },
       });
     });
 

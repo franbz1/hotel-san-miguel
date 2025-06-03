@@ -80,6 +80,15 @@ export class ReservasService {
       skip: (page - 1) * limit,
       take: limit,
       where: { deleted: false },
+      include: {
+        factura: {
+          where: { deleted: false },
+        },
+        huespedes_secundarios: {
+          where: { deleted: false },
+        },
+        huesped: true,
+      },
     });
 
     return { data: reservas, meta: { page, limit, totalReservas, lastPage } };
@@ -95,6 +104,15 @@ export class ReservasService {
     try {
       return await this.prisma.reserva.findFirstOrThrow({
         where: { id, deleted: false },
+        include: {
+          factura: {
+            where: { deleted: false },
+          },
+          huespedes_secundarios: {
+            where: { deleted: false },
+          },
+          huesped: true,
+        },
       });
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);
