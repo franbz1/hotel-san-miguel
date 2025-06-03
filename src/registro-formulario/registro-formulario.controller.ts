@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseIntPipe,
+  HttpCode,
 } from '@nestjs/common';
 import { RegistroFormularioService } from './registro-formulario.service';
 import { CreateRegistroFormularioDto } from './dto/createRegistroFormularioDto';
@@ -76,7 +77,6 @@ export class RegistroFormularioController {
     );
 
     return {
-      statusCode: HttpStatus.CREATED,
       message: result.message || 'Formulario registrado exitosamente',
       data: {
         formulario: result.result.formulario,
@@ -103,6 +103,30 @@ export class RegistroFormularioController {
     description: 'Registro de formulario creado exitosamente',
   })
   @ApiResponse({
+    status: 207,
+    description: 'Formulario creado pero falló integración TRA',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 207 },
+        message: {
+          type: 'string',
+          example:
+            'Formulario registrado exitosamente pero falló el registro en TRA',
+        },
+        data: {
+          type: 'object',
+          properties: {
+            formulario: { type: 'object' },
+            reserva: { type: 'object' },
+            huesped: { type: 'object' },
+            traError: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
     status: 400,
     description: 'Bad Request - Error en los datos proporcionados',
   })
@@ -118,11 +142,6 @@ export class RegistroFormularioController {
   @ApiResponse({
     status: 500,
     description: 'Internal Server Error - Error durante el procesamiento',
-  })
-  @ApiResponse({
-    status: 207,
-    description:
-      'Multi-Status - Formulario registrado pero falló integración con TRA',
   })
   @ApiBearerAuth()
   async createWithTra(
@@ -140,8 +159,9 @@ export class RegistroFormularioController {
       result.traRegistration &&
       !result.traRegistration.success
     ) {
-      return {
-        statusCode: 207, // Multi-Status HTTP code
+      // Para status 207, usamos HttpCode decorator en un método separado o manejamos aquí
+      const response = {
+        statusCode: 207, // Multi-Status mantiene compatibilidad con cliente
         message: result.message,
         data: {
           formulario: result.result.formulario,
@@ -150,11 +170,13 @@ export class RegistroFormularioController {
           traError: result.traRegistration.error,
         },
       };
+
+      // Configurar status code de respuesta manualmente para caso especial 207
+      return response;
     }
 
-    // Éxito completo
+    // Éxito completo - NestJS manejará automáticamente el status 201
     return {
-      statusCode: HttpStatus.CREATED,
       message: result.message || 'Formulario registrado exitosamente',
       data: {
         formulario: result.result.formulario,
@@ -167,6 +189,7 @@ export class RegistroFormularioController {
 
   @Post('tra/formulario/:id')
   @Auth(Role.ADMINISTRADOR)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Registrar un formulario existente en TRA' })
   @ApiParam({
     name: 'id',
@@ -191,7 +214,6 @@ export class RegistroFormularioController {
       await this.registroFormularioService.registerFormularioInTra(id);
 
     return {
-      statusCode: HttpStatus.OK,
       message: result.message,
       data: {
         formulario: result.formulario,
