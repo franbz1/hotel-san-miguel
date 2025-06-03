@@ -30,53 +30,68 @@ export class LinkFormularioService {
   async createLinkTemporal(createLinkFormularioDto: CreateLinkFormularioDto) {
     const ruta = `${FRONTEND_URL}/registro-formulario/`;
 
-    const hoy = new Date(new Date().toISOString());
+    // Usar transacción para operación atómica
+    return await this.prisma.$transaction(async (tx) => {
+      // Verificar habitación existe
+      let habitacion;
+      try {
+        habitacion = await tx.habitacion.findFirstOrThrow({
+          where: {
+            numero_habitacion: createLinkFormularioDto.numeroHabitacion,
+            deleted: false,
+          },
+        });
+      } catch (error) {
+        if (error.code === 'P2025')
+          throw notFoundError(createLinkFormularioDto.numeroHabitacion);
+        throw error;
+      }
 
-    const vencimiento = new Date(hoy.getTime() + 3600 * 1000);
+      const hoy = new Date(new Date().toISOString());
+      const vencimiento = new Date(hoy.getTime() + 3600 * 1000);
 
-    let habitacion;
+      // Generar token primero para crear link completo
+      const tempPayload = {
+        id: Date.now(), // ID temporal para generar token
+        rol: Role.REGISTRO_FORMULARIO,
+      };
 
-    try {
-      habitacion = await this.prisma.habitacion.findFirstOrThrow({
-        where: {
-          numero_habitacion: createLinkFormularioDto.numeroHabitacion,
-          deleted: false,
+      const tempToken = await this.jwtService.signAsync(tempPayload, {
+        expiresIn: '1h',
+      });
+
+      // Crear link con URL completa desde el inicio
+      const link = await tx.linkFormulario.create({
+        data: {
+          url: `${ruta}${tempToken}`,
+          vencimiento: vencimiento,
+          numeroHabitacion: habitacion.numero_habitacion,
+          fechaInicio: createLinkFormularioDto.fechaInicio,
+          fechaFin: createLinkFormularioDto.fechaFin,
+          costo: createLinkFormularioDto.costo,
         },
       });
-    } catch (error) {
-      if (error.code === 'P2025')
-        throw notFoundError(createLinkFormularioDto.numeroHabitacion);
-      throw error;
-    }
 
-    const link = await this.prisma.linkFormulario.create({
-      data: {
-        url: '',
-        vencimiento: vencimiento,
-        numeroHabitacion: habitacion.numero_habitacion,
-        fechaInicio: createLinkFormularioDto.fechaInicio,
-        fechaFin: createLinkFormularioDto.fechaFin,
-        costo: createLinkFormularioDto.costo,
-      },
+      // Generar token final con el ID real del link
+      const payload = {
+        id: link.id,
+        rol: Role.REGISTRO_FORMULARIO,
+      };
+
+      const token = await this.jwtService.signAsync(payload, {
+        expiresIn: '1h',
+      });
+
+      // Actualizar con token final
+      const updatedLink = await tx.linkFormulario.update({
+        where: { id: link.id },
+        data: {
+          url: `${ruta}${token}`,
+        },
+      });
+
+      return updatedLink.url;
     });
-
-    const payload = {
-      id: link.id,
-      rol: Role.REGISTRO_FORMULARIO,
-    };
-
-    const token = await this.jwtService.signAsync(payload, {
-      expiresIn: '1h',
-    });
-
-    const updatedLink = await this.prisma.linkFormulario.update({
-      where: { id: link.id },
-      data: {
-        url: `${ruta}${token}`,
-      },
-    });
-
-    return updatedLink.url;
   }
 
   /**
@@ -87,11 +102,13 @@ export class LinkFormularioService {
   async findAll(paginationDto: PaginationDto) {
     const { page, limit } = paginationDto;
 
-    const totalLinks = await this.prisma.linkFormulario.count({
+    let totalLinks = await this.prisma.linkFormulario.count({
       where: { deleted: false },
     });
 
     const lastPage = Math.ceil(totalLinks / limit);
+
+    if (totalLinks === undefined) totalLinks = 0;
 
     const emptyData = emptyPaginationResponse(
       page,
@@ -187,6 +204,7 @@ export class LinkFormularioService {
       });
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
     }
   }
 
@@ -202,6 +220,7 @@ export class LinkFormularioService {
       });
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);
+      throw error;
     }
   }
 
@@ -214,47 +233,59 @@ export class LinkFormularioService {
    */
   async regenerateLink(id: number) {
     const ruta = `${FRONTEND_URL}/registro-formulario/`;
-
     const hoy = new Date(new Date().toISOString());
 
+    // Obtener link para validar y extraer token viejo
+    let linkExistente;
     try {
-      const link = await this.findOne(id);
-
-      if (link.completado) {
-        throw new BadRequestException('El link ya ha sido completado');
-      }
-
-      const { url } = link;
-
-      const oldToken = url.split('/').pop();
-
-      this.blacklistService.addToBlacklist(oldToken);
-
-      const payload = {
-        id: link.id,
-        rol: Role.REGISTRO_FORMULARIO,
-      };
-
-      const token = await this.jwtService.signAsync(payload, {
-        expiresIn: '1h',
-      });
-
-      const vencimiento = new Date(hoy.getTime() + 3600 * 1000);
-
-      const updatedLink = await this.prisma.linkFormulario.update({
-        where: { id },
-        data: {
-          url: `${ruta}${token}`,
-          vencimiento: vencimiento,
-          expirado: false,
-        },
-      });
-
-      return updatedLink;
+      linkExistente = await this.findOne(id);
     } catch (error) {
       if (error.code === 'P2025') throw notFoundError(id);
       throw error;
     }
+
+    if (linkExistente.completado) {
+      throw new BadRequestException('El link ya ha sido completado');
+    }
+
+    // Extraer token viejo para blacklist
+    const { url } = linkExistente;
+    const oldToken = url.split('/').pop();
+    this.blacklistService.addToBlacklist(oldToken);
+
+    // Generar nuevo token
+    const payload = {
+      id: linkExistente.id,
+      rol: Role.REGISTRO_FORMULARIO,
+    };
+
+    const token = await this.jwtService.signAsync(payload, {
+      expiresIn: '1h',
+    });
+
+    const vencimiento = new Date(hoy.getTime() + 3600 * 1000);
+
+    // Actualización atómica con condición
+    const updatedLink = await this.prisma.linkFormulario.updateMany({
+      where: {
+        id,
+        completado: false, // Condición atómica para prevenir regeneración de links completados
+      },
+      data: {
+        url: `${ruta}${token}`,
+        vencimiento: vencimiento,
+        expirado: false,
+      },
+    });
+
+    if (updatedLink.count === 0) {
+      throw new BadRequestException(
+        'El link ya ha sido completado o no existe',
+      );
+    }
+
+    // Retornar link actualizado
+    return await this.findOne(id);
   }
 
   /**
