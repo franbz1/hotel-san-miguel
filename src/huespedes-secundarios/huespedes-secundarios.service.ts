@@ -66,7 +66,7 @@ export class HuespedesSecundariosService {
 
     return {
       data: huespedesSecundarios,
-      meta: { page, limit, totalHuespedesSecundarios, lastPage },
+      meta: { page, limit, total: totalHuespedesSecundarios, lastPage },
     };
   }
 
@@ -108,7 +108,7 @@ export class HuespedesSecundariosService {
 
     return {
       data: huespedesSecundarios,
-      meta: { page, limit, totalHuespedesSecundarios, lastPage },
+      meta: { page, limit, total: totalHuespedesSecundarios, lastPage },
     };
   }
 

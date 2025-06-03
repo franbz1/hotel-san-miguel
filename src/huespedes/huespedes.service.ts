@@ -73,7 +73,10 @@ export class HuespedesService {
       },
     });
 
-    return { data: huespedes, meta: { page, limit, totalHuespedes, lastPage } };
+    return {
+      data: huespedes,
+      meta: { page, limit, total: totalHuespedes, lastPage },
+    };
   }
 
   /**
