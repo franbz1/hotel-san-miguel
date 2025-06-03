@@ -64,7 +64,6 @@ export class AuthService {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      console.log(error);
       throw new BadRequestException('Error al procesar el login');
     }
   }
