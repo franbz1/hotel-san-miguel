@@ -31,7 +31,7 @@ export class HuespedesService {
       });
     } catch (error) {
       if (error.code === 'P2002')
-        throw new BadRequestException('El huesped ya existe');
+        throw new BadRequestException('El huésped ya existe');
       throw error;
     }
   }
@@ -100,7 +100,7 @@ export class HuespedesService {
     } catch (error) {
       if (error.code === 'P2025')
         throw new NotFoundException(
-          `No se encontró el huesped con el numero de documento: ${documentoId}`,
+          `No se encontró el huésped con el numero de documento: ${documentoId}`,
         );
       throw error;
     }
@@ -117,7 +117,7 @@ export class HuespedesService {
   async update(id: number, updateHuespedDto: UpdateHuespedDto) {
     if (!Object.keys(updateHuespedDto).length) {
       throw new BadRequestException(
-        'Debe enviar datos para actualizar el huesped.',
+        'Debe enviar datos para actualizar el huésped.',
       );
     }
 
@@ -153,38 +153,103 @@ export class HuespedesService {
   }
 
   /**
-   * Busca y devuelve el huesped de la base de datos, si no lo encuentra lo crea
+   * Busca y devuelve el huesped de la base de datos, si no lo encuentra lo crea.
+   * Si existe un huésped eliminado con el mismo número de documento, lo reactiva.
    * @param dto Dto del huesped a crear
-   * @returns El huesped creado
+   * @returns El huesped creado o reactivado
    */
   async findOrCreateHuesped(dto: CreateHuespedDto): Promise<Huesped> {
-    const huesped = await this.prisma.huesped.findFirst({
-      where: { numero_documento: dto.numero_documento, deleted: false },
-    });
+    try {
+      // Buscar huésped activo primero
+      const huesped = await this.prisma.huesped.findFirst({
+        where: { numero_documento: dto.numero_documento, deleted: false },
+      });
 
-    if (!huesped) {
+      if (huesped) {
+        return huesped;
+      }
+
+      // Verificar si existe un huésped eliminado para reutilizar
+      const huespedEliminado = await this.prisma.huesped.findFirst({
+        where: { numero_documento: dto.numero_documento, deleted: true },
+      });
+
+      if (huespedEliminado) {
+        // Reactivar huésped eliminado actualizando todos sus datos
+        return await this.prisma.huesped.update({
+          where: { id: huespedEliminado.id },
+          data: {
+            ...dto,
+            deleted: false,
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      // Si no existe ningún huésped, crear uno nuevo
       return await this.prisma.huesped.create({
         data: dto,
       });
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new BadRequestException(
+          'Error de integridad: No se pudo procesar el huésped',
+        );
+      }
+      throw error;
     }
-
-    return huesped;
   }
 
+  /**
+   * Busca y devuelve el huesped de la base de datos dentro de una transacción,
+   * si no lo encuentra lo crea. Si existe un huésped eliminado con el mismo
+   * número de documento, lo reactiva.
+   * @param dto Dto del huesped a crear
+   * @param tx Cliente de transacción de Prisma
+   * @returns El huesped creado o reactivado
+   */
   async findOrCreateHuespedTransaction(
     dto: CreateHuespedDto,
     tx: Prisma.TransactionClient,
-  ) {
-    const huesped = await tx.huesped.findFirst({
-      where: { numero_documento: dto.numero_documento, deleted: false },
-    });
+  ): Promise<Huesped> {
+    try {
+      // Buscar huésped activo primero
+      const huesped = await tx.huesped.findFirst({
+        where: { numero_documento: dto.numero_documento, deleted: false },
+      });
 
-    if (!huesped) {
+      if (huesped) {
+        return huesped;
+      }
+
+      // Verificar si existe un huésped eliminado para reutilizar
+      const huespedEliminado = await tx.huesped.findFirst({
+        where: { numero_documento: dto.numero_documento, deleted: true },
+      });
+
+      if (huespedEliminado) {
+        // Reactivar huésped eliminado actualizando todos sus datos
+        return await tx.huesped.update({
+          where: { id: huespedEliminado.id },
+          data: {
+            ...dto,
+            deleted: false,
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      // Si no existe ningún huésped, crear uno nuevo
       return await tx.huesped.create({
         data: dto,
       });
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new BadRequestException(
+          'Error de integridad: No se pudo procesar el huésped en la transacción',
+        );
+      }
+      throw error;
     }
-
-    return huesped;
   }
 }
