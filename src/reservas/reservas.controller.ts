@@ -130,24 +130,47 @@ export class ReservasController {
   }
 
   // ================================================================
-  // DELETE - Eliminar reserva por ID (soft delete)
+  // DELETE - Eliminar reserva por ID (soft delete con cascada)
   // ================================================================
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar una reserva por ID (soft delete)' })
+  @ApiOperation({
+    summary:
+      'Eliminar una reserva por ID (soft delete con eliminación en cascada)',
+    description:
+      'Elimina una reserva y todas las entidades relacionadas mediante soft delete:\n\n' +
+      '**Entidades que se eliminan:**\n' +
+      '- La reserva seleccionada\n' +
+      '- Todos los formularios relacionados con la reserva\n' +
+      '- Todos los enlaces de formulario (LinkFormulario) relacionados\n' +
+      '- La factura asociada (si existe)\n' +
+      '- Los huéspedes secundarios (solo si no tienen otras reservas activas)\n' +
+      '- El huésped principal (solo si no tiene otras reservas activas)\n\n' +
+      '**Entidades que NO se eliminan:**\n' +
+      '- Habitación (se mantiene disponible para futuras reservas)\n' +
+      '- Huéspedes que tengan otras reservas activas (se preservan)\n\n' +
+      '**Nota:** Esta operación utiliza transacciones para garantizar la consistencia de los datos.',
+  })
   @ApiParam({
     name: 'id',
-    description: 'ID de la reserva',
+    description: 'ID de la reserva a eliminar',
     type: Number,
     example: 1,
   })
   @ApiResponse({
     status: 200,
-    description: 'Reserva eliminada exitosamente',
+    description: 'Reserva y entidades relacionadas eliminadas exitosamente',
     type: Reserva,
   })
-  @ApiResponse({ status: 404, description: 'Reserva no encontrada' })
+  @ApiResponse({
+    status: 404,
+    description: 'Reserva no encontrada o ya eliminada',
+  })
   @ApiResponse(AUTH_INVALID_RESPONSE)
   @ApiResponse(PERMISSIONS_RESPONSE)
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor durante la eliminación en cascada',
+  })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.reservasService.remove(id);
   }

@@ -151,21 +151,117 @@ export class ReservasService {
   }
 
   /**
-   * Elimina una reserva por su ID.
+   * Elimina una reserva por su ID con eliminación en cascada.
+   * Elimina:
+   * - La reserva (soft delete)
+   * - Todos los formularios relacionados
+   * - Todos los LinkFormulario relacionados con esos formularios
+   * - La factura asociada (si existe)
+   * - Los huéspedes secundarios (solo si no tienen otras reservas activas)
+   * - El huésped principal (solo si no tiene otras reservas activas)
    * @param id ID de la reserva.
    * @returns La reserva eliminada.
    * @throws NotFoundException si la reserva no existe.
    */
   async remove(id: number) {
-    try {
-      return await this.prisma.reserva.update({
+    return await this.prisma.$transaction(async (tx) => {
+      // Primero obtener la reserva con todas sus relaciones
+      const reserva = await tx.reserva.findFirst({
         where: { id, deleted: false },
+        include: {
+          Formulario: {
+            where: { deleted: false },
+            include: {
+              LinkFormulario: {
+                where: { deleted: false },
+              },
+            },
+          },
+          factura: {
+            where: { deleted: false },
+          },
+          huespedes_secundarios: {
+            where: { deleted: false },
+          },
+          huesped: true,
+        },
+      });
+
+      if (!reserva) {
+        throw notFoundError(id);
+      }
+
+      // 1. Eliminar la reserva (soft delete)
+      const reservaEliminada = await tx.reserva.update({
+        where: { id },
         data: { deleted: true },
       });
-    } catch (error) {
-      if (error.code === 'P2025') throw notFoundError(id);
-      throw error;
-    }
+
+      // 2. Eliminar LinkFormulario relacionados con los formularios de esta reserva
+      for (const formulario of reserva.Formulario) {
+        if (formulario.LinkFormulario) {
+          await tx.linkFormulario.update({
+            where: { id: formulario.LinkFormulario.id },
+            data: { deleted: true },
+          });
+        }
+      }
+
+      // 3. Eliminar formularios relacionados con esta reserva
+      await tx.formulario.updateMany({
+        where: {
+          reservaId: id,
+          deleted: false,
+        },
+        data: { deleted: true },
+      });
+
+      // 4. Eliminar factura si existe
+      if (reserva.factura) {
+        await tx.factura.update({
+          where: { id: reserva.factura.id },
+          data: { deleted: true },
+        });
+      }
+
+      // 5. Verificar y eliminar huéspedes secundarios si no tienen otras reservas activas
+      for (const huespedSecundario of reserva.huespedes_secundarios) {
+        const otrasReservasSecundario = await tx.reserva.count({
+          where: {
+            id: { not: id },
+            deleted: false,
+            huespedes_secundarios: {
+              some: { id: huespedSecundario.id },
+            },
+          },
+        });
+
+        if (otrasReservasSecundario === 0) {
+          await tx.huespedSecundario.update({
+            where: { id: huespedSecundario.id },
+            data: { deleted: true },
+          });
+        }
+      }
+
+      // 6. Verificar y eliminar huésped principal si no tiene otras reservas activas
+      const otrasReservasHuesped = await tx.reserva.count({
+        where: {
+          id: { not: id },
+          huespedId: reserva.huespedId,
+          deleted: false,
+        },
+      });
+
+      if (otrasReservasHuesped === 0) {
+        await tx.huesped.update({
+          where: { id: reserva.huespedId },
+          data: { deleted: true },
+        });
+      }
+
+      return reservaEliminada;
+    });
   }
 
   async removeTx(id: number, tx: Prisma.TransactionClient) {
