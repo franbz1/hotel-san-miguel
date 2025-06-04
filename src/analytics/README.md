@@ -1,145 +1,357 @@
-# Módulo de Analíticas - Hotel San Miguel
+# 📊 Módulo de Analytics - Hotel San Miguel
 
-## Descripción
+## 📋 Descripción General
 
-El módulo de analíticas proporciona endpoints especializados para obtener insights de negocio del sistema hotelero. Está diseñado para soportar la toma de decisiones estratégicas mediante análisis de datos operacionales.
+El módulo de Analytics proporciona análisis estadísticos y métricas de rendimiento del hotel a través de consultas optimizadas. Incluye ocupación hotelera, demografía de huéspedes, rendimiento por habitaciones, motivos de viaje, predicciones y dashboard ejecutivo.
 
-## Arquitectura
+## 🔒 Permisos de Acceso
 
-### Estructura del Módulo
+**Todos los endpoints requieren autenticación y autorización:**
+- **Roles permitidos:** `ADMINISTRADOR` y `CAJERO`
+- **Excepción:** Endpoints de forecast y dashboard son **solo para ADMINISTRADOR**
+- **Implementación:** Decorador `@Auth(Role.ADMINISTRADOR, Role.CAJERO)` a nivel de clase + `@Roles` a nivel de método
 
+## 🌐 Endpoints Disponibles
+
+### Base URL: `/analytics`
+
+---
+
+## 1. 📈 Análisis de Ocupación
+
+### `GET /analytics/ocupacion`
+
+Calcula métricas de ocupación hotelera (RevPAR, ADR, tasa de ocupación) agrupadas por períodos.
+
+#### **Parámetros de Query (FiltrosOcupacionDto):**
+
+| Parámetro | Tipo | Requerido | Descripción | Ejemplo |
+|-----------|------|-----------|-------------|---------|
+| `fechaInicio` | `string` | ❌ | Fecha de inicio (ISO 8601) | `2024-01-01` |
+| `fechaFin` | `string` | ❌ | Fecha de fin (ISO 8601) | `2024-12-31` |
+| `agruparPor` | `'día' \| 'semana' \| 'mes' \| 'año'` | ❌ | Período de agrupación | `mes` |
+| `tipoHabitacion` | `TiposHabitacion` | ❌ | Filtrar por tipo específico | `SENCILLA` |
+
+**Validaciones:**
+- `@IsOptional()` y `@IsDateString()` para fechas
+- `@IsOptional()` y `@IsEnum(['día', 'semana', 'mes', 'año'])` para agrupación
+- `@IsOptional()` y `@IsEnum(TiposHabitacion)` para tipo de habitación
+
+#### **Ejemplo de Request:**
 ```
-src/analytics/
-├── analytics.controller.ts         # Endpoints de la API
-├── analytics.service.ts            # Lógica de negocio y consultas
-├── analytics.module.ts             # Configuración del módulo
-├── analytics.controller.spec.ts    # Tests unitarios del controller
-├── analytics.service.spec.ts       # Tests unitarios del service
-├── dto/
-│   ├── filtros-analytics.dto.ts    # DTOs para filtros
-│   └── response-analytics.dto.ts   # DTOs para respuestas
-└── README.md                       # Esta documentación
+GET /analytics/ocupacion?fechaInicio=2024-01-01&fechaFin=2024-03-31&agruparPor=mes&tipoHabitacion=SENCILLA
 ```
 
-### Patrones de Diseño
+#### **Respuesta (AnalisisOcupacionResponseDto):**
 
-El módulo sigue los patrones establecidos en el proyecto:
-- **Service Pattern**: Lógica de negocio encapsulada en `AnalyticsService`
-- **DTO Pattern**: Validación y tipado fuerte con class-validator
-- **Repository Pattern**: Uso de Prisma para acceso a datos
-- **Dependency Injection**: Inyección de dependencias con NestJS
-- **Test-Driven Development**: Cobertura completa de tests unitarios
-
-## Endpoints Disponibles
-
-### 🏨 Analíticas de Ocupación
-```http
-GET /analytics/ocupacion
-```
-- **Permisos**: ADMINISTRADOR, CAJERO
-- **Descripción**: Análisis de ocupación con RevPAR, ADR y métricas de rendimiento
-- **Filtros**: Rango de fechas, tipo de habitación, agrupación por período
-- **Optimizaciones**: Consultas SQL optimizadas con `DATE_TRUNC` para agrupación
-
-### 👥 Demografia de Huéspedes
-```http
-GET /analytics/huespedes/demografia
-```
-- **Permisos**: ADMINISTRADOR, CAJERO
-- **Descripción**: Análisis demográfico por nacionalidad e ingresos
-- **Filtros**: Rango de fechas, nacionalidades específicas
-
-### 🌍 Procedencia de Huéspedes
-```http
-GET /analytics/huespedes/procedencia
-```
-- **Permisos**: ADMINISTRADOR, CAJERO
-- **Descripción**: Análisis de procedencia geográfica
-- **Filtros**: Rango de fechas, países de procedencia
-
-### 🏠 Rendimiento de Habitaciones
-```http
-GET /analytics/habitaciones/rendimiento
-```
-- **Permisos**: ADMINISTRADOR, CAJERO
-- **Descripción**: Análisis de rendimiento por tipo de habitación
-- **Métricas**: Ocupación, ingresos, RevPAR por tipo
-
-### ✈️ Motivos de Viaje
-```http
-GET /analytics/motivos-viaje
-```
-- **Permisos**: ADMINISTRADOR, CAJERO
-- **Descripción**: Segmentación por motivos de viaje
-- **Métricas**: Distribución, duración promedio de estancia
-
-### 🔮 Predicción de Ocupación
-```http
-GET /analytics/forecast/ocupacion
-```
-- **Permisos**: ADMINISTRADOR
-- **Descripción**: Predicciones de ocupación basadas en datos históricos
-- **Parámetros**: Períodos a predecir, tipo de período
-- **Algoritmo**: Predicción básica con factores estacionales
-
-### 📊 Dashboard Ejecutivo
-```http
-GET /analytics/dashboard
-```
-- **Permisos**: ADMINISTRADOR
-- **Descripción**: Vista consolidada de KPIs principales
-- **Incluye**: Comparación temporal opcional, consultas paralelas optimizadas
-
-## Modelos de Datos
-
-### DTOs de Filtros
-
-#### `FiltrosAnalyticsDto`
 ```typescript
-{
-  fechaInicio?: string;          // Formato: YYYY-MM-DD
-  fechaFin?: string;             // Formato: YYYY-MM-DD
-  tipoHabitacion?: TiposHabitacion;
-  nacionalidades?: string[];
-  paisesProcedencia?: string[];
-  motivoViaje?: MotivosViajes;
-  estadoReserva?: EstadosReserva;
-}
-```
-
-#### `FiltrosOcupacionDto`
-```typescript
-{
-  ...FiltrosAnalyticsDto,
-  agruparPor?: 'día' | 'semana' | 'mes' | 'año';
-}
-```
-
-#### `ForecastParamsDto`
-```typescript
-{
-  fechaInicio?: string;
-  fechaFin?: string;
-  periodosAdelante: number;      // Entre 1 y 12
-  tipoPeriodo: 'mes' | 'semana';
-}
-```
-
-### DTOs de Respuesta
-
-#### `AnalisisOcupacionResponseDto`
-```typescript
-{
+interface AnalisisOcupacionResponseDto {
   ocupacionPorPeriodo: OcupacionPorPeriodoDto[];
   ocupacionPromedio: number;
   revparPromedio: number;
   adrPromedio: number;
 }
+
+interface OcupacionPorPeriodoDto {
+  periodo: string;         // Fecha ISO del período
+  tasaOcupacion: number;   // Porcentaje de ocupación
+  revpar: number;          // Revenue Per Available Room
+  adr: number;             // Average Daily Rate
+  totalReservas: number;   // Número total de reservas
+  ingresosTotales: number; // Ingresos totales del período
+}
 ```
 
-#### `DashboardEjecutivoDto`
-```typescript
+#### **Ejemplo de Respuesta:**
+```json
 {
+  "ocupacionPorPeriodo": [
+    {
+      "periodo": "2024-01-01T00:00:00.000Z",
+      "tasaOcupacion": 85.5,
+      "revpar": 38475.0,
+      "adr": 45000,
+      "totalReservas": 34,
+      "ingresosTotales": 1530000
+    }
+  ],
+  "ocupacionPromedio": 88.9,
+  "revparPromedio": 40005.0,
+  "adrPromedio": 45000
+}
+```
+
+---
+
+## 2. 🌍 Análisis Demográfico de Huéspedes
+
+### `GET /analytics/huespedes/demografia`
+
+Analiza la distribución demográfica de huéspedes por nacionalidad con métricas de ingresos.
+
+#### **Parámetros de Query (FiltrosAnalyticsDto):**
+
+| Parámetro | Tipo | Requerido | Descripción | Ejemplo |
+|-----------|------|-----------|-------------|---------|
+| `fechaInicio` | `string` | ❌ | Fecha de inicio | `2024-01-01` |
+| `fechaFin` | `string` | ❌ | Fecha de fin | `2024-12-31` |
+| `tipoHabitacion` | `TiposHabitacion` | ❌ | Filtrar por tipo habitación | `SENCILLA` |
+| `nacionalidades` | `string[]` | ❌ | Array de nacionalidades específicas | `["Colombia", "Venezuela"]` |
+| `paisesProcedencia` | `string[]` | ❌ | Array de países de procedencia | `["Colombia", "Venezuela"]` |
+| `motivoViaje` | `MotivosViajes` | ❌ | Motivo específico | `VACACIONES_RECREO_Y_OCIO` |
+| `estadoReserva` | `EstadosReserva` | ❌ | Estado específico | `FINALIZADO` |
+
+**Validaciones:**
+- `@IsOptional()` y `@IsDateString()` para fechas
+- `@IsOptional()` y `@IsEnum()` para enums
+- `@IsOptional()`, `@IsArray()` y `@IsString({ each: true })` para arrays
+
+#### **Ejemplo de Request:**
+```
+GET /analytics/huespedes/demografia?fechaInicio=2024-01-01&fechaFin=2024-12-31&nacionalidades=Colombia,Venezuela
+```
+
+#### **Respuesta (DemografiaHuespedesDto[]):**
+
+```typescript
+interface DemografiaHuespedesDto {
+  nacionalidad: string;
+  cantidad: number;
+  porcentaje: number;
+  ingresos: number;
+}
+```
+
+#### **Ejemplo de Respuesta:**
+```json
+[
+  {
+    "nacionalidad": "Colombia",
+    "cantidad": 145,
+    "porcentaje": 72.5,
+    "ingresos": 6525000
+  },
+  {
+    "nacionalidad": "Venezuela",
+    "cantidad": 55,
+    "porcentaje": 27.5,
+    "ingresos": 2475000
+  }
+]
+```
+
+---
+
+## 3. 🗺️ Análisis de Procedencia de Huéspedes
+
+### `GET /analytics/huespedes/procedencia`
+
+Analiza la procedencia geográfica (país y ciudad) de los huéspedes.
+
+#### **Parámetros de Query (FiltrosAnalyticsDto):**
+*Mismos parámetros que el endpoint de demografía*
+
+#### **Ejemplo de Request:**
+```
+GET /analytics/huespedes/procedencia?fechaInicio=2024-01-01&fechaFin=2024-12-31&paisesProcedencia=Colombia
+```
+
+#### **Respuesta (ProcedenciaHuespedesDto[]):**
+
+```typescript
+interface ProcedenciaHuespedesDto {
+  paisProcedencia: string;
+  ciudadProcedencia: string;
+  cantidad: number;
+  porcentaje: number;
+}
+```
+
+#### **Ejemplo de Respuesta:**
+```json
+[
+  {
+    "paisProcedencia": "Colombia",
+    "ciudadProcedencia": "Bogotá",
+    "cantidad": 89,
+    "porcentaje": 44.5
+  },
+  {
+    "paisProcedencia": "Colombia",
+    "ciudadProcedencia": "Medellín",
+    "cantidad": 56,
+    "porcentaje": 28.0
+  }
+]
+```
+
+---
+
+## 4. 🏨 Análisis de Rendimiento de Habitaciones
+
+### `GET /analytics/habitaciones/rendimiento`
+
+Analiza el rendimiento financiero y ocupacional por tipo de habitación.
+
+#### **Parámetros de Query (FiltrosAnalyticsDto):**
+*Mismos parámetros que el endpoint de demografía*
+
+#### **Ejemplo de Request:**
+```
+GET /analytics/habitaciones/rendimiento?fechaInicio=2024-01-01&fechaFin=2024-12-31&tipoHabitacion=SENCILLA
+```
+
+#### **Respuesta (RendimientoHabitacionDto[]):**
+
+```typescript
+interface RendimientoHabitacionDto {
+  tipo: TiposHabitacion;
+  totalHabitaciones: number;
+  tasaOcupacionPromedio: number;
+  ingresosTotales: number;
+  precioPromedioNoche: number;
+  revpar: number;
+}
+```
+
+#### **Ejemplo de Respuesta:**
+```json
+[
+  {
+    "tipo": "SENCILLA",
+    "totalHabitaciones": 15,
+    "tasaOcupacionPromedio": 68.5,
+    "ingresosTotales": 8500000,
+    "precioPromedioNoche": 55000,
+    "revpar": 37675
+  }
+]
+```
+
+---
+
+## 5. ✈️ Análisis de Motivos de Viaje
+
+### `GET /analytics/motivos-viaje`
+
+Segmenta las reservas por motivos de viaje con duración promedio de estancia.
+
+#### **Parámetros de Query (FiltrosAnalyticsDto):**
+*Mismos parámetros que el endpoint de demografía*
+
+#### **Ejemplo de Request:**
+```
+GET /analytics/motivos-viaje?fechaInicio=2024-01-01&fechaFin=2024-12-31&motivoViaje=VACACIONES_RECREO_Y_OCIO
+```
+
+#### **Respuesta (MotivosViajeDto[]):**
+
+```typescript
+interface MotivosViajeDto {
+  motivo: MotivosViajes;
+  cantidad: number;
+  porcentaje: number;
+  duracionPromedioEstancia: number;
+}
+```
+
+#### **Ejemplo de Respuesta:**
+```json
+[
+  {
+    "motivo": "VACACIONES_RECREO_Y_OCIO",
+    "cantidad": 125,
+    "porcentaje": 62.5,
+    "duracionPromedioEstancia": 3.2
+  },
+  {
+    "motivo": "NEGOCIOS_Y_MOTIVOS_PROFESIONALES",
+    "cantidad": 75,
+    "porcentaje": 37.5,
+    "duracionPromedioEstancia": 1.8
+  }
+]
+```
+
+---
+
+## 6. 🔮 Predicción de Ocupación (Solo Administrador)
+
+### `GET /analytics/forecast/ocupacion`
+
+Genera predicciones de ocupación futura basadas en patrones históricos.
+
+#### **Parámetros de Query (ForecastParamsDto):**
+
+| Parámetro | Tipo | Requerido | Descripción | Ejemplo |
+|-----------|------|-----------|-------------|---------|
+| `fechaInicio` | `string` | ❌ | Fecha de inicio datos históricos | `2024-01-01` |
+| `fechaFin` | `string` | ❌ | Fecha de fin datos históricos | `2024-12-31` |
+| `periodosAdelante` | `number` | ✅ | Períodos a predecir (1-12) | `6` |
+| `tipoPeriodo` | `'mes' \| 'semana'` | ✅ | Tipo de período | `mes` |
+
+**Validaciones:**
+- `@IsInt()` y `@Min(1)` para períodos adelante
+- `@IsEnum(['mes', 'semana'])` para tipo de período
+
+#### **Ejemplo de Request:**
+```
+GET /analytics/forecast/ocupacion?fechaInicio=2024-01-01&fechaFin=2024-12-31&periodosAdelante=6&tipoPeriodo=mes
+```
+
+#### **Respuesta (PrediccionOcupacionDto[]):**
+
+```typescript
+interface PrediccionOcupacionDto {
+  periodo: string;
+  ocupacionPredicida: number;
+  nivelConfianza: number;
+  ingresosPredichos: number;
+}
+```
+
+#### **Ejemplo de Respuesta:**
+```json
+[
+  {
+    "periodo": "2025-01",
+    "ocupacionPredicida": 78.2,
+    "nivelConfianza": 85.5,
+    "ingresosPredichos": 4250000
+  }
+]
+```
+
+---
+
+## 7. 📊 Dashboard Ejecutivo (Solo Administrador)
+
+### `GET /analytics/dashboard`
+
+Dashboard consolidado con KPIs principales y comparaciones temporales.
+
+#### **Parámetros de Query (FiltrosDashboardDto):**
+
+| Parámetro | Tipo | Requerido | Descripción | Ejemplo |
+|-----------|------|-----------|-------------|---------|
+| `fechaInicio` | `string` | ❌ | Fecha de inicio | `2024-01-01` |
+| `fechaFin` | `string` | ❌ | Fecha de fin | `2024-12-31` |
+| `incluirComparacion` | `boolean` | ❌ | Comparar con período anterior | `true` |
+| `topMercados` | `number` | ❌ | Número top mercados (3-10) | `5` |
+
+**Validaciones:**
+- `@Transform()` para boolean desde string
+- `@IsInt()` y `@Min(3)` para top mercados
+
+#### **Ejemplo de Request:**
+```
+GET /analytics/dashboard?fechaInicio=2024-01-01&fechaFin=2024-06-30&incluirComparacion=true&topMercados=5
+```
+
+#### **Respuesta (DashboardEjecutivoDto):**
+
+```typescript
+interface DashboardEjecutivoDto {
   ocupacionActual: number;
   revparActual: number;
   adrActual: number;
@@ -148,189 +360,215 @@ GET /analytics/dashboard
   distribucionMotivosViaje: MotivosViajeDto[];
   rendimientoHabitaciones: RendimientoHabitacionDto[];
   tasaHuespedesRecurrentes: number;
-  comparacionPeriodoAnterior?: ComparacionPeriodoAnterior;
+  comparacionPeriodoAnterior?: {
+    ocupacionAnterior: number;
+    revparAnterior: number;
+    adrAnterior: number;
+    ingresosAnteriores: number;
+    cambioOcupacion: number;
+    cambioRevpar: number;
+    cambioAdr: number;
+    cambioIngresos: number;
+  };
 }
 ```
 
-#### `PrediccionOcupacionDto`
-```typescript
+#### **Ejemplo de Respuesta:**
+```json
 {
-  periodo: string;
-  ocupacionPredicida: number;
-  nivelConfianza: number;
-  ingresosPredichos: number;
+  "ocupacionActual": 75.8,
+  "revparActual": 45000,
+  "adrActual": 59500,
+  "ingresosPeriodo": 12500000,
+  "topMercadosEmisores": [
+    {
+      "nacionalidad": "Colombia",
+      "cantidad": 145,
+      "porcentaje": 72.5,
+      "ingresos": 6525000
+    }
+  ],
+  "distribucionMotivosViaje": [],
+  "rendimientoHabitaciones": [],
+  "tasaHuespedesRecurrentes": 18.5,
+  "comparacionPeriodoAnterior": {
+    "ocupacionAnterior": 68.2,
+    "revparAnterior": 38000,
+    "adrAnterior": 55700,
+    "ingresosAnteriores": 10200000,
+    "cambioOcupacion": 11.1,
+    "cambioRevpar": 18.4,
+    "cambioAdr": 6.8,
+    "cambioIngresos": 22.5
+  }
 }
 ```
 
-## Tecnologías y Optimizaciones
+---
 
-### Base de Datos
-- **Consultas SQL optimizadas** con Prisma raw queries
-- **Agregaciones nativas** para performance
-- **Funciones DATE_TRUNC** para agrupación temporal eficiente
-- **Índices aprovechados** en campos de filtrado
-- **Manejo correcto de BigInt** y conversiones de tipos
+## 🎯 Enums y Tipos Utilizados
 
-### Performance
-- **Consultas paralelas** en dashboard ejecutivo usando `Promise.all()`
-- **Caching de resultados** (preparado para implementar)
-- **Paginación futura** para grandes datasets
-- **Optimización de GROUP BY** con funciones SQL nativas
-
-### Seguridad
-- **Autenticación JWT** requerida
-- **Autorización por roles** (ADMINISTRADOR/CAJERO)
-- **Validación de entrada** con DTOs
-- **Sanitización de consultas SQL** con Prisma
-
-## Testing
-
-### Cobertura de Tests
-
-El módulo cuenta con **cobertura completa** de tests unitarios:
-
-#### Controller Tests (`analytics.controller.spec.ts`)
-- ✅ **22 tests** cubriendo todos los endpoints
-- ✅ Mocks completos de dependencias (AnalyticsService, AuthGuard, etc.)
-- ✅ Tests de manejo de errores y casos límite
-- ✅ Validación de configuración y decoradores
-- ✅ Tests de llamadas concurrentes
-
-#### Service Tests (`analytics.service.spec.ts`)
-- ✅ **25 tests** cubriendo todos los métodos del service
-- ✅ Mocks de PrismaService con `$queryRaw`
-- ✅ Tests de lógica de negocio compleja
-- ✅ Manejo de valores null y BigInt
-- ✅ Tests de errores de base de datos
-- ✅ Validación de cálculos matemáticos
-
-### Ejecutar Tests
-
-```bash
-# Tests específicos del módulo analytics
-npm run test -- --testPathPattern=analytics
-
-# Tests con cobertura
-npm run test:cov -- --testPathPattern=analytics
-
-# Tests en modo watch
-npm run test:watch -- --testPathPattern=analytics
-```
-
-## Casos de Uso de Negocio
-
-### 💼 Para Administradores
-1. **Revenue Management**: Optimización de precios basada en RevPAR y ocupación
-2. **Planificación Estratégica**: Análisis de tendencias y predicciones
-3. **Marketing Dirigido**: Segmentación por demografía y procedencia
-4. **Optimización Operacional**: Análisis de rendimiento por tipo de habitación
-5. **Forecasting**: Predicciones de ocupación para planificación futura
-
-### 🏨 Para Cajeros
-1. **Reportes Operacionales**: Análisis de ocupación y demographics
-2. **Seguimiento de Performance**: Métricas de rendimiento diarias
-3. **Insights de Huéspedes**: Patrones de reserva y procedencia
-
-## Ejemplos de Uso
-
-### Consulta de Ocupación Mensual
-```bash
-curl -X GET "http://localhost:3001/analytics/ocupacion?fechaInicio=2024-01-01&fechaFin=2024-12-31&agruparPor=mes" \
-  -H "Authorization: Bearer {token}"
-```
-
-### Dashboard Ejecutivo con Comparación
-```bash
-curl -X GET "http://localhost:3001/analytics/dashboard?fechaInicio=2024-01-01&fechaFin=2024-06-30&incluirComparacion=true&topMercados=10" \
-  -H "Authorization: Bearer {token}"
-```
-
-### Predicción de Ocupación
-```bash
-curl -X GET "http://localhost:3001/analytics/forecast/ocupacion?fechaInicio=2024-01-01&fechaFin=2024-12-31&periodosAdelante=6&tipoPeriodo=mes" \
-  -H "Authorization: Bearer {token}"
-```
-
-### Análisis de Demografia
-```bash
-curl -X GET "http://localhost:3001/analytics/huespedes/demografia?fechaInicio=2024-01-01&fechaFin=2024-12-31&nacionalidades=Colombia,Venezuela" \
-  -H "Authorization: Bearer {token}"
-```
-
-## Troubleshooting
-
-### Errores Comunes
-
-#### Error de Sintaxis SQL
-```
-ERROR: syntax error at or near "("
-```
-**Solución**: Verificar que las consultas usen `${dateFunction}` directamente, no `${dateFunction}(fecha_inicio)`, ya que `getDateTruncFunction()` ya incluye la columna.
-
-#### Error de GROUP BY
-```
-ERROR: column must appear in the GROUP BY clause
-```
-**Solución**: Asegurar que las columnas del SELECT que no son agregaciones estén incluidas en GROUP BY.
-
-#### Error de Configuración en Tests
-```
-"NODE_ENV" must be one of [development, production]
-```
-**Solución**: Establecer `NODE_ENV=development` antes de ejecutar los tests.
-
-### Logging y Debugging
-
-Para debuggear consultas SQL:
+### **TiposHabitacion**
 ```typescript
-// Habilitar logging de Prisma en desarrollo
-const prisma = new PrismaClient({
-  log: ['query', 'info', 'warn', 'error'],
+enum TiposHabitacion {
+  SENCILLA = 'SENCILLA',
+  DOBLE = 'DOBLE',
+  TRIPLE = 'TRIPLE',
+  MATRIMONIAL = 'MATRIMONIAL',
+  FAMILIAR = 'FAMILIAR'
+}
+```
+
+### **MotivosViajes**
+```typescript
+enum MotivosViajes {
+  VACACIONES_RECREO_Y_OCIO = 'VACACIONES_RECREO_Y_OCIO',
+  NEGOCIOS_Y_MOTIVOS_PROFESIONALES = 'NEGOCIOS_Y_MOTIVOS_PROFESIONALES',
+  // ... otros valores según @prisma/client
+}
+```
+
+### **EstadosReserva**
+```typescript
+enum EstadosReserva {
+  FINALIZADO = 'FINALIZADO',
+  // ... otros valores según @prisma/client
+}
+```
+
+---
+
+## 🚀 Ejemplos de Uso para Frontend
+
+### 1. Dashboard Principal con KPIs
+```typescript
+// Obtener dashboard completo con comparación
+const response = await fetch('/analytics/dashboard?fechaInicio=2024-01-01&fechaFin=2024-12-31&incluirComparacion=true&topMercados=5', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+const dashboard = await response.json();
+
+// Mostrar KPIs principales
+console.log(`Ocupación: ${dashboard.ocupacionActual}%`);
+console.log(`RevPAR: $${dashboard.revparActual}`);
+console.log(`Cambio vs anterior: ${dashboard.comparacionPeriodoAnterior?.cambioOcupacion}%`);
+```
+
+### 2. Gráfico de Ocupación Mensual
+```typescript
+// Obtener datos de ocupación por meses
+const response = await fetch('/analytics/ocupacion?fechaInicio=2024-01-01&fechaFin=2024-12-31&agruparPor=mes');
+const data = await response.json();
+
+// Preparar datos para Chart.js
+const chartData = {
+  labels: data.ocupacionPorPeriodo.map(p => new Date(p.periodo).toLocaleString('es', { month: 'long' })),
+  datasets: [{
+    label: 'Tasa de Ocupación (%)',
+    data: data.ocupacionPorPeriodo.map(p => p.tasaOcupacion),
+    backgroundColor: 'rgba(54, 162, 235, 0.2)'
+  }]
+};
+```
+
+### 3. Análisis de Mercados con Filtros
+```typescript
+// Análisis demográfico específico
+const params = new URLSearchParams({
+  fechaInicio: '2024-01-01',
+  fechaFin: '2024-12-31',
+  'nacionalidades[]': 'Colombia',
+  'nacionalidades[]': 'Venezuela'
+});
+
+const response = await fetch(`/analytics/huespedes/demografia?${params}`);
+const demografiaData = await response.json();
+
+// Crear gráfico de distribución
+const pieChartData = demografiaData.map(item => ({
+  label: item.nacionalidad,
+  value: item.porcentaje
+}));
+```
+
+### 4. Predicción de Ocupación
+```typescript
+// Solo para administradores
+const response = await fetch('/analytics/forecast/ocupacion?periodosAdelante=6&tipoPeriodo=mes');
+const predicciones = await response.json();
+
+// Mostrar tabla de predicciones
+predicciones.forEach(pred => {
+  console.log(`${pred.periodo}: ${pred.ocupacionPredicida}% (confianza: ${pred.nivelConfianza}%)`);
 });
 ```
 
-## Mejoras Implementadas (Changelog)
+---
 
-### v1.1.0 - Correcciones de Sintaxis SQL
-- ✅ **Corregida interpolación de funciones DATE_TRUNC** en consultas Prisma
-- ✅ **Optimizada consulta de predicción de ocupación** con manejo correcto de períodos
-- ✅ **Mejorado manejo de valores BigInt** en respuestas de base de datos
-- ✅ **Implementada validación robusta** de parámetros de entrada
+## 🔧 Códigos de Error Comunes
 
-### v1.2.0 - Tests Unitarios Completos
-- ✅ **Implementados 47 tests unitarios** (22 controller + 25 service)
-- ✅ **Cobertura completa de métodos** y casos de error
-- ✅ **Mocks robustos** de dependencias externas
-- ✅ **Documentación de tests** en español
+| Código | Descripción | Solución |
+|--------|-------------|----------|
+| `400` | Parámetros de fecha inválidos | Usar formato ISO 8601: `YYYY-MM-DD` |
+| `400` | Enum inválido | Verificar valores exactos de enums Prisma |
+| `400` | Rango de períodos inválido | `periodosAdelante` debe estar entre 1-12 |
+| `401` | No autenticado | Incluir token Bearer válido |
+| `403` | Sin permisos | Verificar rol (some endpoints solo ADMIN) |
+| `500` | Error de consulta SQL | Revisar logs del servidor |
 
-## Roadmap y Mejoras Futuras
+---
 
-### Fase 2: Analíticas Avanzadas
-- [ ] Machine Learning para predicciones más precisas
-- [ ] Análisis de sentimientos de reviews
-- [ ] Optimización dinámica de precios
-- [ ] Detección de patrones estacionales avanzados
+## 📚 Notas Técnicas
 
-### Fase 3: Inteligencia de Negocio
-- [ ] Integración con herramientas BI (Power BI, Tableau)
-- [ ] Alertas automáticas de performance
-- [ ] Recomendaciones de acciones estratégicas
-- [ ] Análisis competitivo automático
+### **Performance y Optimización**
+- **Consultas SQL Optimizadas**: Uso de `$queryRaw` con `DATE_TRUNC` para agrupación
+- **Consultas Paralelas**: Dashboard ejecuta múltiples consultas con `Promise.all()`
+- **Conversión de BigInt**: Manejo correcto de tipos de datos PostgreSQL
+- **Índices**: Aprovecha índices en `fecha_inicio`, `habitacionId`, `huespedId`
 
-### Optimizaciones Técnicas
-- [ ] Caching de Redis para consultas frecuentes
-- [ ] Jobs en background para reportes pesados
-- [ ] Streaming de datos en tiempo real
-- [ ] API GraphQL para consultas flexibles
-- [ ] Mejoras en algoritmos de predicción
+### **Manejo de Fechas**
+- **Timezone**: Todas las fechas en UTC
+- **Formato**: ISO 8601 (`YYYY-MM-DD`)
+- **Opcional**: Todos los filtros de fecha son opcionales
+- **Conversión**: Frontend debe manejar conversión a timezone local
 
-## Contribución
+### **Validaciones**
+- **Class-validator**: Decoradores de validación en todos los DTOs
+- **Transform**: Conversión automática de strings a tipos apropiados
+- **Enum validation**: Validación estricta contra enums de Prisma
 
-Al extender este módulo, seguir:
-1. **Patrones establecidos** del proyecto
-2. **Documentación Swagger** completa
-3. **Tests unitarios** para nueva funcionalidad (obligatorio)
-4. **Validación de DTOs** para nuevos endpoints
-5. **Consideraciones de performance** para consultas complejas
-6. **Manejo correcto de Prisma.Sql** en consultas raw
-7. **Documentación en español** para tests y comentarios 
+### **Seguridad**
+- **Autenticación JWT**: Requerida en todos los endpoints
+- **Autorización por Roles**: ADMINISTRADOR/CAJERO con restricciones específicas
+- **Sanitización**: Prisma protege contra SQL injection
+- **Rate Limiting**: Considerar implementar para endpoints intensivos
+
+---
+
+## 📈 Métricas de Negocio Calculadas
+
+- **Tasa de Ocupación**: `(Total Reservas / Total Habitaciones) × 100`
+- **RevPAR**: `(Tasa Ocupación / 100) × ADR`
+- **ADR**: `Precio Promedio por Noche`
+- **Tasa Huéspedes Recurrentes**: `(Huéspedes con >1 reserva / Total Huéspedes) × 100`
+- **Factor Estacional**: `1 + sin(período × π × 2) × 0.15` (en predicciones)
+
+---
+
+## 🧪 Testing
+
+- **Cobertura**: 47 tests unitarios (22 controller + 25 service)
+- **Mocks**: PrismaService completamente mockeado
+- **Casos**: Éxito, error, datos vacíos, valores BigInt
+- **Comando**: `npm test -- --testPathPattern=analytics`
+
+---
+
+## 🔄 Changelog vs README Anterior
+
+- ✅ **Corregidos**: 7 endpoints reales vs 4 ficticios
+- ✅ **DTOs Reales**: Basados en implementación Prisma
+- ✅ **Parámetros Correctos**: Todos opcionales, no requeridos
+- ✅ **Respuestas Reales**: Estructuras exactas del código
+- ✅ **Permisos Precisos**: Diferenciación ADMIN vs CAJERO
+- ✅ **Validaciones Reales**: Basadas en decoradores implementados
