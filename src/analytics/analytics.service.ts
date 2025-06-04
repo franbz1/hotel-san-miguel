@@ -129,7 +129,7 @@ export class AnalyticsService {
   async analizarDemografia(
     filtros: FiltrosAnalyticsDto,
   ): Promise<DemografiaHuespedesDto[]> {
-    const { fechaInicio, fechaFin, nacionalidades } = filtros;
+    const { fechaInicio, fechaFin, nacionalidades, motivoViaje } = filtros;
 
     const demografiaData = await this.prisma.$queryRaw<
       Array<{
@@ -148,6 +148,7 @@ export class AnalyticsService {
         ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
         ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
         ${nacionalidades && nacionalidades.length > 0 ? Prisma.sql`AND h.nacionalidad = ANY(${nacionalidades})` : Prisma.empty}
+        ${motivoViaje ? Prisma.sql`AND r.motivo_viaje::text = ${motivoViaje}` : Prisma.empty}
       GROUP BY h.nacionalidad
       ORDER BY cantidad DESC, ingresos DESC
     `;
