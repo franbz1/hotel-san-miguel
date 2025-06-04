@@ -62,7 +62,7 @@ export class AnalyticsService {
       WHERE r.deleted = false
         ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
         ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
-        ${tipoHabitacion ? Prisma.sql`AND h.tipo = ${tipoHabitacion}` : Prisma.empty}
+        ${tipoHabitacion ? Prisma.sql`AND h.tipo::text = ${tipoHabitacion}` : Prisma.empty}
       GROUP BY ${dateFunction}
       ORDER BY periodo DESC
     `;
@@ -232,7 +232,7 @@ export class AnalyticsService {
       }>
     >`
       SELECT 
-        h.tipo,
+        h.tipo::text as tipo,
         COUNT(DISTINCT h.id)::bigint as total_habitaciones,
         COUNT(DISTINCT r.id)::bigint as total_reservas,
         COALESCE(SUM(r.costo), 0) as ingresos_totales,
@@ -242,7 +242,7 @@ export class AnalyticsService {
         ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
         ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
       WHERE h.deleted = false
-        ${tipoHabitacion ? Prisma.sql`AND h.tipo = ${tipoHabitacion}` : Prisma.empty}
+        ${tipoHabitacion ? Prisma.sql`AND h.tipo::text = ${tipoHabitacion}` : Prisma.empty}
       GROUP BY h.tipo
       ORDER BY ingresos_totales DESC
     `;
