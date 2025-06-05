@@ -12,7 +12,7 @@ export class Usuario {
 
   @ApiProperty({
     description: 'El nombre del usuario debe ser algo sencillo y corto',
-    example: 'Juan Pérez',
+    example: 'juan',
   })
   public nombre: string;
 
@@ -27,7 +27,7 @@ export class Usuario {
 
   @ApiProperty({
     description: 'Contraseña del usuario',
-    example: 'contraseña123',
+    example: '123456',
   })
   public password: string;
 
