@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import {
   FiltrosAnalyticsDto,
@@ -17,13 +17,74 @@ import {
   OcupacionPorPeriodoDto,
 } from './dto/response-analytics.dto';
 import { Prisma } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Service para manejar las analíticas del hotel
  */
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(AnalyticsService.name);
+  private readonly logsDir = path.join(process.cwd(), 'logs', 'analytics');
+
+  constructor(private readonly prisma: PrismaService) {
+    // Crear directorio de logs si no existe
+    this.ensureLogsDirectory();
+  }
+
+  /**
+   * Asegura que el directorio de logs exista
+   */
+  private ensureLogsDirectory(): void {
+    try {
+      if (!fs.existsSync(this.logsDir)) {
+        fs.mkdirSync(this.logsDir, { recursive: true });
+      }
+    } catch (error) {
+      this.logger.error(`Error al crear directorio de logs: ${error.message}`);
+    }
+  }
+
+  /**
+   * Guarda los resultados de una analítica en un archivo log
+   */
+  private async saveAnalyticsLog(
+    tipoAnalitica: string,
+    filtros: any,
+    resultado: any,
+    duracionMs: number,
+  ): Promise<void> {
+    try {
+      const timestamp = new Date().toISOString();
+      const fileName = `${tipoAnalitica}_${timestamp.split('T')[0]}.log`;
+      const logPath = path.join(this.logsDir, fileName);
+
+      const logEntry = {
+        timestamp,
+        tipoAnalitica,
+        filtros,
+        duracionMs,
+        cantidadResultados: Array.isArray(resultado) ? resultado.length : 1,
+        resultado,
+        metadata: {
+          usuario: 'sistema', // Se puede mejorar para capturar usuario real
+          version: '1.0.0',
+        },
+      };
+
+      const logLine = JSON.stringify(logEntry, null, 2) + '\n\n';
+
+      // Escribir de forma asíncrona
+      fs.appendFileSync(logPath, logLine);
+
+      this.logger.log(
+        `Analítica ${tipoAnalitica} guardada en log: ${fileName}`,
+      );
+    } catch (error) {
+      this.logger.error(`Error al guardar log de analítica: ${error.message}`);
+    }
+  }
 
   /**
    * Calcula la ocupación del hotel por períodos
@@ -122,95 +183,364 @@ export class AnalyticsService {
   }
 
   /**
-   * Analiza la demografía de los huéspedes
+   * Analiza la demografía de los huéspedes (principales y secundarios)
    * @param filtros Filtros para el análisis demográfico
    * @returns Análisis demográfico de huéspedes
    */
   async analizarDemografia(
     filtros: FiltrosAnalyticsDto,
   ): Promise<DemografiaHuespedesDto[]> {
+    const startTime = Date.now();
     const { fechaInicio, fechaFin, nacionalidades, motivoViaje } = filtros;
 
-    const demografiaData = await this.prisma.$queryRaw<
-      Array<{
-        nacionalidad: string;
-        cantidad: bigint;
-        ingresos: number;
-      }>
-    >`
-      SELECT 
-        h.nacionalidad,
-        COUNT(DISTINCT h.id)::bigint as cantidad,
-        COALESCE(SUM(r.costo), 0) as ingresos
-      FROM "Huesped" h
-      LEFT JOIN "Reserva" r ON h.id = r."huespedId" AND r.deleted = false
-      WHERE h.deleted = false
-        ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
-        ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
-        ${nacionalidades && nacionalidades.length > 0 ? Prisma.sql`AND h.nacionalidad = ANY(${nacionalidades})` : Prisma.empty}
-        ${motivoViaje ? Prisma.sql`AND r.motivo_viaje::text = ${motivoViaje}` : Prisma.empty}
-      GROUP BY h.nacionalidad
-      ORDER BY cantidad DESC, ingresos DESC
-    `;
+    try {
+      // Si no hay filtros temporales o de motivo, contar todos los huéspedes directamente
+      if (!fechaInicio && !fechaFin && !motivoViaje) {
+        const demografiaData = await this.prisma.$queryRaw<
+          Array<{
+            nacionalidad: string;
+            cantidad: bigint;
+            ingresos: number;
+          }>
+        >`
+          WITH todos_huespedes AS (
+            -- Huéspedes principales
+            SELECT 
+              h.nacionalidad,
+              h.id as huesped_id,
+              'principal' as tipo_huesped
+            FROM "Huesped" h
+            WHERE h.deleted = false
+              ${nacionalidades && nacionalidades.length > 0 ? Prisma.sql`AND h.nacionalidad = ANY(${nacionalidades})` : Prisma.empty}
+            
+            UNION ALL
+            
+            -- Huéspedes secundarios
+            SELECT 
+              hs.nacionalidad,
+              hs.id as huesped_id,
+              'secundario' as tipo_huesped
+            FROM "HuespedSecundario" hs
+            WHERE hs.deleted = false
+              ${nacionalidades && nacionalidades.length > 0 ? Prisma.sql`AND hs.nacionalidad = ANY(${nacionalidades})` : Prisma.empty}
+          ),
+          ingresos_por_huesped AS (
+            -- Calcular ingresos por huésped principal
+            SELECT 
+              r."huespedId" as huesped_id,
+              SUM(r.costo) as total_ingresos
+            FROM "Reserva" r
+            WHERE r.deleted = false
+            GROUP BY r."huespedId"
+            
+            UNION ALL
+            
+            -- Calcular ingresos por huésped secundario
+            SELECT 
+              hsr."A" as huesped_id,
+              SUM(r.costo) as total_ingresos
+            FROM "_HuespedSecundarioToReserva" hsr
+            JOIN "Reserva" r ON hsr."B" = r.id
+            WHERE r.deleted = false
+            GROUP BY hsr."A"
+          )
+          SELECT 
+            th.nacionalidad,
+            COUNT(DISTINCT th.huesped_id)::bigint as cantidad,
+            COALESCE(SUM(iph.total_ingresos), 0) as ingresos
+          FROM todos_huespedes th
+          LEFT JOIN ingresos_por_huesped iph ON th.huesped_id = iph.huesped_id
+          GROUP BY th.nacionalidad
+          ORDER BY cantidad DESC, ingresos DESC
+        `;
 
-    const totalHuespedes = demografiaData.reduce(
-      (sum, item) => sum + Number(item.cantidad),
-      0,
-    );
+        const totalHuespedes = demografiaData.reduce(
+          (sum, item) => sum + Number(item.cantidad),
+          0,
+        );
 
-    return demografiaData.map((item) => ({
-      nacionalidad: item.nacionalidad,
-      cantidad: Number(item.cantidad),
-      porcentaje: Number(
-        ((Number(item.cantidad) / totalHuespedes) * 100).toFixed(2),
-      ),
-      ingresos: Number((item.ingresos || 0).toFixed(2)),
-    }));
+        const resultado = demografiaData.map((item) => ({
+          nacionalidad: item.nacionalidad,
+          cantidad: Number(item.cantidad),
+          porcentaje: Number(
+            ((Number(item.cantidad) / totalHuespedes) * 100).toFixed(2),
+          ),
+          ingresos: Number((item.ingresos || 0).toFixed(2)),
+        }));
+
+        // Guardar log de la analítica
+        const duracionMs = Date.now() - startTime;
+        await this.saveAnalyticsLog(
+          'demografia',
+          filtros,
+          resultado,
+          duracionMs,
+        );
+
+        return resultado;
+      }
+
+      // Para filtros con fechas o motivos, usar la query original modificada
+      const demografiaData = await this.prisma.$queryRaw<
+        Array<{
+          nacionalidad: string;
+          cantidad: bigint;
+          ingresos: number;
+        }>
+      >`
+        WITH huespedes_con_filtros AS (
+          -- Huéspedes principales con reservas que cumplen filtros
+          SELECT DISTINCT
+            h.nacionalidad,
+            h.id as huesped_id,
+            'principal' as tipo_huesped
+          FROM "Huesped" h
+          JOIN "Reserva" r ON h.id = r."huespedId" AND r.deleted = false
+          WHERE h.deleted = false
+            ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
+            ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
+            ${motivoViaje ? Prisma.sql`AND r.motivo_viaje::text = ${motivoViaje}` : Prisma.empty}
+            ${nacionalidades && nacionalidades.length > 0 ? Prisma.sql`AND h.nacionalidad = ANY(${nacionalidades})` : Prisma.empty}
+          
+          UNION
+          
+          -- Huéspedes secundarios con reservas que cumplen filtros
+          SELECT DISTINCT
+            hs.nacionalidad,
+            hs.id as huesped_id,
+            'secundario' as tipo_huesped
+          FROM "HuespedSecundario" hs
+          JOIN "_HuespedSecundarioToReserva" hsr ON hs.id = hsr."A"
+          JOIN "Reserva" r ON hsr."B" = r.id AND r.deleted = false
+          WHERE hs.deleted = false
+            ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
+            ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
+            ${motivoViaje ? Prisma.sql`AND r.motivo_viaje::text = ${motivoViaje}` : Prisma.empty}
+            ${nacionalidades && nacionalidades.length > 0 ? Prisma.sql`AND hs.nacionalidad = ANY(${nacionalidades})` : Prisma.empty}
+        ),
+        ingresos_filtrados AS (
+          -- Ingresos de huéspedes principales con filtros
+          SELECT 
+            h.id as huesped_id,
+            SUM(r.costo) as total_ingresos
+          FROM "Huesped" h
+          JOIN "Reserva" r ON h.id = r."huespedId" AND r.deleted = false
+          WHERE h.deleted = false
+            ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
+            ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
+            ${motivoViaje ? Prisma.sql`AND r.motivo_viaje::text = ${motivoViaje}` : Prisma.empty}
+          GROUP BY h.id
+          
+          UNION ALL
+          
+          -- Ingresos de huéspedes secundarios con filtros
+          SELECT 
+            hs.id as huesped_id,
+            SUM(r.costo) as total_ingresos
+          FROM "HuespedSecundario" hs
+          JOIN "_HuespedSecundarioToReserva" hsr ON hs.id = hsr."A"
+          JOIN "Reserva" r ON hsr."B" = r.id AND r.deleted = false
+          WHERE hs.deleted = false
+            ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
+            ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
+            ${motivoViaje ? Prisma.sql`AND r.motivo_viaje::text = ${motivoViaje}` : Prisma.empty}
+          GROUP BY hs.id
+        )
+        SELECT 
+          hf.nacionalidad,
+          COUNT(DISTINCT hf.huesped_id)::bigint as cantidad,
+          COALESCE(SUM(if_data.total_ingresos), 0) as ingresos
+        FROM huespedes_con_filtros hf
+        LEFT JOIN ingresos_filtrados if_data ON hf.huesped_id = if_data.huesped_id
+        GROUP BY hf.nacionalidad
+        ORDER BY cantidad DESC, ingresos DESC
+      `;
+
+      const totalHuespedes = demografiaData.reduce(
+        (sum, item) => sum + Number(item.cantidad),
+        0,
+      );
+
+      const resultado = demografiaData.map((item) => ({
+        nacionalidad: item.nacionalidad,
+        cantidad: Number(item.cantidad),
+        porcentaje: Number(
+          ((Number(item.cantidad) / totalHuespedes) * 100).toFixed(2),
+        ),
+        ingresos: Number((item.ingresos || 0).toFixed(2)),
+      }));
+
+      // Guardar log de la analítica
+      const duracionMs = Date.now() - startTime;
+      await this.saveAnalyticsLog('demografia', filtros, resultado, duracionMs);
+
+      return resultado;
+    } catch (error) {
+      const duracionMs = Date.now() - startTime;
+      this.logger.error(
+        `Error en analítica de demografía (${duracionMs}ms): ${error.message}`,
+      );
+      throw error;
+    }
   }
 
   /**
-   * Analiza la procedencia de los huéspedes
+   * Analiza la procedencia de los huéspedes (principales y secundarios)
    * @param filtros Filtros para el análisis de procedencia
    * @returns Análisis de procedencia de huéspedes
    */
   async analizarProcedencia(
     filtros: FiltrosAnalyticsDto,
   ): Promise<ProcedenciaHuespedesDto[]> {
+    const startTime = Date.now();
     const { fechaInicio, fechaFin, paisesProcedencia } = filtros;
 
-    const procedenciaData = await this.prisma.$queryRaw<
-      Array<{
-        pais_procedencia: string;
-        ciudad_procedencia: string;
-        cantidad: bigint;
-      }>
-    >`
-      SELECT 
-        r.pais_procedencia,
-        r.ciudad_procedencia,
-        COUNT(*)::bigint as cantidad
-      FROM "Reserva" r
-      WHERE r.deleted = false
-        ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
-        ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
-        ${paisesProcedencia && paisesProcedencia.length > 0 ? Prisma.sql`AND r.pais_procedencia = ANY(${paisesProcedencia})` : Prisma.empty}
-      GROUP BY r.pais_procedencia, r.ciudad_procedencia
-      ORDER BY cantidad DESC
-    `;
+    try {
+      // Si no hay filtros temporales, contar todos los huéspedes directamente
+      if (!fechaInicio && !fechaFin) {
+        const procedenciaData = await this.prisma.$queryRaw<
+          Array<{
+            pais_procedencia: string;
+            ciudad_procedencia: string;
+            cantidad: bigint;
+          }>
+        >`
+          WITH todos_huespedes_procedencia AS (
+            -- Procedencia de huéspedes principales
+            SELECT 
+              COALESCE(h.pais_procedencia, 'No especificado') as pais_procedencia,
+              COALESCE(h.ciudad_procedencia, 'No especificada') as ciudad_procedencia,
+              h.id as huesped_id,
+              'principal' as tipo_huesped
+            FROM "Huesped" h
+            WHERE h.deleted = false
+              ${paisesProcedencia && paisesProcedencia.length > 0 ? Prisma.sql`AND h.pais_procedencia = ANY(${paisesProcedencia})` : Prisma.empty}
+            
+            UNION ALL
+            
+            -- Procedencia de huéspedes secundarios
+            SELECT 
+              COALESCE(hs.pais_procedencia, 'No especificado') as pais_procedencia,
+              COALESCE(hs.ciudad_procedencia, 'No especificada') as ciudad_procedencia,
+              hs.id as huesped_id,
+              'secundario' as tipo_huesped
+            FROM "HuespedSecundario" hs
+            WHERE hs.deleted = false
+              ${paisesProcedencia && paisesProcedencia.length > 0 ? Prisma.sql`AND hs.pais_procedencia = ANY(${paisesProcedencia})` : Prisma.empty}
+          )
+          SELECT 
+            pais_procedencia,
+            ciudad_procedencia,
+            COUNT(DISTINCT huesped_id)::bigint as cantidad
+          FROM todos_huespedes_procedencia
+          GROUP BY pais_procedencia, ciudad_procedencia
+          ORDER BY cantidad DESC
+        `;
 
-    const totalReservas = procedenciaData.reduce(
-      (sum, item) => sum + Number(item.cantidad),
-      0,
-    );
+        const totalReservas = procedenciaData.reduce(
+          (sum, item) => sum + Number(item.cantidad),
+          0,
+        );
 
-    return procedenciaData.map((item) => ({
-      paisProcedencia: item.pais_procedencia,
-      ciudadProcedencia: item.ciudad_procedencia,
-      cantidad: Number(item.cantidad),
-      porcentaje: Number(
-        ((Number(item.cantidad) / totalReservas) * 100).toFixed(2),
-      ),
-    }));
+        const resultado = procedenciaData.map((item) => ({
+          paisProcedencia: item.pais_procedencia,
+          ciudadProcedencia: item.ciudad_procedencia,
+          cantidad: Number(item.cantidad),
+          porcentaje: Number(
+            ((Number(item.cantidad) / totalReservas) * 100).toFixed(2),
+          ),
+        }));
+
+        // Guardar log de la analítica
+        const duracionMs = Date.now() - startTime;
+        await this.saveAnalyticsLog(
+          'procedencia',
+          filtros,
+          resultado,
+          duracionMs,
+        );
+
+        return resultado;
+      }
+
+      // Para filtros con fechas, usar query con JOIN a reservas
+      const procedenciaData = await this.prisma.$queryRaw<
+        Array<{
+          pais_procedencia: string;
+          ciudad_procedencia: string;
+          cantidad: bigint;
+        }>
+      >`
+        WITH procedencia_con_filtros AS (
+          -- Procedencia de huéspedes principales con reservas que cumplen filtros
+          SELECT DISTINCT
+            COALESCE(h.pais_procedencia, 'No especificado') as pais_procedencia,
+            COALESCE(h.ciudad_procedencia, 'No especificada') as ciudad_procedencia,
+            h.id as huesped_id,
+            'principal' as tipo_huesped
+          FROM "Huesped" h
+          JOIN "Reserva" r ON h.id = r."huespedId" AND r.deleted = false
+          WHERE h.deleted = false
+            ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
+            ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
+            ${paisesProcedencia && paisesProcedencia.length > 0 ? Prisma.sql`AND h.pais_procedencia = ANY(${paisesProcedencia})` : Prisma.empty}
+          
+          UNION
+          
+          -- Procedencia de huéspedes secundarios con reservas que cumplen filtros
+          SELECT DISTINCT
+            COALESCE(hs.pais_procedencia, 'No especificado') as pais_procedencia,
+            COALESCE(hs.ciudad_procedencia, 'No especificada') as ciudad_procedencia,
+            hs.id as huesped_id,
+            'secundario' as tipo_huesped
+          FROM "HuespedSecundario" hs
+          JOIN "_HuespedSecundarioToReserva" hsr ON hs.id = hsr."A"
+          JOIN "Reserva" r ON hsr."B" = r.id AND r.deleted = false
+          WHERE hs.deleted = false
+            ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
+            ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
+            ${paisesProcedencia && paisesProcedencia.length > 0 ? Prisma.sql`AND hs.pais_procedencia = ANY(${paisesProcedencia})` : Prisma.empty}
+        )
+        SELECT 
+          pais_procedencia,
+          ciudad_procedencia,
+          COUNT(DISTINCT huesped_id)::bigint as cantidad
+        FROM procedencia_con_filtros
+        GROUP BY pais_procedencia, ciudad_procedencia
+        ORDER BY cantidad DESC
+      `;
+
+      const totalReservas = procedenciaData.reduce(
+        (sum, item) => sum + Number(item.cantidad),
+        0,
+      );
+
+      const resultado = procedenciaData.map((item) => ({
+        paisProcedencia: item.pais_procedencia,
+        ciudadProcedencia: item.ciudad_procedencia,
+        cantidad: Number(item.cantidad),
+        porcentaje: Number(
+          ((Number(item.cantidad) / totalReservas) * 100).toFixed(2),
+        ),
+      }));
+
+      // Guardar log de la analítica
+      const duracionMs = Date.now() - startTime;
+      await this.saveAnalyticsLog(
+        'procedencia',
+        filtros,
+        resultado,
+        duracionMs,
+      );
+
+      return resultado;
+    } catch (error) {
+      const duracionMs = Date.now() - startTime;
+      this.logger.error(
+        `Error en analítica de procedencia (${duracionMs}ms): ${error.message}`,
+      );
+      throw error;
+    }
   }
 
   /**
