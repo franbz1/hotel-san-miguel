@@ -87,9 +87,9 @@ export class AnalyticsService {
   }
 
   /**
-   * Calcula la ocupación del hotel por períodos
+   * Calcula la ocupación del hotel por períodos (corregido, con comparación adecuada de enums)
    * @param filtros Filtros para la consulta de ocupación
-   * @returns Análisis detallado de ocupación
+   * @returns Análisis detallado de ocupación con cálculo de noches ocupadas, ADR real y tasa de ocupación adecuada
    */
   async calcularOcupacion(
     filtros: FiltrosOcupacionDto,
@@ -101,34 +101,62 @@ export class AnalyticsService {
       tipoHabitacion,
     } = filtros;
 
-    // Determinar la función de agrupación SQL según el período
+    // Convertir fechas a objetos Date (o usar rangos amplios si no se proporcionan)
+    const fechaInicioObj = fechaInicio
+      ? new Date(fechaInicio)
+      : new Date('1900-01-01');
+    const fechaFinObj = fechaFin ? new Date(fechaFin) : new Date('9999-12-31');
+
+    // Obtener fragmento SQL para agrupar por día/semana/mes/año
     const dateFunction = this.getDateTruncFunction(agruparPor);
 
-    // Consulta optimizada para obtener ocupación por período
+    // Consulta raw para obtener reservas, ingresos y noches ocupadas por período
     const ocupacionPorPeriodo = await this.prisma.$queryRaw<
       Array<{
         periodo: string;
         total_reservas: bigint;
         ingresos_totales: number;
-        precio_promedio: number;
+        noches_ocupadas: bigint;
       }>
     >`
-      SELECT 
-        ${dateFunction} as periodo,
-        COUNT(*)::bigint as total_reservas,
-        SUM(costo) as ingresos_totales,
-        AVG(costo) as precio_promedio
-      FROM "Reserva" r
-      LEFT JOIN "Habitacion" h ON r."habitacionId" = h.id
-      WHERE r.deleted = false
-        ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
-        ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
-        ${tipoHabitacion ? Prisma.sql`AND h.tipo::text = ${tipoHabitacion}` : Prisma.empty}
-      GROUP BY ${dateFunction}
-      ORDER BY periodo DESC
-    `;
+    SELECT
+      ${dateFunction} AS periodo,
+      COUNT(*)::bigint AS total_reservas,
+      SUM(r.costo) AS ingresos_totales,
+      COALESCE(
+        SUM(
+          (
+            -- Calcula superposición en días entre la reserva y el rango
+            GREATEST(
+              LEAST(r."fecha_fin", ${fechaFinObj})::date,
+              ${fechaInicioObj}::date
+            )::date
+            -
+            GREATEST(
+              r."fecha_inicio"::date,
+              ${fechaInicioObj}::date
+            )::date
+          )
+        )::bigint,
+        0::bigint
+      ) AS noches_ocupadas
+    FROM "Reserva" r
+    INNER JOIN "Habitacion" h
+      ON r."habitacionId" = h.id
+      AND h.deleted = false
+    WHERE r.deleted = false
+      AND r."fecha_inicio" <= ${fechaFinObj}
+      AND r."fecha_fin" >= ${fechaInicioObj}
+      ${
+        tipoHabitacion
+          ? Prisma.sql`AND h.tipo::text = ${tipoHabitacion}`
+          : Prisma.empty
+      }
+    GROUP BY ${dateFunction}
+    ORDER BY periodo DESC
+  `;
 
-    // Obtener el número total de habitaciones para calcular ocupación
+    // Obtener el número total de habitaciones activas (deleted = false), opcionalmente por tipo
     const totalHabitaciones = await this.prisma.habitacion.count({
       where: {
         deleted: false,
@@ -136,32 +164,63 @@ export class AnalyticsService {
       },
     });
 
-    // Procesar los datos para calcular métricas
+    // Auxiliar para saber cuántos días tiene cada período
+    function obtenerDiasEnPeriodo(periodoStr: string): number {
+      const fecha = new Date(periodoStr);
+      switch (agruparPor) {
+        case 'día':
+          return 1;
+        case 'semana':
+          return 7;
+        case 'mes':
+          const yearM = fecha.getUTCFullYear();
+          const monthM = fecha.getUTCMonth();
+          return new Date(Date.UTC(yearM, monthM + 1, 0)).getUTCDate();
+        case 'año':
+          const yearA = fecha.getUTCFullYear();
+          const esBisiesto =
+            (yearA % 4 === 0 && yearA % 100 !== 0) || yearA % 400 === 0;
+          return esBisiesto ? 366 : 365;
+        default:
+          return 1;
+      }
+    }
+
+    // Procesar resultados asegurándose de convertir BigInt a Number antes de cualquier operación
     const datosOcupacion: OcupacionPorPeriodoDto[] = ocupacionPorPeriodo.map(
       (item) => {
         const totalReservas = Number(item.total_reservas);
-        const ingresosTotales = item.ingresos_totales || 0;
-        const adr = item.precio_promedio || 0;
+        const ingresosTotales = Number(item.ingresos_totales) || 0;
+        const nochesOcupadas = Number(item.noches_ocupadas) || 0;
 
-        // Calcular tasa de ocupación (simplificado)
+        // ADR real = ingresos_totales / noches_ocupadas (si no hay noches, ADR = 0)
+        const adr = nochesOcupadas > 0 ? ingresosTotales / nochesOcupadas : 0;
+
+        // Días que comprende este período (1, 7, 28–31 o 365/366)
+        const diasEnPeriodo = obtenerDiasEnPeriodo(item.periodo);
+
+        // Tasa de ocupación = (nochesOcupadas) / (totalHabitaciones × díasEnPeriodo) × 100
         const tasaOcupacion =
-          totalHabitaciones > 0 ? (totalReservas / totalHabitaciones) * 100 : 0;
+          totalHabitaciones > 0
+            ? (nochesOcupadas / (totalHabitaciones * diasEnPeriodo)) * 100
+            : 0;
 
-        // Calcular RevPAR
+        // RevPAR real = ADR × (tasaOcupacion / 100)
         const revpar = (tasaOcupacion / 100) * adr;
 
         return {
           periodo: item.periodo,
-          tasaOcupacion: Number(tasaOcupacion.toFixed(2)),
-          revpar: Number(revpar.toFixed(2)),
-          adr: Number(adr.toFixed(2)),
           totalReservas,
           ingresosTotales: Number(ingresosTotales.toFixed(2)),
+          nochesOcupadas: Number(nochesOcupadas.toFixed(2)),
+          adr: Number(adr.toFixed(2)),
+          tasaOcupacion: Number(tasaOcupacion.toFixed(2)),
+          revpar: Number(revpar.toFixed(2)),
         };
       },
     );
 
-    // Calcular promedios generales
+    // Promedios generales
     const ocupacionPromedio =
       datosOcupacion.reduce((sum, item) => sum + item.tasaOcupacion, 0) /
       (datosOcupacion.length || 1);
@@ -194,183 +253,257 @@ export class AnalyticsService {
     const { fechaInicio, fechaFin, nacionalidades, motivoViaje } = filtros;
 
     try {
-      // Si no hay filtros temporales o de motivo, contar todos los huéspedes directamente
-      if (!fechaInicio && !fechaFin && !motivoViaje) {
-        const demografiaData = await this.prisma.$queryRaw<
-          Array<{
-            nacionalidad: string;
-            cantidad: bigint;
-            ingresos: number;
-          }>
-        >`
-          WITH todos_huespedes AS (
-            -- Huéspedes principales
-            SELECT 
-              h.nacionalidad,
-              h.id as huesped_id,
-              'principal' as tipo_huesped
-            FROM "Huesped" h
-            WHERE h.deleted = false
-              ${nacionalidades && nacionalidades.length > 0 ? Prisma.sql`AND h.nacionalidad = ANY(${nacionalidades})` : Prisma.empty}
-            
-            UNION ALL
-            
-            -- Huéspedes secundarios
-            SELECT 
-              hs.nacionalidad,
-              hs.id as huesped_id,
-              'secundario' as tipo_huesped
-            FROM "HuespedSecundario" hs
-            WHERE hs.deleted = false
-              ${nacionalidades && nacionalidades.length > 0 ? Prisma.sql`AND hs.nacionalidad = ANY(${nacionalidades})` : Prisma.empty}
+      // Primero, validamos las fechas: si vienen definidas, convertimos a objeto Date y
+      // nos aseguramos de que estén en UTC, para evitar desajustes con la DB (zona America/Bogotá).
+      let fechaInicioDate: Date | null = null;
+      let fechaFinDate: Date | null = null;
+
+      if (fechaInicio) {
+        const tmp = new Date(fechaInicio);
+        if (isNaN(tmp.getTime())) {
+          throw new Error(`fechaInicio inválida: ${fechaInicio}`);
+        }
+        fechaInicioDate = new Date(
+          Date.UTC(
+            tmp.getUTCFullYear(),
+            tmp.getUTCMonth(),
+            tmp.getUTCDate(),
+            0,
+            0,
+            0,
           ),
-          ingresos_por_huesped AS (
-            -- Calcular ingresos por huésped principal
-            SELECT 
-              r."huespedId" as huesped_id,
-              SUM(r.costo) as total_ingresos
-            FROM "Reserva" r
-            WHERE r.deleted = false
-            GROUP BY r."huespedId"
-            
-            UNION ALL
-            
-            -- Calcular ingresos por huésped secundario
-            SELECT 
-              hsr."A" as huesped_id,
-              SUM(r.costo) as total_ingresos
-            FROM "_HuespedSecundarioToReserva" hsr
-            JOIN "Reserva" r ON hsr."B" = r.id
-            WHERE r.deleted = false
-            GROUP BY hsr."A"
-          )
-          SELECT 
-            th.nacionalidad,
-            COUNT(DISTINCT th.huesped_id)::bigint as cantidad,
-            COALESCE(SUM(iph.total_ingresos), 0) as ingresos
-          FROM todos_huespedes th
-          LEFT JOIN ingresos_por_huesped iph ON th.huesped_id = iph.huesped_id
-          GROUP BY th.nacionalidad
-          ORDER BY cantidad DESC, ingresos DESC
-        `;
-
-        const totalHuespedes = demografiaData.reduce(
-          (sum, item) => sum + Number(item.cantidad),
-          0,
         );
-
-        const resultado = demografiaData.map((item) => ({
-          nacionalidad: item.nacionalidad,
-          cantidad: Number(item.cantidad),
-          porcentaje: Number(
-            ((Number(item.cantidad) / totalHuespedes) * 100).toFixed(2),
+      }
+      if (fechaFin) {
+        const tmp = new Date(fechaFin);
+        if (isNaN(tmp.getTime())) {
+          throw new Error(`fechaFin inválida: ${fechaFin}`);
+        }
+        // Para incluir todo el día de fechaFin, lo llevamos a 23:59:59 UTC
+        fechaFinDate = new Date(
+          Date.UTC(
+            tmp.getUTCFullYear(),
+            tmp.getUTCMonth(),
+            tmp.getUTCDate(),
+            23,
+            59,
+            59,
           ),
-          ingresos: Number((item.ingresos || 0).toFixed(2)),
-        }));
-
-        // Guardar log de la analítica
-        const duracionMs = Date.now() - startTime;
-        await this.saveAnalyticsLog(
-          'demografia',
-          filtros,
-          resultado,
-          duracionMs,
         );
-
-        return resultado;
       }
 
-      // Para filtros con fechas o motivos, usar la query original modificada
+      // Convertimos motivoViaje a minúsculas para comparar case-insensitive contra el enum en la BD
+      const motivoNormalized = motivoViaje
+        ? String(motivoViaje).trim().toLowerCase()
+        : null;
+
+      // Construimos la parte condicional de SQL para los filtros de fecha y motivo,
+      // usando Prisma.sql para evitar inyección de SQL.
+      const whereFechaInicio = fechaInicioDate
+        ? Prisma.sql`AND r.fecha_inicio >= ${fechaInicioDate}`
+        : Prisma.empty;
+      const whereFechaFin = fechaFinDate
+        ? Prisma.sql`AND r.fecha_fin <= ${fechaFinDate}`
+        : Prisma.empty;
+      const whereMotivo = motivoNormalized
+        ? // comparamos en minúsculas: r.motivo_viaje::text → string de DB; lo igualamos a LOWER(motivoNormalized)
+          Prisma.sql`AND LOWER(r.motivo_viaje::text) = ${motivoNormalized}`
+        : Prisma.empty;
+      const whereNacionalidadPrincipal =
+        nacionalidades && nacionalidades.length > 0
+          ? Prisma.sql`AND LOWER(h.nacionalidad) = ANY(ARRAY[${Prisma.join(
+              nacionalidades.map((n) => n.toLowerCase()),
+            )}]::text[])`
+          : Prisma.empty;
+      const whereNacionalidadSecundario =
+        nacionalidades && nacionalidades.length > 0
+          ? Prisma.sql`AND LOWER(hs.nacionalidad) = ANY(ARRAY[${Prisma.join(
+              nacionalidades.map((n) => n.toLowerCase()),
+            )}]::text[])`
+          : Prisma.empty;
+
+      // =========================
+      // Construcción de la consulta
+      // =========================
+      //
+      // Vamos a unificar ambos casos (con o sin filtros) en una misma lógica,
+      // de forma que SIEMPRE consideremos únicamente aquellos huéspedes (principales
+      // o secundarios) que hayan tenido al menos una reserva activa que cumpla condiciones
+      // (en el caso “sin filtros”, no habrá cláusulas WHERE adicionales y por tanto
+      // se incluirán todos los que tengan alguna reserva).
+      //
+      // Además:
+      //  - Eliminamos la doble atribución de ingresos a secundarios. Sólo atribuiremos
+      //    el costo de cada reserva al huésped principal “huespedId”. A los secundarios
+      //    los contaremos para efectos de demografía (cantidad) pero no les sumaremos
+      //    el costo de la reserva completa (esto evita duplicación de ingresos).
+      //  - Conservamos un UNION para combinar “principales” y “secundarios”, pero
+      //    etiquetamos cada uno con un campo `tipo_huesped` para evitar colisión de IDs.
+      //  - Garantizamos que al hacer el JOIN de ingresos, la combinación ocurra por
+      //    `(huesped_id, tipo_huesped)` en lugar de solo por `huesped_id`.
+      //  - Controlamos el caso en que el resultado sea vacío para evitar división por cero.
+      //
+      //   CTE1: huéspedes (principales + secundarios) que cumplen filtros de reserva
+      //   CTE2: ingresos solo para huéspedes principales (las reservas que cumplan)
+      //   Consulta final: agrupamos por nacionalidad y sumamos cantidad + ingresos
+      //
       const demografiaData = await this.prisma.$queryRaw<
         Array<{
           nacionalidad: string;
+          tipo_huesped: string;
           cantidad: bigint;
           ingresos: number;
         }>
       >`
-        WITH huespedes_con_filtros AS (
-          -- Huéspedes principales con reservas que cumplen filtros
-          SELECT DISTINCT
-            h.nacionalidad,
-            h.id as huesped_id,
-            'principal' as tipo_huesped
-          FROM "Huesped" h
-          JOIN "Reserva" r ON h.id = r."huespedId" AND r.deleted = false
-          WHERE h.deleted = false
-            ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
-            ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
-            ${motivoViaje ? Prisma.sql`AND r.motivo_viaje::text = ${motivoViaje}` : Prisma.empty}
-            ${nacionalidades && nacionalidades.length > 0 ? Prisma.sql`AND h.nacionalidad = ANY(${nacionalidades})` : Prisma.empty}
-          
-          UNION
-          
-          -- Huéspedes secundarios con reservas que cumplen filtros
-          SELECT DISTINCT
-            hs.nacionalidad,
-            hs.id as huesped_id,
-            'secundario' as tipo_huesped
-          FROM "HuespedSecundario" hs
-          JOIN "_HuespedSecundarioToReserva" hsr ON hs.id = hsr."A"
-          JOIN "Reserva" r ON hsr."B" = r.id AND r.deleted = false
-          WHERE hs.deleted = false
-            ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
-            ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
-            ${motivoViaje ? Prisma.sql`AND r.motivo_viaje::text = ${motivoViaje}` : Prisma.empty}
-            ${nacionalidades && nacionalidades.length > 0 ? Prisma.sql`AND hs.nacionalidad = ANY(${nacionalidades})` : Prisma.empty}
-        ),
-        ingresos_filtrados AS (
-          -- Ingresos de huéspedes principales con filtros
-          SELECT 
-            h.id as huesped_id,
-            SUM(r.costo) as total_ingresos
-          FROM "Huesped" h
-          JOIN "Reserva" r ON h.id = r."huespedId" AND r.deleted = false
-          WHERE h.deleted = false
-            ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
-            ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
-            ${motivoViaje ? Prisma.sql`AND r.motivo_viaje::text = ${motivoViaje}` : Prisma.empty}
-          GROUP BY h.id
-          
-          UNION ALL
-          
-          -- Ingresos de huéspedes secundarios con filtros
-          SELECT 
-            hs.id as huesped_id,
-            SUM(r.costo) as total_ingresos
-          FROM "HuespedSecundario" hs
-          JOIN "_HuespedSecundarioToReserva" hsr ON hs.id = hsr."A"
-          JOIN "Reserva" r ON hsr."B" = r.id AND r.deleted = false
-          WHERE hs.deleted = false
-            ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
-            ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
-            ${motivoViaje ? Prisma.sql`AND r.motivo_viaje::text = ${motivoViaje}` : Prisma.empty}
-          GROUP BY hs.id
-        )
-        SELECT 
-          hf.nacionalidad,
-          COUNT(DISTINCT hf.huesped_id)::bigint as cantidad,
-          COALESCE(SUM(if_data.total_ingresos), 0) as ingresos
-        FROM huespedes_con_filtros hf
-        LEFT JOIN ingresos_filtrados if_data ON hf.huesped_id = if_data.huesped_id
-        GROUP BY hf.nacionalidad
-        ORDER BY cantidad DESC, ingresos DESC
-      `;
+      WITH
+      -- 1) Tomamos TODOS los huéspedes principales que tengan al menos una reserva activa
+      --    que cumpla los filtros (fechaInicio/fechaFin/motivo), filtrando por nacionalidad
+      huespedes_principales_filtrados AS (
+        SELECT DISTINCT
+          LOWER(h.nacionalidad) AS nacionalidad,
+          h.id AS huesped_id,
+          'principal' AS tipo_huesped
+        FROM "Huesped" h
+        JOIN "Reserva" r
+          ON h.id = r."huespedId"
+         AND r.deleted = false
+        WHERE h.deleted = false
+          ${whereFechaInicio}
+          ${whereFechaFin}
+          ${whereMotivo}
+          ${whereNacionalidadPrincipal}
+      ),
 
-      const totalHuespedes = demografiaData.reduce(
-        (sum, item) => sum + Number(item.cantidad),
+      -- 2) Tomamos TODOS los huéspedes secundarios que participen en al menos
+      --    una reserva activa que cumpla los mismos filtros, filtrando por SQL.
+      huespedes_secundarios_filtrados AS (
+        SELECT DISTINCT
+          LOWER(hs.nacionalidad) AS nacionalidad,
+          hs.id AS huesped_id,
+          'secundario' AS tipo_huesped
+        FROM "HuespedSecundario" hs
+        JOIN "_HuespedSecundarioToReserva" hsr
+          ON hs.id = hsr."A"
+        JOIN "Reserva" r
+          ON hsr."B" = r.id
+         AND r.deleted = false
+        WHERE hs.deleted = false
+          ${whereFechaInicio}
+          ${whereFechaFin}
+          ${whereMotivo}
+          ${whereNacionalidadSecundario}
+      ),
+
+      -- 3) Ingresos atribuibles SOLO a huéspedes principales:
+      --    sumamos r.costo POR CADA huespedId (principal) que cumpla filtros
+      ingresos_huesped_principal AS (
+        SELECT
+          h.id AS huesped_id,
+          'principal' AS tipo_huesped,
+          SUM(r.costo)::numeric(12,2) AS total_ingresos
+        FROM "Huesped" h
+        JOIN "Reserva" r
+          ON h.id = r."huespedId"
+         AND r.deleted = false
+        WHERE h.deleted = false
+          ${whereFechaInicio}
+          ${whereFechaFin}
+          ${whereMotivo}
+          -- Ya no necesitamos filtrar por nacionalidad aquí porque en la unión
+          -- final los huéspedes que no estén en CTE1 no entrarán.
+        GROUP BY h.id
+      )
+
+      -- 4) Unión final de huéspedes (principales + secundarios):
+      --    cada fila representa un huésped único (por nationality + tipo)
+      --    JOIN  LEFT  con los ingresos solo para “principales”
+      SELECT
+        hp.nacionalidad,
+        hp.tipo_huesped,
+        COUNT(*)::bigint AS cantidad,
+        COALESCE(SUM(ihp.total_ingresos), 0)::numeric(12,2) AS ingresos
+      FROM (
+        SELECT * FROM huespedes_principales_filtrados
+        UNION
+        SELECT * FROM huespedes_secundarios_filtrados
+      ) hp
+      LEFT JOIN ingresos_huesped_principal ihp
+        ON hp.huesped_id = ihp.huesped_id
+       AND hp.tipo_huesped = ihp.tipo_huesped
+      GROUP BY hp.nacionalidad, hp.tipo_huesped
+      ORDER BY cantidad DESC, ingresos DESC;
+    `;
+
+      // Si no hay ningún registro, devolvemos un arreglo vacío inmediatamente
+      if (demografiaData.length === 0) {
+        const duracionMs = Date.now() - startTime;
+        await this.saveAnalyticsLog('demografia', filtros, [], duracionMs);
+        return [];
+      }
+
+      // A esta altura, demografiaData tiene la forma:
+      // [
+      //   { nacionalidad: 'colombia', tipo_huesped: 'principal', cantidad: BigInt, ingresos: Number },
+      //   { nacionalidad: 'colombia', tipo_huesped: 'secundario', cantidad: BigInt, ingresos: 0 },
+      //   { nacionalidad: 'ecuador', tipo_huesped: 'principal', cantidad: BigInt, ingresos: Number },
+      //   … etc.
+      // ]
+      //
+      // Lo que queremos como salida final es, POR CADA nacionalidad (independientemente
+      // de “principal” o “secundario”), sumar la cantidad total (principales + secundarios)
+      // y sumar los ingresos (solo los de tipo 'principal'; los de 'secundario' vienen en 0)
+      // para luego calcular porcentaje y retornar un array de DemografiaHuespedesDto.
+
+      // 1) Primero, agrupamos en memoria por nacionalidad:
+      interface Intermedio {
+        nacionalidad: string;
+        cantidad: number;
+        ingresos: number;
+      }
+      const mapaIntermedio: Record<string, Intermedio> = {};
+
+      for (const fila of demografiaData) {
+        const nat = fila.nacionalidad;
+        const cnt = Number(fila.cantidad);
+        const ing = Number(fila.ingresos);
+
+        if (!mapaIntermedio[nat]) {
+          mapaIntermedio[nat] = {
+            nacionalidad: nat,
+            cantidad: 0,
+            ingresos: 0,
+          };
+        }
+        mapaIntermedio[nat].cantidad += cnt;
+        mapaIntermedio[nat].ingresos += ing;
+      }
+
+      // 2) Calculamos el total global de huéspedes (de todas las nacionalidades)
+      const totalHuespedes = Object.values(mapaIntermedio).reduce(
+        (sum, item) => sum + item.cantidad,
         0,
       );
 
-      const resultado = demografiaData.map((item) => ({
-        nacionalidad: item.nacionalidad,
-        cantidad: Number(item.cantidad),
-        porcentaje: Number(
-          ((Number(item.cantidad) / totalHuespedes) * 100).toFixed(2),
-        ),
-        ingresos: Number((item.ingresos || 0).toFixed(2)),
-      }));
+      // 3) Construimos el resultado final, ordenando por cantidad DESC y luego por ingresos DESC:
+      const resultado: DemografiaHuespedesDto[] = Object.values(mapaIntermedio)
+        .map((item) => ({
+          nacionalidad: item.nacionalidad,
+          cantidad: item.cantidad,
+          porcentaje:
+            totalHuespedes === 0
+              ? 0.0
+              : Number(((item.cantidad / totalHuespedes) * 100).toFixed(2)),
+          ingresos: Number(item.ingresos.toFixed(2)),
+        }))
+        .sort((a, b) => {
+          // orden descendente por cantidad, luego por ingresos
+          if (b.cantidad !== a.cantidad) {
+            return b.cantidad - a.cantidad;
+          }
+          return b.ingresos - a.ingresos;
+        });
 
-      // Guardar log de la analítica
+      // Guardamos log de la analítica
       const duracionMs = Date.now() - startTime;
       await this.saveAnalyticsLog('demografia', filtros, resultado, duracionMs);
 
