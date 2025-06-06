@@ -19,6 +19,8 @@ import {
 import { Prisma } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
+import { MotivosViajes } from 'src/common/enums/motivosViajes.enum';
+import { AgrupamientoFactory } from './strategies/agrupamiento.factory';
 
 /**
  * Service para manejar las analíticas del hotel
@@ -87,9 +89,9 @@ export class AnalyticsService {
   }
 
   /**
-   * Calcula la ocupación del hotel por períodos (corregido, con comparación adecuada de enums)
+   * Calcula la ocupación del hotel por períodos usando el patrón Strategy
    * @param filtros Filtros para la consulta de ocupación
-   * @returns Análisis detallado de ocupación con cálculo de noches ocupadas, ADR real y tasa de ocupación adecuada
+   * @returns Análisis detallado de ocupación con todos los períodos incluidos (incluye períodos sin reservas)
    */
   async calcularOcupacion(
     filtros: FiltrosOcupacionDto,
@@ -107,54 +109,24 @@ export class AnalyticsService {
       : new Date('1900-01-01');
     const fechaFinObj = fechaFin ? new Date(fechaFin) : new Date('9999-12-31');
 
-    // Obtener fragmento SQL para agrupar por día/semana/mes/año
-    const dateFunction = this.getDateTruncFunction(agruparPor);
+    // Crear la estrategia de agrupamiento apropiada
+    const strategy = AgrupamientoFactory.create(agruparPor);
 
-    // Consulta raw para obtener reservas, ingresos y noches ocupadas por período
-    const ocupacionPorPeriodo = await this.prisma.$queryRaw<
+    // Construir y ejecutar la consulta SQL usando la estrategia
+    const sqlQuery = strategy.buildSql(
+      fechaInicioObj,
+      fechaFinObj,
+      tipoHabitacion,
+    );
+
+    const ocupacionPorPeriodoRaw = await this.prisma.$queryRaw<
       Array<{
         periodo: string;
+        habitaciones_ocupadas: bigint;
         total_reservas: bigint;
         ingresos_totales: number;
-        noches_ocupadas: bigint;
       }>
-    >`
-    SELECT
-      ${dateFunction} AS periodo,
-      COUNT(*)::bigint AS total_reservas,
-      SUM(r.costo) AS ingresos_totales,
-      COALESCE(
-        SUM(
-          (
-            -- Calcula superposición en días entre la reserva y el rango
-            GREATEST(
-              LEAST(r."fecha_fin", ${fechaFinObj})::date,
-              ${fechaInicioObj}::date
-            )::date
-            -
-            GREATEST(
-              r."fecha_inicio"::date,
-              ${fechaInicioObj}::date
-            )::date
-          )
-        )::bigint,
-        0::bigint
-      ) AS noches_ocupadas
-    FROM "Reserva" r
-    INNER JOIN "Habitacion" h
-      ON r."habitacionId" = h.id
-      AND h.deleted = false
-    WHERE r.deleted = false
-      AND r."fecha_inicio" <= ${fechaFinObj}
-      AND r."fecha_fin" >= ${fechaInicioObj}
-      ${
-        tipoHabitacion
-          ? Prisma.sql`AND h.tipo::text = ${tipoHabitacion}`
-          : Prisma.empty
-      }
-    GROUP BY ${dateFunction}
-    ORDER BY periodo DESC
-  `;
+    >`${Prisma.raw(sqlQuery)}`;
 
     // Obtener el número total de habitaciones activas (deleted = false), opcionalmente por tipo
     const totalHabitaciones = await this.prisma.habitacion.count({
@@ -165,9 +137,12 @@ export class AnalyticsService {
     });
 
     // Auxiliar para saber cuántos días tiene cada período
-    function obtenerDiasEnPeriodo(periodoStr: string): number {
+    function obtenerDiasEnPeriodo(
+      periodoStr: string,
+      tipoAgrupacion: string,
+    ): number {
       const fecha = new Date(periodoStr);
-      switch (agruparPor) {
+      switch (tipoAgrupacion) {
         case 'día':
           return 1;
         case 'semana':
@@ -186,18 +161,20 @@ export class AnalyticsService {
       }
     }
 
-    // Procesar resultados asegurándose de convertir BigInt a Number antes de cualquier operación
-    const datosOcupacion: OcupacionPorPeriodoDto[] = ocupacionPorPeriodo.map(
+    // Procesar resultados usando la nueva lógica
+    const datosOcupacion: OcupacionPorPeriodoDto[] = ocupacionPorPeriodoRaw.map(
       (item) => {
         const totalReservas = Number(item.total_reservas);
         const ingresosTotales = Number(item.ingresos_totales) || 0;
-        const nochesOcupadas = Number(item.noches_ocupadas) || 0;
 
-        // ADR real = ingresos_totales / noches_ocupadas (si no hay noches, ADR = 0)
+        // nochesOcupadas ahora es el número de habitaciones ocupadas (habitaciones_ocupadas)
+        const nochesOcupadas = Number(item.habitaciones_ocupadas) || 0;
+
+        // ADR = ingresos_totales / nochesOcupadas (si no hay noches ocupadas, ADR = 0)
         const adr = nochesOcupadas > 0 ? ingresosTotales / nochesOcupadas : 0;
 
-        // Días que comprende este período (1, 7, 28–31 o 365/366)
-        const diasEnPeriodo = obtenerDiasEnPeriodo(item.periodo);
+        // Días que comprende este período
+        const diasEnPeriodo = obtenerDiasEnPeriodo(item.periodo, agruparPor);
 
         // Tasa de ocupación = (nochesOcupadas) / (totalHabitaciones × díasEnPeriodo) × 100
         const tasaOcupacion =
@@ -205,7 +182,7 @@ export class AnalyticsService {
             ? (nochesOcupadas / (totalHabitaciones * diasEnPeriodo)) * 100
             : 0;
 
-        // RevPAR real = ADR × (tasaOcupacion / 100)
+        // RevPAR = ADR × (tasaOcupacion / 100)
         const revpar = (tasaOcupacion / 100) * adr;
 
         return {
@@ -249,7 +226,6 @@ export class AnalyticsService {
   async analizarDemografia(
     filtros: FiltrosAnalyticsDto,
   ): Promise<DemografiaHuespedesDto[]> {
-    const startTime = Date.now();
     const { fechaInicio, fechaFin, nacionalidades, motivoViaje } = filtros;
 
     try {
@@ -434,13 +410,6 @@ export class AnalyticsService {
       ORDER BY cantidad DESC, ingresos DESC;
     `;
 
-      // Si no hay ningún registro, devolvemos un arreglo vacío inmediatamente
-      if (demografiaData.length === 0) {
-        const duracionMs = Date.now() - startTime;
-        await this.saveAnalyticsLog('demografia', filtros, [], duracionMs);
-        return [];
-      }
-
       // A esta altura, demografiaData tiene la forma:
       // [
       //   { nacionalidad: 'colombia', tipo_huesped: 'principal', cantidad: BigInt, ingresos: Number },
@@ -503,16 +472,9 @@ export class AnalyticsService {
           return b.ingresos - a.ingresos;
         });
 
-      // Guardamos log de la analítica
-      const duracionMs = Date.now() - startTime;
-      await this.saveAnalyticsLog('demografia', filtros, resultado, duracionMs);
-
       return resultado;
     } catch (error) {
-      const duracionMs = Date.now() - startTime;
-      this.logger.error(
-        `Error en analítica de demografía (${duracionMs}ms): ${error.message}`,
-      );
+      this.logger.error(`Error en analítica de demografía: ${error.message}`);
       throw error;
     }
   }
@@ -677,60 +639,126 @@ export class AnalyticsService {
   }
 
   /**
-   * Analiza el rendimiento de las habitaciones
-   * @param filtros Filtros para el análisis de habitaciones
-   * @returns Análisis de rendimiento por tipo de habitación
+   * Analiza la rentabilidad de cada habitación individual
+   * @param filtros Filtros para el análisis (fechaInicio, fechaFin, tipoHabitacion)
+   * @returns Un listado de habitaciones (número + tipo) ordenadas por ingresos totales en el periodo,
+   *          con sus métricas: ingresos, reservas, noches vendidas, ingreso promedio por reserva y ocupación (%).
    */
   async analizarRendimientoHabitaciones(
     filtros: FiltrosAnalyticsDto,
   ): Promise<RendimientoHabitacionDto[]> {
     const { fechaInicio, fechaFin, tipoHabitacion } = filtros;
 
+    // Convertimos a fechas JavaScript (asumiendo que vienen como strings ISO o similares)
+    const inicio = fechaInicio ? new Date(fechaInicio) : null;
+    const fin = fechaFin ? new Date(fechaFin) : null;
+
+    // Obtenemos la cantidad de días del periodo (inclusive)
+    let diasPeriodo = 0;
+    if (inicio && fin) {
+      // +1 para incluir ambos extremos (si inicio = 2025-06-01 y fin = 2025-06-05, queremos 5 días)
+      diasPeriodo =
+        Math.floor((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24)) +
+        1;
+    }
+
     const rendimientoData = await this.prisma.$queryRaw<
       Array<{
+        habitacion_id: string;
+        numero_habitacion: string;
         tipo: string;
-        total_habitaciones: bigint;
-        total_reservas: bigint;
         ingresos_totales: number;
-        precio_promedio: number;
+        total_reservas: bigint;
+        noches_vendidas: number;
       }>
     >`
-      SELECT 
-        h.tipo::text as tipo,
-        COUNT(DISTINCT h.id)::bigint as total_habitaciones,
-        COUNT(DISTINCT r.id)::bigint as total_reservas,
-        COALESCE(SUM(r.costo), 0) as ingresos_totales,
-        COALESCE(AVG(h.precio_por_noche), 0) as precio_promedio
-      FROM "Habitacion" h
-      LEFT JOIN "Reserva" r ON h.id = r."habitacionId" AND r.deleted = false
-        ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
-        ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
-      WHERE h.deleted = false
-        ${tipoHabitacion ? Prisma.sql`AND h.tipo::text = ${tipoHabitacion}` : Prisma.empty}
-      GROUP BY h.tipo
-      ORDER BY ingresos_totales DESC
-    `;
+    SELECT
+      h.id                             AS habitacion_id,
+      h.numero_habitacion              AS numero_habitacion,
+      h.tipo::text                     AS tipo,
 
-    return rendimientoData.map((item) => {
-      const totalHabitaciones = Number(item.total_habitaciones);
-      const totalReservas = Number(item.total_reservas);
-      const ingresosTotales = item.ingresos_totales || 0;
-      const precioPromedioNoche = item.precio_promedio || 0;
+      -- Ingresos totales de esa habitación en reservas que tocan el periodo
+      COALESCE(SUM(r.costo), 0)        AS ingresos_totales,
 
-      // Calcular tasa de ocupación simplificada
-      const tasaOcupacionPromedio =
-        totalHabitaciones > 0 ? (totalReservas / totalHabitaciones) * 100 : 0;
+      -- Número de reservas distintas que intersectan el periodo
+      COUNT(DISTINCT r.id)::bigint      AS total_reservas,
 
-      // Calcular RevPAR
-      const revpar = (tasaOcupacionPromedio / 100) * precioPromedioNoche;
+      -- Sumar la cantidad de noches efectivas (intersección de cada reserva con el periodo)
+      COALESCE(
+        SUM(
+          /* 
+            Calculamos, para cada reserva r, cuántos días (noches) entra dentro de [inicio, fin]:
+            - LEAST(r.fecha_fin, fin) y GREATEST(r.fecha_inicio, inicio) nos dan la parte de la reserva que está dentro.
+            - DATE_PART('day', diferencia) + 1  cuenta inclusive las noches.
+            - GREATEST(..., 1) garantiza que reservas menores a un día cuenten como 1 noche mínimo.
+            - CASE WHEN r.id IS NOT NULL: Solo cuenta si hay una reserva válida (evita contar cuando no hay reservas)
+          */
+          CASE 
+            WHEN r.id IS NOT NULL THEN
+              GREATEST(
+                (
+                  DATE_PART(
+                    'day',
+                    LEAST(r.fecha_fin,   ${fin}) 
+                    - GREATEST(r.fecha_inicio, ${inicio})
+                  )
+                ) + 1,
+                1
+              )
+            ELSE 0
+          END
+        ),
+        0
+      )                                 AS noches_vendidas
+
+    FROM "Habitacion" h
+    LEFT JOIN "Reserva" r
+      ON h.id = r."habitacionId"
+      AND r.deleted = false
+
+      -- Para “tocar” el periodo, la reserva debe empezar antes o en fin, 
+      -- y terminar después o en inicio
+      ${
+        inicio && fin
+          ? Prisma.sql`AND r.fecha_inicio <= ${fin} AND r.fecha_fin >= ${inicio}`
+          : Prisma.empty
+      }
+
+    WHERE h.deleted = false
+      ${
+        tipoHabitacion
+          ? Prisma.sql`AND h.tipo::text = ${tipoHabitacion}`
+          : Prisma.empty
+      }
+
+    GROUP BY
+      h.id, h.numero_habitacion, h.tipo
+
+    ORDER BY ingresos_totales DESC
+  `;
+
+    return rendimientoData.map((row) => {
+      const ingresosTotales = Number(row.ingresos_totales || 0);
+      const totalReservas = Number(row.total_reservas);
+      const nochesVendidas = Number(row.noches_vendidas || 0);
+
+      // Ingreso promedio por reserva (evitar división por cero)
+      const ingresoPromedioPorReserva =
+        totalReservas > 0 ? ingresosTotales / totalReservas : 0;
+
+      // Ocupación porcentual simplificada: (noches vendidas) / (días totales del periodo) * 100
+      const porcentajeOcupacion =
+        diasPeriodo > 0 ? (nochesVendidas / diasPeriodo) * 100 : 0;
 
       return {
-        tipo: item.tipo as any,
-        totalHabitaciones,
-        tasaOcupacionPromedio: Number(tasaOcupacionPromedio.toFixed(2)),
+        habitacionId: row.habitacion_id,
+        numeroHabitacion: row.numero_habitacion,
+        tipo: row.tipo,
         ingresosTotales: Number(ingresosTotales.toFixed(2)),
-        precioPromedioNoche: Number(precioPromedioNoche.toFixed(2)),
-        revpar: Number(revpar.toFixed(2)),
+        totalReservas: totalReservas,
+        nochesVendidas: nochesVendidas,
+        ingresoPromedioReserva: Number(ingresoPromedioPorReserva.toFixed(2)),
+        porcentajeOcupacion: Number(porcentajeOcupacion.toFixed(2)),
       };
     });
   }
@@ -755,7 +783,12 @@ export class AnalyticsService {
       SELECT 
         r.motivo_viaje,
         COUNT(*)::bigint as cantidad,
-        AVG(EXTRACT(EPOCH FROM (r.fecha_fin - r.fecha_inicio)) / 86400) as duracion_promedio
+        AVG(
+          GREATEST(
+            EXTRACT(EPOCH FROM (r.fecha_fin - r.fecha_inicio)) / 86400,
+            1
+          )
+        ) as duracion_promedio
       FROM "Reserva" r
       WHERE r.deleted = false
         ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
@@ -770,8 +803,20 @@ export class AnalyticsService {
       0,
     );
 
+    if (totalReservas === 0) {
+      // Retornar lista vacía o bien con motivo y porcentaje = 0
+      return motivosData.map((item) => ({
+        motivo: item.motivo_viaje as MotivosViajes,
+        cantidad: Number(item.cantidad),
+        porcentaje: 0,
+        duracionPromedioEstancia: Number(
+          (item.duracion_promedio || 0).toFixed(1),
+        ),
+      }));
+    }
+
     return motivosData.map((item) => ({
-      motivo: item.motivo_viaje as any,
+      motivo: item.motivo_viaje as MotivosViajes,
       cantidad: Number(item.cantidad),
       porcentaje: Number(
         ((Number(item.cantidad) / totalReservas) * 100).toFixed(2),
@@ -792,10 +837,11 @@ export class AnalyticsService {
   ): Promise<PrediccionOcupacionDto[]> {
     const { fechaInicio, fechaFin, periodosAdelante, tipoPeriodo } = parametros;
 
-    // Usar la misma función que funciona en calcularOcupacion
-    const dateFunction = this.getDateTruncFunction(
-      tipoPeriodo === 'mes' ? 'mes' : 'semana',
-    );
+    // Usar función de truncamiento directa
+    const dateFunction =
+      tipoPeriodo === 'mes'
+        ? Prisma.sql`DATE_TRUNC('month', fecha_inicio)`
+        : Prisma.sql`DATE_TRUNC('week', fecha_inicio)`;
 
     const datosHistoricos = await this.prisma.$queryRaw<
       Array<{
@@ -867,6 +913,7 @@ export class AnalyticsService {
       fechaFin,
       incluirComparacion,
       topMercados = 5,
+      agruparPor,
     } = filtros;
 
     // Ejecutar múltiples consultas en paralelo para optimizar performance
@@ -877,7 +924,7 @@ export class AnalyticsService {
       rendimientoData,
       huespedesRecurrentesData,
     ] = await Promise.all([
-      this.calcularOcupacion({ fechaInicio, fechaFin }),
+      this.calcularOcupacion({ fechaInicio, fechaFin, agruparPor }),
       this.analizarDemografia({ fechaInicio, fechaFin }),
       this.analizarMotivosViaje({ fechaInicio, fechaFin }),
       this.analizarRendimientoHabitaciones({ fechaInicio, fechaFin }),
@@ -909,8 +956,12 @@ export class AnalyticsService {
       const periodoAnterior = this.calcularPeriodoAnterior(
         fechaInicio,
         fechaFin,
+        agruparPor,
       );
-      const datosAnteriores = await this.calcularOcupacion(periodoAnterior);
+      const datosAnteriores = await this.calcularOcupacion({
+        ...periodoAnterior,
+        agruparPor,
+      });
 
       dashboard.comparacionPeriodoAnterior = {
         ocupacionAnterior: datosAnteriores.ocupacionPromedio,
@@ -972,73 +1023,151 @@ export class AnalyticsService {
   }): Promise<number> {
     const { fechaInicio, fechaFin } = filtros;
 
+    // 1) Validar que, si vienen fechas, sean cadenas ISO válidas
+    if (fechaInicio && isNaN(Date.parse(fechaInicio))) {
+      throw new Error(
+        `fechaInicio inválida: "${fechaInicio}" no es una fecha ISO reconocida`,
+      );
+    }
+    if (fechaFin && isNaN(Date.parse(fechaFin))) {
+      throw new Error(
+        `fechaFin inválida: "${fechaFin}" no es una fecha ISO reconocida`,
+      );
+    }
+
+    /**
+     * 2) Uso de SQL crudo con tres correcciones principales:
+     *    a) Cambiamos la lógica de filtrado de fechas para que incluya reservas que se solapen con el rango:
+     *         ‣ r.fecha_fin   >= fechaInicio
+     *         ‣ r.fecha_inicio <= fechaFin
+     *    b) Pasamos las cadenas (YYYY-MM-DD) directamente al SQL con ::date para evitar despistes de zona horaria.
+     *    c) Ajustamos el conteo para que el denominador («total_huespedes») sólo considere huéspedes
+     *       que tengan al menos UNA reserva en el rango dado, de modo que la tasa se mida “entre quienes reservaron”.
+     */
     const huespedesRecurrentes = await this.prisma.$queryRaw<
       Array<{ total_huespedes: bigint; huespedes_recurrentes: bigint }>
     >`
-      WITH huespedes_con_reservas AS (
-        SELECT 
-          h.id,
-          COUNT(r.id) as total_reservas
-        FROM "Huesped" h
-        LEFT JOIN "Reserva" r ON h.id = r."huespedId" AND r.deleted = false
-          ${fechaInicio ? Prisma.sql`AND r.fecha_inicio >= ${new Date(fechaInicio)}` : Prisma.empty}
-          ${fechaFin ? Prisma.sql`AND r.fecha_fin <= ${new Date(fechaFin)}` : Prisma.empty}
-        WHERE h.deleted = false
-        GROUP BY h.id
-      )
-      SELECT 
-        COUNT(*)::bigint as total_huespedes,
-        COUNT(CASE WHEN total_reservas > 1 THEN 1 END)::bigint as huespedes_recurrentes
-      FROM huespedes_con_reservas
-    `;
+    WITH huespedes_con_reservas AS (
+      SELECT
+        h.id,
+        COUNT(r.id) AS total_reservas
+      FROM "Huesped" h
+      LEFT JOIN "Reserva" r
+        ON h.id = r."huespedId"
+        AND r.deleted = false
+        ${
+          fechaInicio
+            ? Prisma.sql`AND r.fecha_fin >= ${fechaInicio}::date`
+            : Prisma.empty
+        }
+        ${
+          fechaFin
+            ? Prisma.sql`AND r.fecha_inicio <= ${fechaFin}::date`
+            : Prisma.empty
+        }
+      WHERE h.deleted = false
+      GROUP BY h.id
+    )
+    SELECT
+      -- Sólo contamos huéspedes que tengan al menos 1 reserva en el rango
+      COUNT(*) FILTER (WHERE total_reservas >= 1)::bigint   AS total_huespedes,
+      -- Cuántos de esos tienen más de una reserva
+      COUNT(*) FILTER (WHERE total_reservas > 1)::bigint     AS huespedes_recurrentes
+    FROM huespedes_con_reservas
+  `;
 
-    const data = huespedesRecurrentes[0];
-    const totalHuespedes = Number(data?.total_huespedes || 0);
-    const recurrentes = Number(data?.huespedes_recurrentes || 0);
+    const data = huespedesRecurrentes[0] ?? {
+      total_huespedes: BigInt(0),
+      huespedes_recurrentes: BigInt(0),
+    };
+    const totalHuespedes = Number(data.total_huespedes);
+    const recurrentes = Number(data.huespedes_recurrentes);
 
-    return totalHuespedes > 0
-      ? Number(((recurrentes / totalHuespedes) * 100).toFixed(2))
-      : 0;
-  }
-
-  /**
-   * Obtiene la función SQL de truncamiento de fecha según el período
-   * @param periodo Período de agrupación
-   * @returns Función SQL de truncamiento
-   */
-  private getDateTruncFunction(
-    periodo: 'día' | 'semana' | 'mes' | 'año',
-  ): Prisma.Sql {
-    switch (periodo) {
-      case 'día':
-        return Prisma.sql`DATE_TRUNC('day', fecha_inicio)`;
-      case 'semana':
-        return Prisma.sql`DATE_TRUNC('week', fecha_inicio)`;
-      case 'mes':
-        return Prisma.sql`DATE_TRUNC('month', fecha_inicio)`;
-      case 'año':
-        return Prisma.sql`DATE_TRUNC('year', fecha_inicio)`;
-      default:
-        return Prisma.sql`DATE_TRUNC('month', fecha_inicio)`;
+    // Si no hay huéspedes que hayan reservado en el período, devolvemos 0
+    if (totalHuespedes === 0) {
+      return 0;
     }
+
+    // Calculamos el porcentaje con dos decimales
+    const porcentaje = (recurrentes / totalHuespedes) * 100;
+    return Number(porcentaje.toFixed(2));
   }
 
   /**
-   * Calcula el período anterior basado en las fechas dadas
+   * Calcula el período anterior basado en las fechas dadas y el tipo de agrupación
    * @param fechaInicio Fecha de inicio del período actual
    * @param fechaFin Fecha de fin del período actual
+   * @param agruparPor Tipo de período para cálculo inteligente (opcional, por defecto usa duración simple)
    * @returns Objeto con fechas del período anterior
    */
   private calcularPeriodoAnterior(
     fechaInicio: string,
     fechaFin: string,
+    agruparPor?: 'día' | 'semana' | 'mes' | 'año',
   ): { fechaInicio: string; fechaFin: string } {
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
-    const duracion = fin.getTime() - inicio.getTime();
 
-    const inicioAnterior = new Date(inicio.getTime() - duracion);
-    const finAnterior = new Date(inicio.getTime() - 1);
+    let inicioAnterior: Date;
+    let finAnterior: Date;
+
+    if (agruparPor) {
+      // Cálculo inteligente basado en el tipo de período
+      switch (agruparPor) {
+        case 'día':
+          // Para días, usar la duración simple
+          const duracionDias = fin.getTime() - inicio.getTime();
+          inicioAnterior = new Date(inicio.getTime() - duracionDias);
+          finAnterior = new Date(inicioAnterior.getTime() + duracionDias);
+          break;
+
+        case 'semana':
+          // Para semanas, retroceder el mismo número de semanas
+          const semanas = Math.ceil(
+            (fin.getTime() - inicio.getTime()) / (7 * 24 * 60 * 60 * 1000),
+          );
+          inicioAnterior = new Date(inicio);
+          inicioAnterior.setDate(inicioAnterior.getDate() - semanas * 7);
+          finAnterior = new Date(fin);
+          finAnterior.setDate(finAnterior.getDate() - semanas * 7);
+          break;
+
+        case 'mes':
+          // Para meses, ir al mismo período del mes anterior
+          inicioAnterior = new Date(inicio);
+          finAnterior = new Date(fin);
+
+          // Calcular cuántos meses cubren el período
+          const mesesDiferencia =
+            (fin.getFullYear() - inicio.getFullYear()) * 12 +
+            (fin.getMonth() - inicio.getMonth());
+          const mesesARetroceder = Math.max(1, mesesDiferencia + 1);
+
+          inicioAnterior.setMonth(inicioAnterior.getMonth() - mesesARetroceder);
+          finAnterior.setMonth(finAnterior.getMonth() - mesesARetroceder);
+          break;
+
+        case 'año':
+          // Para años, ir al mismo período del año anterior
+          inicioAnterior = new Date(inicio);
+          finAnterior = new Date(fin);
+
+          // Calcular cuántos años cubren el período
+          const añosDiferencia = fin.getFullYear() - inicio.getFullYear();
+          const añosARetroceder = Math.max(1, añosDiferencia + 1);
+
+          inicioAnterior.setFullYear(
+            inicioAnterior.getFullYear() - añosARetroceder,
+          );
+          finAnterior.setFullYear(finAnterior.getFullYear() - añosARetroceder);
+          break;
+      }
+    } else {
+      // Fallback: usar duración simple (comportamiento anterior)
+      const duracion = fin.getTime() - inicio.getTime();
+      inicioAnterior = new Date(inicio.getTime() - duracion);
+      finAnterior = new Date(inicioAnterior.getTime() + duracion);
+    }
 
     return {
       fechaInicio: inicioAnterior.toISOString().split('T')[0],
