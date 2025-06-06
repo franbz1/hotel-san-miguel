@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TiposHabitacion, MotivosViajes } from '@prisma/client';
+import { MotivosViajes } from '@prisma/client';
 
 /**
  * DTO para respuesta de ocupación por período
@@ -130,45 +130,56 @@ export class ProcedenciaHuespedesDto {
 }
 
 /**
- * DTO para rendimiento de habitaciones
+ * DTO para rendimiento de habitaciones individuales
  */
 export class RendimientoHabitacionDto {
   @ApiProperty({
+    description: 'ID único de la habitación',
+    example: 'clm123456789abcdef',
+  })
+  habitacionId: string;
+
+  @ApiProperty({
+    description: 'Número de la habitación',
+    example: '101',
+  })
+  numeroHabitacion: string;
+
+  @ApiProperty({
     description: 'Tipo de habitación',
-    enum: TiposHabitacion,
-    example: TiposHabitacion.SENCILLA,
+    example: 'SENCILLA',
   })
-  tipo: TiposHabitacion;
+  tipo: string;
 
   @ApiProperty({
-    description: 'Número total de habitaciones de este tipo',
-    example: 15,
-  })
-  totalHabitaciones: number;
-
-  @ApiProperty({
-    description: 'Tasa de ocupación promedio',
-    example: 68.5,
-  })
-  tasaOcupacionPromedio: number;
-
-  @ApiProperty({
-    description: 'Ingresos totales generados',
-    example: 8500000,
+    description: 'Ingresos totales generados por la habitación en el período',
+    example: 850000,
   })
   ingresosTotales: number;
 
   @ApiProperty({
-    description: 'Precio promedio por noche',
-    example: 55000,
+    description: 'Número total de reservas realizadas en la habitación',
+    example: 15,
   })
-  precioPromedioNoche: number;
+  totalReservas: number;
 
   @ApiProperty({
-    description: 'RevPAR para este tipo de habitación',
-    example: 37675,
+    description: 'Número total de noches vendidas en el período',
+    example: 42,
   })
-  revpar: number;
+  nochesVendidas: number;
+
+  @ApiProperty({
+    description: 'Ingreso promedio por reserva',
+    example: 56666.67,
+  })
+  ingresoPromedioReserva: number;
+
+  @ApiProperty({
+    description: 'Porcentaje de ocupación de la habitación en el período',
+    example: 75.23,
+  })
+  porcentajeOcupacion: number;
 }
 
 /**
@@ -271,7 +282,8 @@ export class DashboardEjecutivoDto {
   distribucionMotivosViaje: MotivosViajeDto[];
 
   @ApiProperty({
-    description: 'Rendimiento por tipo de habitación',
+    description:
+      'Rendimiento por habitación individual (ordenado por ingresos)',
     type: [RendimientoHabitacionDto],
   })
   rendimientoHabitaciones: RendimientoHabitacionDto[];
