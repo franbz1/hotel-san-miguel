@@ -150,7 +150,12 @@ export class FiltrosDashboardDto extends FiltrosDateRangeDto {
     default: false,
   })
   @IsOptional()
-  @Transform(({ value }) => value === 'true')
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true';
+    }
+    return Boolean(value);
+  })
   incluirComparacion?: boolean;
 
   @ApiProperty({
@@ -165,4 +170,15 @@ export class FiltrosDashboardDto extends FiltrosDateRangeDto {
   @Min(3)
   @Type(() => Number)
   topMercados?: number;
+
+  @ApiProperty({
+    description: 'Agrupar resultados por período (mes, semana, día)',
+    example: 'mes',
+    required: false,
+    enum: ['día', 'semana', 'mes', 'año'],
+  })
+  @IsOptional()
+  @IsString()
+  @IsEnum(['día', 'semana', 'mes', 'año'])
+  agruparPor?: 'día' | 'semana' | 'mes' | 'año';
 }
