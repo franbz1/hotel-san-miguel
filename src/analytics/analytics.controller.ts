@@ -366,7 +366,7 @@ export class AnalyticsController {
    * - KPIs principales (ocupación, RevPAR, ADR)
    * - Top mercados emisores
    * - Distribución por motivos de viaje
-   * - Rendimiento por tipo de habitación
+   * - Rendimiento por habitación individual
    * - Tasa de huéspedes recurrentes
    * - Comparación con período anterior (opcional)
    *
@@ -391,7 +391,7 @@ export class AnalyticsController {
     **Análisis segmentado:**
     - Top mercados emisores (configurable)
     - Distribución por motivos de viaje
-    - Rendimiento por tipo de habitación
+    - Rendimiento por habitación individual
     
     **Comparación temporal:**
     - Datos del período anterior (opcional)
