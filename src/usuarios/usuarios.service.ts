@@ -112,10 +112,18 @@ export class UsuariosService {
       );
     }
 
+    // Preparar los datos para actualizar
+    const dataToUpdate = { ...updateUsuarioDto };
+
+    // Si se está actualizando la contraseña, encriptarla
+    if (updateUsuarioDto.password) {
+      dataToUpdate.password = await bcrypt.hash(updateUsuarioDto.password, 10);
+    }
+
     try {
       return await this.prisma.usuario.update({
         where: { id, deleted: false },
-        data: updateUsuarioDto,
+        data: dataToUpdate,
         select: this.defaultUserSelection(),
       });
     } catch (error) {
