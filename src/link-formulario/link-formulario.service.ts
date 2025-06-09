@@ -123,6 +123,9 @@ export class LinkFormularioService {
       skip: (page - 1) * limit,
       take: limit,
       where: { deleted: false },
+      orderBy: {
+        fechaInicio: 'desc',
+      },
     });
 
     return { data: links, meta: { page, limit, totalLinks, lastPage } };

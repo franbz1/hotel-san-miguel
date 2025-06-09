@@ -81,13 +81,14 @@ export class ReservasService {
       take: limit,
       where: { deleted: false },
       include: {
-        factura: {
-          where: { deleted: false },
+        huesped: {
+          select: {
+            nombres: true,
+            primer_apellido: true,
+            segundo_apellido: true,
+            numero_documento: true,
+          },
         },
-        huespedes_secundarios: {
-          where: { deleted: false },
-        },
-        huesped: true,
       },
     });
 
