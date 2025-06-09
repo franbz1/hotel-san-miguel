@@ -309,3 +309,103 @@ export class DashboardEjecutivoDto {
     cambioIngresos: number;
   };
 }
+
+/**
+ * DTO para información financiera por período (basado en facturas)
+ */
+export class InformacionFinancieraPorPeriodoDto {
+  @ApiProperty({
+    description: 'Período de la información financiera (fecha)',
+    example: '2024-01',
+  })
+  periodo: string;
+
+  @ApiProperty({
+    description: 'Total de ingresos del período (basado en facturas)',
+    example: 2150000.5,
+  })
+  totalIngresos: number;
+
+  @ApiProperty({
+    description: 'Número total de facturas emitidas en el período',
+    example: 35,
+  })
+  totalFacturas: number;
+
+  @ApiProperty({
+    description: 'Promedio de ingresos por factura',
+    example: 61428.57,
+  })
+  promedioIngresosPorFactura: number;
+
+  @ApiProperty({
+    description: 'Factura con el monto más alto del período',
+    example: 185000,
+  })
+  facturaMaxima: number;
+
+  @ApiProperty({
+    description: 'Factura con el monto más bajo del período',
+    example: 25000,
+  })
+  facturaMinima: number;
+}
+
+/**
+ * DTO para el dashboard financiero basado en facturas
+ */
+export class DashboardFinancieroDto {
+  @ApiProperty({
+    description: 'Ingresos financieros por período',
+    type: [InformacionFinancieraPorPeriodoDto],
+  })
+  informacionPorPeriodo: InformacionFinancieraPorPeriodoDto[];
+
+  @ApiProperty({
+    description: 'Total de ingresos en el rango de fechas seleccionado',
+    example: 8625000.75,
+  })
+  totalIngresosRango: number;
+
+  @ApiProperty({
+    description: 'Promedio de ingresos por período',
+    example: 2156250.19,
+  })
+  promedioIngresosPorPeriodo: number;
+
+  @ApiProperty({
+    description: 'Total de facturas emitidas en el rango',
+    example: 142,
+  })
+  totalFacturasRango: number;
+
+  @ApiProperty({
+    description: 'Promedio general de ingresos por factura',
+    example: 60739.44,
+  })
+  promedioGeneralPorFactura: number;
+
+  @ApiProperty({
+    description: 'Factura con mayor monto en todo el rango',
+    example: 250000,
+  })
+  facturaMaximaRango: number;
+
+  @ApiProperty({
+    description: 'Factura con menor monto en todo el rango',
+    example: 15000,
+  })
+  facturaMinimaRango: number;
+
+  @ApiProperty({
+    description: 'Período con mayores ingresos',
+    example: '2024-03',
+  })
+  periodoMayorIngreso: string;
+
+  @ApiProperty({
+    description: 'Período con menores ingresos',
+    example: '2024-01',
+  })
+  periodoMenorIngreso: string;
+}

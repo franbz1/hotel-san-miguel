@@ -15,6 +15,7 @@ import {
   FiltrosOcupacionDto,
   FiltrosDashboardDto,
   ForecastParamsDto,
+  FiltrosFinancierosDto,
 } from './dto/filtros-analytics.dto';
 import {
   AnalisisOcupacionResponseDto,
@@ -24,6 +25,7 @@ import {
   MotivosViajeDto,
   PrediccionOcupacionDto,
   DashboardEjecutivoDto,
+  DashboardFinancieroDto,
 } from './dto/response-analytics.dto';
 
 /**
@@ -40,6 +42,7 @@ import {
   MotivosViajeDto,
   PrediccionOcupacionDto,
   DashboardEjecutivoDto,
+  DashboardFinancieroDto,
 )
 @Controller('analytics')
 export class AnalyticsController {
@@ -423,5 +426,73 @@ export class AnalyticsController {
   })
   obtenerDashboardEjecutivo(@Query() filtros: FiltrosDashboardDto) {
     return this.analyticsService.generarDashboard(filtros);
+  }
+
+  /**
+   * Obtiene dashboard financiero basado en facturas
+   *
+   * **Dashboard incluye:**
+   * - Información financiera por períodos
+   * - Total de ingresos por rango de fechas
+   * - Estadísticas de facturas (máxima, mínima, promedio)
+   * - Comparación entre períodos
+   * - Métricas de rendimiento financiero
+   *
+   * **Valor financiero:**
+   * - Vista consolidada de ingresos reales por facturas
+   * - Análisis de tendencias de facturación
+   * - Identificación de períodos más/menos rentables
+   * - Control financiero detallado
+   */
+  @Get('dashboard-financiero')
+  @Roles(Role.ADMINISTRADOR, Role.CAJERO)
+  @ApiOperation({
+    summary: 'Obtener dashboard financiero basado en facturas',
+    description: `
+    Proporciona un dashboard financiero completo basado en las facturas emitidas:
+    
+    **Métricas financieras:**
+    - Total de ingresos por período (agrupable por día, semana, mes, año)
+    - Número de facturas emitidas
+    - Promedio de ingresos por factura
+    - Facturas máximas y mínimas por período
+    
+    **Análisis comparativo:**
+    - Períodos con mayores y menores ingresos
+    - Estadísticas globales del rango seleccionado
+    - Tendencias de facturación
+    
+    **Filtros disponibles:**
+    - Rango de fechas personalizable
+    - Agrupación por diferentes períodos
+    - Solo facturas no eliminadas (deleted = false)
+    
+    **Optimizado para:**
+    - Control financiero
+    - Análisis de rendimiento económico
+    - Reportes de ingresos reales
+    - Planificación financiera
+    `,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard financiero generado exitosamente',
+    type: DashboardFinancieroDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Token de autenticación inválido o ausente',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Sin permisos suficientes para acceder al dashboard financiero',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno al generar el dashboard financiero',
+  })
+  obtenerDashboardFinanciero(@Query() filtros: FiltrosFinancierosDto) {
+    return this.analyticsService.getDashboard2(filtros);
   }
 }

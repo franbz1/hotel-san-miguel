@@ -182,3 +182,35 @@ export class FiltrosDashboardDto extends FiltrosDateRangeDto {
   @IsEnum(['día', 'semana', 'mes', 'año'])
   agruparPor?: 'día' | 'semana' | 'mes' | 'año';
 }
+
+/**
+ * DTO para filtros del dashboard financiero
+ */
+export class FiltrosFinancierosDto extends FiltrosDateRangeDto {
+  @ApiProperty({
+    description: 'Agrupar resultados por período (mes, semana, día)',
+    example: 'mes',
+    required: false,
+    enum: ['día', 'semana', 'mes', 'año'],
+    default: 'mes',
+  })
+  @IsOptional()
+  @IsString()
+  @IsEnum(['día', 'semana', 'mes', 'año'])
+  agruparPor?: 'día' | 'semana' | 'mes' | 'año';
+
+  @ApiProperty({
+    description: 'Incluir comparación con período anterior',
+    example: false,
+    default: false,
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true';
+    }
+    return Boolean(value);
+  })
+  incluirComparacion?: boolean;
+}

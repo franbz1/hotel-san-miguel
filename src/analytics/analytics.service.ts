@@ -5,6 +5,7 @@ import {
   FiltrosOcupacionDto,
   FiltrosDashboardDto,
   ForecastParamsDto,
+  FiltrosFinancierosDto,
 } from './dto/filtros-analytics.dto';
 import {
   AnalisisOcupacionResponseDto,
@@ -15,6 +16,8 @@ import {
   PrediccionOcupacionDto,
   DashboardEjecutivoDto,
   OcupacionPorPeriodoDto,
+  DashboardFinancieroDto,
+  InformacionFinancieraPorPeriodoDto,
 } from './dto/response-analytics.dto';
 import { Prisma } from '@prisma/client';
 import * as fs from 'fs';
@@ -305,15 +308,15 @@ export class AnalyticsService {
       // Vamos a unificar ambos casos (con o sin filtros) en una misma lógica,
       // de forma que SIEMPRE consideremos únicamente aquellos huéspedes (principales
       // o secundarios) que hayan tenido al menos una reserva activa que cumpla condiciones
-      // (en el caso “sin filtros”, no habrá cláusulas WHERE adicionales y por tanto
+      // (en el caso "sin filtros", no habrá cláusulas WHERE adicionales y por tanto
       // se incluirán todos los que tengan alguna reserva).
       //
       // Además:
       //  - Eliminamos la doble atribución de ingresos a secundarios. Sólo atribuiremos
-      //    el costo de cada reserva al huésped principal “huespedId”. A los secundarios
+      //    el costo de cada reserva al huésped principal "huespedId". A los secundarios
       //    los contaremos para efectos de demografía (cantidad) pero no les sumaremos
       //    el costo de la reserva completa (esto evita duplicación de ingresos).
-      //  - Conservamos un UNION para combinar “principales” y “secundarios”, pero
+      //  - Conservamos un UNION para combinar "principales" y "secundarios", pero
       //    etiquetamos cada uno con un campo `tipo_huesped` para evitar colisión de IDs.
       //  - Garantizamos que al hacer el JOIN de ingresos, la combinación ocurra por
       //    `(huesped_id, tipo_huesped)` en lugar de solo por `huesped_id`.
@@ -392,7 +395,7 @@ export class AnalyticsService {
 
       -- 4) Unión final de huéspedes (principales + secundarios):
       --    cada fila representa un huésped único (por nationality + tipo)
-      --    JOIN  LEFT  con los ingresos solo para “principales”
+      --    JOIN  LEFT  con los ingresos solo para "principales"
       SELECT
         hp.nacionalidad,
         hp.tipo_huesped,
@@ -419,7 +422,7 @@ export class AnalyticsService {
       // ]
       //
       // Lo que queremos como salida final es, POR CADA nacionalidad (independientemente
-      // de “principal” o “secundario”), sumar la cantidad total (principales + secundarios)
+      // de "principal" o "secundario"), sumar la cantidad total (principales + secundarios)
       // y sumar los ingresos (solo los de tipo 'principal'; los de 'secundario' vienen en 0)
       // para luego calcular porcentaje y retornar un array de DemografiaHuespedesDto.
 
@@ -716,7 +719,7 @@ export class AnalyticsService {
       ON h.id = r."habitacionId"
       AND r.deleted = false
 
-      -- Para “tocar” el periodo, la reserva debe empezar antes o en fin, 
+      -- Para "tocar" el periodo, la reserva debe empezar antes o en fin, 
       -- y terminar después o en inicio
       ${
         inicio && fin
@@ -1041,8 +1044,8 @@ export class AnalyticsService {
      *         ‣ r.fecha_fin   >= fechaInicio
      *         ‣ r.fecha_inicio <= fechaFin
      *    b) Pasamos las cadenas (YYYY-MM-DD) directamente al SQL con ::date para evitar despistes de zona horaria.
-     *    c) Ajustamos el conteo para que el denominador («total_huespedes») sólo considere huéspedes
-     *       que tengan al menos UNA reserva en el rango dado, de modo que la tasa se mida “entre quienes reservaron”.
+     *    c) Ajustamos el conteo para que el denominador ("total_huespedes") sólo considere huéspedes
+     *       que tengan al menos UNA reserva en el rango dado, de modo que la tasa se mida "entre quienes reservaron".
      */
     const huespedesRecurrentes = await this.prisma.$queryRaw<
       Array<{ total_huespedes: bigint; huespedes_recurrentes: bigint }>
@@ -1173,5 +1176,203 @@ export class AnalyticsService {
       fechaInicio: inicioAnterior.toISOString().split('T')[0],
       fechaFin: finAnterior.toISOString().split('T')[0],
     };
+  }
+
+  /**
+   * Genera un dashboard financiero basado en facturas
+   * @param filtros Filtros para el dashboard financiero
+   * @returns Dashboard financiero con información de ingresos por facturas
+   */
+  async getDashboard2(
+    filtros: FiltrosFinancierosDto,
+  ): Promise<DashboardFinancieroDto> {
+    const startTime = Date.now();
+    const { fechaInicio, fechaFin, agruparPor = 'mes' } = filtros;
+
+    try {
+      // Construir fechas de filtro con validación
+      let fechaInicioDate: Date | null = null;
+      let fechaFinDate: Date | null = null;
+
+      if (fechaInicio) {
+        const tmp = new Date(fechaInicio);
+        if (isNaN(tmp.getTime())) {
+          throw new Error(`fechaInicio inválida: ${fechaInicio}`);
+        }
+        fechaInicioDate = new Date(
+          Date.UTC(
+            tmp.getUTCFullYear(),
+            tmp.getUTCMonth(),
+            tmp.getUTCDate(),
+            0,
+            0,
+            0,
+          ),
+        );
+      }
+
+      if (fechaFin) {
+        const tmp = new Date(fechaFin);
+        if (isNaN(tmp.getTime())) {
+          throw new Error(`fechaFin inválida: ${fechaFin}`);
+        }
+        fechaFinDate = new Date(
+          Date.UTC(
+            tmp.getUTCFullYear(),
+            tmp.getUTCMonth(),
+            tmp.getUTCDate(),
+            23,
+            59,
+            59,
+          ),
+        );
+      }
+
+      // Construir cláusulas WHERE para las fechas
+      const whereFechaInicio = fechaInicioDate
+        ? Prisma.sql`AND f.fecha_factura >= ${fechaInicioDate}`
+        : Prisma.empty;
+      const whereFechaFin = fechaFinDate
+        ? Prisma.sql`AND f.fecha_factura <= ${fechaFinDate}`
+        : Prisma.empty;
+
+      // Determinar la función de agrupamiento según el período
+      let dateFunction: ReturnType<typeof Prisma.sql>;
+      switch (agruparPor) {
+        case 'día':
+          dateFunction = Prisma.sql`DATE_TRUNC('day', f.fecha_factura)`;
+          break;
+        case 'semana':
+          dateFunction = Prisma.sql`DATE_TRUNC('week', f.fecha_factura)`;
+          break;
+        case 'año':
+          dateFunction = Prisma.sql`DATE_TRUNC('year', f.fecha_factura)`;
+          break;
+        default: // mes
+          dateFunction = Prisma.sql`DATE_TRUNC('month', f.fecha_factura)`;
+          break;
+      }
+
+      // Consulta principal para obtener información financiera por período
+      const datosFinancieros = await this.prisma.$queryRaw<
+        Array<{
+          periodo: string;
+          total_ingresos: number;
+          total_facturas: bigint;
+          promedio_ingresos_por_factura: number;
+          factura_maxima: number;
+          factura_minima: number;
+        }>
+      >`
+        SELECT 
+          ${dateFunction}::text AS periodo,
+          SUM(f.total)::numeric(12,2) AS total_ingresos,
+          COUNT(*)::bigint AS total_facturas,
+          AVG(f.total)::numeric(12,2) AS promedio_ingresos_por_factura,
+          MAX(f.total)::numeric(12,2) AS factura_maxima,
+          MIN(f.total)::numeric(12,2) AS factura_minima
+        FROM "Factura" f
+        WHERE f.deleted = false
+          ${whereFechaInicio}
+          ${whereFechaFin}
+        GROUP BY ${dateFunction}
+        ORDER BY periodo ASC
+      `;
+
+      // Procesar datos por período
+      const informacionPorPeriodo: InformacionFinancieraPorPeriodoDto[] =
+        datosFinancieros.map((item) => ({
+          periodo: item.periodo,
+          totalIngresos: Number(item.total_ingresos || 0),
+          totalFacturas: Number(item.total_facturas),
+          promedioIngresosPorFactura: Number(
+            item.promedio_ingresos_por_factura || 0,
+          ),
+          facturaMaxima: Number(item.factura_maxima || 0),
+          facturaMinima: Number(item.factura_minima || 0),
+        }));
+
+      // Calcular estadísticas globales del rango
+      const totalIngresosRango = informacionPorPeriodo.reduce(
+        (sum, item) => sum + item.totalIngresos,
+        0,
+      );
+
+      const totalFacturasRango = informacionPorPeriodo.reduce(
+        (sum, item) => sum + item.totalFacturas,
+        0,
+      );
+
+      const promedioIngresosPorPeriodo =
+        informacionPorPeriodo.length > 0
+          ? totalIngresosRango / informacionPorPeriodo.length
+          : 0;
+
+      const promedioGeneralPorFactura =
+        totalFacturasRango > 0 ? totalIngresosRango / totalFacturasRango : 0;
+
+      const facturaMaximaRango = Math.max(
+        ...informacionPorPeriodo.map((item) => item.facturaMaxima),
+        0,
+      );
+
+      const facturaMinimaRango = Math.min(
+        ...informacionPorPeriodo.map((item) => item.facturaMinima),
+        Number.MAX_SAFE_INTEGER,
+      );
+
+      // Encontrar períodos con mayor y menor ingreso
+      const periodoMayorIngreso =
+        informacionPorPeriodo.length > 0
+          ? informacionPorPeriodo.reduce((max, item) =>
+              item.totalIngresos > max.totalIngresos ? item : max,
+            ).periodo
+          : '';
+
+      const periodoMenorIngreso =
+        informacionPorPeriodo.length > 0
+          ? informacionPorPeriodo.reduce((min, item) =>
+              item.totalIngresos < min.totalIngresos ? item : min,
+            ).periodo
+          : '';
+
+      const resultado: DashboardFinancieroDto = {
+        informacionPorPeriodo,
+        totalIngresosRango: Number(totalIngresosRango.toFixed(2)),
+        promedioIngresosPorPeriodo: Number(
+          promedioIngresosPorPeriodo.toFixed(2),
+        ),
+        totalFacturasRango,
+        promedioGeneralPorFactura: Number(promedioGeneralPorFactura.toFixed(2)),
+        facturaMaximaRango: Number(facturaMaximaRango.toFixed(2)),
+        facturaMinimaRango:
+          facturaMinimaRango === Number.MAX_SAFE_INTEGER
+            ? 0
+            : Number(facturaMinimaRango.toFixed(2)),
+        periodoMayorIngreso,
+        periodoMenorIngreso,
+      };
+
+      // Guardar log de la analítica
+      const duracionMs = Date.now() - startTime;
+      await this.saveAnalyticsLog(
+        'dashboard-financiero',
+        filtros,
+        resultado,
+        duracionMs,
+      );
+
+      this.logger.log(
+        `Dashboard financiero generado exitosamente en ${duracionMs}ms`,
+      );
+
+      return resultado;
+    } catch (error) {
+      const duracionMs = Date.now() - startTime;
+      this.logger.error(
+        `Error en dashboard financiero (${duracionMs}ms): ${error.message}`,
+      );
+      throw error;
+    }
   }
 }
