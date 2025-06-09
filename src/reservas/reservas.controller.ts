@@ -68,7 +68,12 @@ export class ReservasController {
   // READ - Listar todas las reservas (con paginación)
   // ================================================================
   @Get()
-  @ApiOperation({ summary: 'Listar todas las reservas con paginación' })
+  @ApiOperation({
+    summary: 'Listar todas las reservas con paginación',
+    description:
+      'Obtiene todas las reservas con información básica del huésped principal (nombres, apellidos y documento). ' +
+      'No incluye facturas ni huéspedes secundarios para optimizar la respuesta.',
+  })
   @ApiQuery(PAGE_QUERY)
   @ApiQuery(LIMIT_QUERY)
   @ApiResponse(createPaginatedApiResponse(Reserva, 'totalReservas'))
