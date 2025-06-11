@@ -267,6 +267,7 @@ model RegistroAseoHabitacion {
 
   areas_intervenidas String[]
   areas_intervenidas_banio String[]
+  procedimiento_rotacion_colchones String?
 
   usuario    Usuario    @relation(fields: [usuarioId], references: [id])
   habitacion Habitacion @relation(fields: [habitacionId], references: [id])
@@ -336,8 +337,11 @@ model ReporteAseoDiario {
   elementos_aseo String[]
   elementos_proteccion String[]
   productos_quimicos String[]
-  procedimiento_aseo String
-  procedimiento_desinfeccion String
+  procedimiento_aseo_habitacion String
+  procedimiento_desinfeccion_habitacion String
+  procedimiento_limpieza_zona_comun String
+  procedimiento_desinfeccion_zona_comun String
+
   datos Json
 
   createdAt DateTime @default(now())
