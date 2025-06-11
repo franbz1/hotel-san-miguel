@@ -25,7 +25,6 @@ model Usuario {
   deleted                Boolean                  @default(false)
   RegistroAseoHabitacion RegistroAseoHabitacion[]
   RegistroAseoZonaComun RegistroAseoZonaComun[]
-  RegistroAseoZonaLavado RegistroAseoZonaLavado[]
 
   @@index([deleted])
 }
@@ -321,8 +320,7 @@ model RegistroAseoZonaComun {
   zonaComun ZonaComun @relation(fields: [zonaComunId], references: [id])
   usuario Usuario @relation(fields: [usuarioId], references: [id])
 
-  limpieza              Boolean @default(false)
-  desinfeccion          Boolean @default(false)
+  tipos_realizados TiposAseo[]
 
   objetos_perdidos Boolean @default(false)
   observaciones_objetos String?
@@ -340,58 +338,6 @@ model RegistroAseoZonaComun {
   deleted   Boolean  @default(false)
 
   @@index([fecha_registro, zonaComunId])
-  @@index([usuarioId, fecha_registro])
-  @@index([deleted])
-}
-
-model ZonaLavado {
-  id Int @id @default(autoincrement())
-  nombre String
-  piso Int
-  requerido_aseo_hoy Boolean @default(false)
-  ultimo_aseo_fecha DateTime?
-  ultimo_aseo_tipo TiposAseo?
-
-  RegistrosAseoZonaLavado RegistroAseoZonaLavado[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deleted   Boolean  @default(false)
-
-  @@index([deleted])
-}
-
-model RegistroAseoZonaLavado {
-  id Int @id @default(autoincrement())
-  zonaLavadoId Int
-  usuarioId Int
-  fecha_registro DateTime
-
-  zonaLavado ZonaLavado @relation(fields: [zonaLavadoId], references: [id])
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
-
-  limpieza Boolean @default(false)
-  desinfeccion Boolean @default(false)
-  orden_aseo Boolean @default(false)
-
-  objetos_perdidos Boolean @default(false)
-  observaciones_objetos String?
-
-  rastros_de_animales Boolean @default(false)
-  observaciones_rastros String?
-
-  elementos_aseo String[]
-  elementos_proteccion String[]
-  productos_quimicos String[]
-  procedimiento_aseo String
-  procedimiento_desinfeccion String
-  procedimiento_limpieza String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deleted   Boolean  @default(false)
-
-  @@index([fecha_registro, zonaLavadoId])
   @@index([usuarioId, fecha_registro])
   @@index([deleted])
 }
