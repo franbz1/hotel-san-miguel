@@ -270,11 +270,9 @@ model RegistroAseoHabitacion {
 
   tipos_realizados TiposAseo[]
 
-  objetos_perdidos      Boolean @default(false)
-  observaciones_objetos String?
-
-  rastros_de_animales   Boolean @default(false)
-  observaciones_rastros String?
+  objetos_perdidos Boolean @default(false)
+  rastros_de_animales Boolean @default(false)
+  observaciones String?
 
   elementos_aseo String[]
   elementos_proteccion String[]
@@ -322,9 +320,8 @@ model RegistroAseoZonaComun {
   tipos_realizados TiposAseo[]
 
   objetos_perdidos Boolean @default(false)
-  observaciones_objetos String?
   rastros_de_animales Boolean @default(false)
-  observaciones_rastros String?
+  observaciones String?
 
   elementos_aseo String[]
   elementos_proteccion String[]
