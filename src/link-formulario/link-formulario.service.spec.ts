@@ -291,6 +291,7 @@ describe('LinkFormularioService', () => {
         skip: 0, // (page - 1) * limit
         take: 10,
         where: { deleted: false },
+        orderBy: { fechaInicio: 'desc' },
       });
     });
 
@@ -316,6 +317,7 @@ describe('LinkFormularioService', () => {
         skip: 10, // (3 - 1) * 5
         take: 5,
         where: { deleted: false },
+        orderBy: { fechaInicio: 'desc' },
       });
     });
 
