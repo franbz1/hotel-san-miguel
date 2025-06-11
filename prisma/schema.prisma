@@ -278,8 +278,8 @@ model RegistroAseoHabitacion {
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
 
-  @@index([fecha_registro, habitacionId])
-  @@index([usuarioId, fecha_registro])
+  @@index([fecha_registro, habitacionId, deleted])
+  @@index([usuarioId, fecha_registro, deleted])
   @@index([deleted])
 }
 
@@ -297,6 +297,8 @@ model ZonaComun {
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
 
+  @@index([ultimo_aseo_fecha, deleted])
+  @@index([requerido_aseo_hoy, deleted])
   @@index([deleted])
 }
 
