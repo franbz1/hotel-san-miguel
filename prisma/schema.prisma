@@ -20,9 +20,10 @@ model Usuario {
   rol      Role   @default(CAJERO)
   password String
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deleted   Boolean  @default(false)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  deleted                Boolean                  @default(false)
+  RegistroAseoHabitacion RegistroAseoHabitacion[]
 
   @@index([deleted])
 }
@@ -44,23 +45,23 @@ enum Genero {
 }
 
 model Huesped {
-  id                      Int           @id @default(autoincrement())
-  tipo_documento          TipoDocumento
-  numero_documento        String        @unique
-  primer_apellido         String
-  segundo_apellido        String?
-  nombres                 String
-  pais_residencia         String
-  ciudad_residencia       String
-  pais_procedencia String
+  id                 Int           @id @default(autoincrement())
+  tipo_documento     TipoDocumento
+  numero_documento   String        @unique
+  primer_apellido    String
+  segundo_apellido   String?
+  nombres            String
+  pais_residencia    String
+  ciudad_residencia  String
+  pais_procedencia   String
   ciudad_procedencia String
-  lugar_nacimiento        String
-  fecha_nacimiento        DateTime
-  nacionalidad            String
-  ocupacion               String
-  genero                  Genero
-  telefono                String?
-  correo                  String?
+  lugar_nacimiento   String
+  fecha_nacimiento   DateTime
+  nacionalidad       String
+  ocupacion          String
+  genero             Genero
+  telefono           String?
+  correo             String?
 
   reservas              Reserva[]
   huespedes_secundarios HuespedSecundario[]
@@ -77,26 +78,26 @@ model Huesped {
 }
 
 model HuespedSecundario {
-  id                      Int           @id @default(autoincrement())
-  tipo_documento          TipoDocumento
-  numero_documento        String        @unique
-  primer_apellido         String
-  segundo_apellido        String?
-  nombres                 String
-  pais_residencia         String
-  ciudad_residencia       String
-  pais_procedencia String
-  ciudad_procedencia      String
-  fecha_nacimiento        DateTime
-  nacionalidad            String
-  ocupacion               String
-  genero                  Genero
-  telefono                String?
-  correo                  String?
-  huespedId               Int?
-  huesped                 Huesped?      @relation(fields: [huespedId], references: [id])
-  Reserva                 Reserva[]
-  documentos_subidos      Documento[]
+  id                 Int           @id @default(autoincrement())
+  tipo_documento     TipoDocumento
+  numero_documento   String        @unique
+  primer_apellido    String
+  segundo_apellido   String?
+  nombres            String
+  pais_residencia    String
+  ciudad_residencia  String
+  pais_procedencia   String
+  ciudad_procedencia String
+  fecha_nacimiento   DateTime
+  nacionalidad       String
+  ocupacion          String
+  genero             Genero
+  telefono           String?
+  correo             String?
+  huespedId          Int?
+  huesped            Huesped?      @relation(fields: [huespedId], references: [id])
+  Reserva            Reserva[]
+  documentos_subidos Documento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -142,22 +143,22 @@ enum MotivosViajes {
 }
 
 model Reserva {
-  id                       Int                 @id @default(autoincrement())
-  fecha_inicio             DateTime
-  fecha_fin                DateTime
-  estado                   EstadosReserva
-  pais_procedencia         String
-  ciudad_procedencia       String
-  pais_destino             String
-  motivo_viaje             MotivosViajes
-  check_in                 DateTime
-  check_out                DateTime
-  costo                    Float
-  numero_acompaniantes     Int
-  habitacionId             Int
-  huespedId                Int
-  huespedes_secundarios    HuespedSecundario[]
-  facturaId                Int?                @unique
+  id                    Int                 @id @default(autoincrement())
+  fecha_inicio          DateTime
+  fecha_fin             DateTime
+  estado                EstadosReserva
+  pais_procedencia      String
+  ciudad_procedencia    String
+  pais_destino          String
+  motivo_viaje          MotivosViajes
+  check_in              DateTime
+  check_out             DateTime
+  costo                 Float
+  numero_acompaniantes  Int
+  habitacionId          Int
+  huespedId             Int
+  huespedes_secundarios HuespedSecundario[]
+  facturaId             Int?                @unique
 
   huesped    Huesped    @relation(fields: [huespedId], references: [id])
   habitacion Habitacion @relation(fields: [habitacionId], references: [id])
@@ -198,17 +199,122 @@ enum EstadosHabitacion {
 
 model Habitacion {
   id                Int               @id @default(autoincrement())
-  numero_habitacion Int               
+  numero_habitacion Int
   tipo              TiposHabitacion
   estado            EstadosHabitacion
   precio_por_noche  Float
   reservas          Reserva[]
+
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  deleted                Boolean                  @default(false)
+  RegistroAseoHabitacion RegistroAseoHabitacion[]
+
+  @@index([deleted])
+}
+
+model RegistroAseoHabitacion {
+  id             Int      @id @default(autoincrement())
+  usuarioId      Int
+  habitacionId   Int
+  fecha_registro DateTime
+
+  usuario    Usuario    @relation(fields: [usuarioId], references: [id])
+  habitacion Habitacion @relation(fields: [habitacionId], references: [id])
+
+  limpieza              Boolean @default(false)
+  desinfeccion          Boolean @default(false)
+  rotacion_colchones    Boolean @default(false)
+  limpieza_banio        Boolean @default(false)
+  desinfeccion_banio    Boolean @default(false)
+
+  objetos_perdidos      Boolean @default(false)
+  observaciones_objetos String?
+
+  rastros_de_animales   Boolean @default(false)
+  observaciones_rastros String?
+
+  procedimientos String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
 
   @@index([deleted])
+}
+
+model ZonaComun {
+  id Int @id @default(autoincrement())
+  nombre String
+
+  RegistroAseoZonaComun RegistroAseoZonaComun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([deleted])
+}
+
+model RegistroAseoZonaComun {
+  id Int @id @default(autoincrement())
+  zonaComunId Int
+  fecha_registro DateTime
+
+  zonaComun ZonaComun @relation(fields: [zonaComunId], references: [id])
+
+  limpieza              Boolean @default(false)
+  desinfeccion          Boolean @default(false)
+
+  objetos_perdidos Boolean @default(false)
+  observaciones_objetos String?
+  rastros_de_animales Boolean @default(false)
+  observaciones_rastros String?
+
+  procedimientos String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([deleted])
+}
+
+model ZonaLavado {
+  id Int @id @default(autoincrement())
+  nombre String
+
+  RegistroAseoZonaLavado RegistroAseoZonaLavado[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([deleted])
+}
+
+model RegistroAseoZonaLavado {
+  id Int @id @default(autoincrement())
+  zonaLavadoId Int
+  fecha_registro DateTime
+
+  zonaLavado ZonaLavado @relation(fields: [zonaLavadoId], references: [id])
+
+  limpieza Boolean @default(false)
+  desinfeccion Boolean @default(false)
+  orden_aseo Boolean @default(false)
+
+  objetos_perdidos Boolean @default(false)
+  observaciones_objetos String?
+
+  rastros_de_animales Boolean @default(false)
+  observaciones_rastros String?
+
+  procedimientos String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
 }
 
 model Factura {
@@ -228,12 +334,12 @@ model Factura {
 }
 
 model LinkFormulario {
-  id           Int      @id @default(autoincrement())
-  url          String
-  completado   Boolean  @default(false)
-  expirado     Boolean  @default(false)
-  vencimiento  DateTime
-  formularioId Int?     @unique
+  id               Int      @id @default(autoincrement())
+  url              String
+  completado       Boolean  @default(false)
+  expirado         Boolean  @default(false)
+  vencimiento      DateTime
+  formularioId     Int?     @unique
   numeroHabitacion Int
   fechaInicio      DateTime
   fechaFin         DateTime
@@ -249,12 +355,12 @@ model LinkFormulario {
 }
 
 model Formulario {
-  id               Int      @id @default(autoincrement())
-  huespedId        Int
-  reservaId        Int
-  SubidoATra       Boolean  @default(false)
-  traId            Int?
-  SubidoASire      Boolean  @default(false)
+  id          Int     @id @default(autoincrement())
+  huespedId   Int
+  reservaId   Int
+  SubidoATra  Boolean @default(false)
+  traId       Int?
+  SubidoASire Boolean @default(false)
 
   LinkFormulario LinkFormulario?
   Huesped        Huesped         @relation(fields: [huespedId], references: [id])
