@@ -265,6 +265,9 @@ model RegistroAseoHabitacion {
   habitacionId   Int
   fecha_registro DateTime
 
+  areas_intervenidas String[]
+  areas_intervenidas_banio String[]
+
   usuario    Usuario    @relation(fields: [usuarioId], references: [id])
   habitacion Habitacion @relation(fields: [habitacionId], references: [id])
 
@@ -329,6 +332,7 @@ model RegistroAseoZonaComun {
 model ReporteAseoDiario {
   id Int @id @default(autoincrement())
   fecha DateTime
+
   elementos_aseo String[]
   elementos_proteccion String[]
   productos_quimicos String[]
