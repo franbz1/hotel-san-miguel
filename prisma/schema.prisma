@@ -274,14 +274,6 @@ model RegistroAseoHabitacion {
   rastros_de_animales Boolean @default(false)
   observaciones String?
 
-  elementos_aseo String[]
-  elementos_proteccion String[]
-  productos_quimicos String[]
-  areas_intervenir String[]
-  procedimiento_aseo String
-  procedimiento_desinfeccion String
-  procedimiento_rotacion_colchones String
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
@@ -323,12 +315,6 @@ model RegistroAseoZonaComun {
   rastros_de_animales Boolean @default(false)
   observaciones String?
 
-  elementos_aseo String[]
-  elementos_proteccion String[]
-  productos_quimicos String[]
-  procedimiento_aseo String
-  procedimiento_desinfeccion String
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
@@ -341,6 +327,11 @@ model RegistroAseoZonaComun {
 model ReporteAseoDiario {
   id Int @id @default(autoincrement())
   fecha DateTime
+  elementos_aseo String[]
+  elementos_proteccion String[]
+  productos_quimicos String[]
+  procedimiento_aseo String
+  procedimiento_desinfeccion String
   datos Json
 
   createdAt DateTime @default(now())
