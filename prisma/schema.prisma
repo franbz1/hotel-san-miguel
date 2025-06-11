@@ -220,10 +220,10 @@ model Habitacion {
   deleted                Boolean                  @default(false)
   RegistrosAseoHabitacion RegistroAseoHabitacion[]
 
-  @@index([ultimo_aseo_fecha, estado])
-  @@index([requerido_aseo_hoy])
-  @@index([ultima_rotacion_colchones])
-  @@index([requerido_rotacion_colchones])
+  @@index([ultimo_aseo_fecha, estado, deleted])
+  @@index([requerido_aseo_hoy, deleted])
+  @@index([ultima_rotacion_colchones, deleted])
+  @@index([requerido_rotacion_colchones, deleted])
   @@index([deleted])
 }
 
