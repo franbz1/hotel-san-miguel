@@ -257,6 +257,8 @@ enum TiposAseo {
   DESINFECCION
   ROTACION_COLCHONES
   ORDEN_ASEO
+  LIMPIEZA_BANIO
+  DESINFECCION_BANIO
 }
 
 model RegistroAseoHabitacion {
@@ -268,11 +270,7 @@ model RegistroAseoHabitacion {
   usuario    Usuario    @relation(fields: [usuarioId], references: [id])
   habitacion Habitacion @relation(fields: [habitacionId], references: [id])
 
-  limpieza              Boolean @default(false)
-  desinfeccion          Boolean @default(false)
-  rotacion_colchones    Boolean @default(false)
-  limpieza_banio        Boolean @default(false)
-  desinfeccion_banio    Boolean @default(false)
+  tipos_realizados TiposAseo[]
 
   objetos_perdidos      Boolean @default(false)
   observaciones_objetos String?
@@ -301,6 +299,9 @@ model ZonaComun {
   id Int @id @default(autoincrement())
   nombre String
   piso Int
+  requerido_aseo_hoy Boolean @default(false)
+  ultimo_aseo_fecha DateTime?
+  ultimo_aseo_tipo TiposAseo?
 
   RegistroAseoZonaComun RegistroAseoZonaComun[]
 
@@ -347,6 +348,9 @@ model ZonaLavado {
   id Int @id @default(autoincrement())
   nombre String
   piso Int
+  requerido_aseo_hoy Boolean @default(false)
+  ultimo_aseo_fecha DateTime?
+  ultimo_aseo_tipo TiposAseo?
 
   RegistroAseoZonaLavado RegistroAseoZonaLavado[]
 
