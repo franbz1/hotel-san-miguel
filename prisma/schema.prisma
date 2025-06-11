@@ -24,6 +24,8 @@ model Usuario {
   updatedAt              DateTime                 @updatedAt
   deleted                Boolean                  @default(false)
   RegistroAseoHabitacion RegistroAseoHabitacion[]
+  RegistroAseoZonaComun RegistroAseoZonaComun[]
+  RegistroAseoZonaLavado RegistroAseoZonaLavado[]
 
   @@index([deleted])
 }
@@ -205,12 +207,56 @@ model Habitacion {
   precio_por_noche  Float
   reservas          Reserva[]
 
+  ultimo_aseo_fecha DateTime?
+  ultimo_aseo_tipo  TiposAseo?
+
+  ultima_rotacion_colchones DateTime?
+  proxima_rotacion_colchones DateTime?
+
+  requerido_aseo_hoy Boolean @default(false)
+  requerido_rotacion_colchones Boolean @default(false)
+
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   deleted                Boolean                  @default(false)
   RegistroAseoHabitacion RegistroAseoHabitacion[]
 
+  @@index([ultimo_aseo_fecha, estado])
+  @@index([requerido_aseo_hoy])
+  @@index([ultima_rotacion_colchones])
+  @@index([requerido_rotacion_colchones])
   @@index([deleted])
+}
+
+model ConfiguracionAseo {
+  id Int @id @default(autoincrement())
+  hora_limite_aseo String @default("17:00")
+  frecuencia_rotacion_colchones Int @default(180) // 6 meses
+  dias_aviso_rotacion_colchones Int @default(5)
+
+  habilitar_notificaciones Boolean @default(false)
+  email_notificaciones String?
+
+  elementos_aseo_default String[]
+  elementos_proteccion_default String[]
+  productos_quimicos_default String[]
+  areas_intervenir_habitacion_default String[]
+  areas_intervenir_banio_default String[]
+  procedimiento_aseo_habitacion_default String?
+  procedimiento_desinfeccion_habitacion_default String?
+  procedimiento_rotacion_colchones_default String?
+  procedimiento_limieza_zona_comun_default String?
+  procedimiento_desinfeccion_zona_comun_default String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TiposAseo {
+  LIMPIEZA
+  DESINFECCION
+  ROTACION_COLCHONES
+  ORDEN_ASEO
 }
 
 model RegistroAseoHabitacion {
@@ -234,18 +280,27 @@ model RegistroAseoHabitacion {
   rastros_de_animales   Boolean @default(false)
   observaciones_rastros String?
 
-  procedimientos String
+  elementos_aseo String[]
+  elementos_proteccion String[]
+  productos_quimicos String[]
+  areas_intervenir String[]
+  procedimiento_aseo String
+  procedimiento_desinfeccion String
+  procedimiento_rotacion_colchones String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
 
+  @@index([fecha_registro, habitacionId])
+  @@index([usuarioId, fecha_registro])
   @@index([deleted])
 }
 
 model ZonaComun {
   id Int @id @default(autoincrement())
   nombre String
+  piso Int
 
   RegistroAseoZonaComun RegistroAseoZonaComun[]
 
@@ -259,9 +314,11 @@ model ZonaComun {
 model RegistroAseoZonaComun {
   id Int @id @default(autoincrement())
   zonaComunId Int
+  usuarioId Int
   fecha_registro DateTime
 
   zonaComun ZonaComun @relation(fields: [zonaComunId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
 
   limpieza              Boolean @default(false)
   desinfeccion          Boolean @default(false)
@@ -271,18 +328,25 @@ model RegistroAseoZonaComun {
   rastros_de_animales Boolean @default(false)
   observaciones_rastros String?
 
-  procedimientos String
+  elementos_aseo String[]
+  elementos_proteccion String[]
+  productos_quimicos String[]
+  procedimiento_aseo String
+  procedimiento_desinfeccion String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
 
+  @@index([fecha_registro, zonaComunId])
+  @@index([usuarioId, fecha_registro])
   @@index([deleted])
 }
 
 model ZonaLavado {
   id Int @id @default(autoincrement())
   nombre String
+  piso Int
 
   RegistroAseoZonaLavado RegistroAseoZonaLavado[]
 
@@ -296,9 +360,11 @@ model ZonaLavado {
 model RegistroAseoZonaLavado {
   id Int @id @default(autoincrement())
   zonaLavadoId Int
+  usuarioId Int
   fecha_registro DateTime
 
   zonaLavado ZonaLavado @relation(fields: [zonaLavadoId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
 
   limpieza Boolean @default(false)
   desinfeccion Boolean @default(false)
@@ -310,11 +376,33 @@ model RegistroAseoZonaLavado {
   rastros_de_animales Boolean @default(false)
   observaciones_rastros String?
 
-  procedimientos String
+  elementos_aseo String[]
+  elementos_proteccion String[]
+  productos_quimicos String[]
+  procedimiento_aseo String
+  procedimiento_desinfeccion String
+  procedimiento_limpieza String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
+
+  @@index([fecha_registro, zonaLavadoId])
+  @@index([usuarioId, fecha_registro])
+  @@index([deleted])
+}
+
+model ReporteAseoDiario {
+  id Int @id @default(autoincrement())
+  fecha DateTime
+  datos Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@index([fecha])
+  @@index([deleted])
 }
 
 model Factura {
