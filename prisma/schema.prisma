@@ -219,7 +219,7 @@ model Habitacion {
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   deleted                Boolean                  @default(false)
-  RegistroAseoHabitacion RegistroAseoHabitacion[]
+  RegistrosAseoHabitacion RegistroAseoHabitacion[]
 
   @@index([ultimo_aseo_fecha, estado])
   @@index([requerido_aseo_hoy])
@@ -303,7 +303,7 @@ model ZonaComun {
   ultimo_aseo_fecha DateTime?
   ultimo_aseo_tipo TiposAseo?
 
-  RegistroAseoZonaComun RegistroAseoZonaComun[]
+  RegistrosAseoZonaComun RegistroAseoZonaComun[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -352,7 +352,7 @@ model ZonaLavado {
   ultimo_aseo_fecha DateTime?
   ultimo_aseo_tipo TiposAseo?
 
-  RegistroAseoZonaLavado RegistroAseoZonaLavado[]
+  RegistrosAseoZonaLavado RegistroAseoZonaLavado[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
