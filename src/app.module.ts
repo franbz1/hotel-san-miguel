@@ -18,6 +18,7 @@ import { SseModule } from './sse/sse.module';
 import { HabitacionSseService } from './sse/habitacionSse.service';
 import { CronModule } from './cron/cron.module';
 import { AnaliticsModule } from './analitics/analitics.module';
+import { ConfiguracionAseoModule } from './configuracion-aseo/configuracion-aseo.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AnaliticsModule } from './analitics/analitics.module';
     SseModule,
     CronModule,
     AnaliticsModule,
+    ConfiguracionAseoModule,
   ],
   controllers: [],
   providers: [CreateDocService, HabitacionSseService],
