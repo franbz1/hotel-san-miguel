@@ -19,6 +19,7 @@ import { HabitacionSseService } from './sse/habitacionSse.service';
 import { CronModule } from './cron/cron.module';
 import { AnaliticsModule } from './analitics/analitics.module';
 import { ConfiguracionAseoModule } from './configuracion-aseo/configuracion-aseo.module';
+import { ZonasComunesModule } from './zonas-comunes/zonas-comunes.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ConfiguracionAseoModule } from './configuracion-aseo/configuracion-aseo
     CronModule,
     AnaliticsModule,
     ConfiguracionAseoModule,
+    ZonasComunesModule,
   ],
   controllers: [],
   providers: [CreateDocService, HabitacionSseService],
