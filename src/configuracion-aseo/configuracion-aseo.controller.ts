@@ -22,7 +22,7 @@ import {
  */
 @ApiTags('configuracion-aseo')
 @ApiBearerAuth()
-@Auth() // Requiere autenticación para todos los endpoints
+@Auth(Role.ADMINISTRADOR) // Requiere autenticación para todos los endpoints
 @ApiExtraModels(ConfiguracionAseo)
 @Controller('configuracion-aseo')
 export class ConfiguracionAseoController {
