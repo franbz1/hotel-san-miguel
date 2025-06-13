@@ -128,30 +128,6 @@ export class ZonasComunesController {
   }
 
   // ================================================================
-  // READ - Obtener zonas comunes por piso
-  // ================================================================
-  @Roles(Role.ADMINISTRADOR, Role.ASEO, Role.CAJERO)
-  @Get('piso/:piso')
-  @ApiOperation({ summary: 'Obtener zonas comunes por piso' })
-  @ApiParam({
-    name: 'piso',
-    description: 'Número del piso',
-    type: Number,
-    example: 1,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Zonas comunes del piso',
-    type: [ZonaComun],
-  })
-  @ApiResponse(AUTH_INVALID_RESPONSE)
-  @ApiResponse(PERMISSIONS_RESPONSE)
-  @Auth(Role.ADMINISTRADOR, Role.ASEO)
-  findByPiso(@Param('piso', ParseIntPipe) piso: number) {
-    return this.zonasComunesService.findByPiso(piso);
-  }
-
-  // ================================================================
   // READ - Buscar una zona común por id
   // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.ASEO, Role.CAJERO)
@@ -227,5 +203,29 @@ export class ZonasComunesController {
   @ApiResponse(PERMISSIONS_RESPONSE)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.zonasComunesService.remove(id);
+  }
+
+  // ================================================================
+  // READ - Obtener zonas comunes por piso
+  // ================================================================
+  @Roles(Role.ADMINISTRADOR, Role.ASEO, Role.CAJERO)
+  @Get('piso/:piso')
+  @ApiOperation({ summary: 'Obtener zonas comunes por piso' })
+  @ApiParam({
+    name: 'piso',
+    description: 'Número del piso',
+    type: Number,
+    example: 1,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Zonas comunes del piso',
+    type: [ZonaComun],
+  })
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
+  @Auth(Role.ADMINISTRADOR, Role.ASEO)
+  findByPiso(@Param('piso', ParseIntPipe) piso: number) {
+    return this.zonasComunesService.findByPiso(piso);
   }
 }

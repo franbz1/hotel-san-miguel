@@ -41,7 +41,11 @@ export class FiltrosZonaComunDto extends PaginationDto {
   @IsBoolean({
     message: 'Requerido aseo hoy debe ser verdadero o falso',
   })
-  @Transform(({ value }) => value === 'true')
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsOptional()
   public requerido_aseo_hoy?: boolean;
 

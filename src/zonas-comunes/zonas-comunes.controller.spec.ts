@@ -4,7 +4,6 @@ import { ZonasComunesService } from './zonas-comunes.service';
 import { CreateZonaComunDto } from './dto/create-zona-comun.dto';
 import { UpdateZonaComunDto } from './dto/update-zona-comun.dto';
 import { FiltrosZonaComunDto } from './dto/filtros-zona-comun.dto';
-import { PaginationDto } from 'src/common/dtos/paginationDto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { TiposAseo } from './entities/tipos-aseo.enum';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -133,8 +132,7 @@ describe('ZonasComunesController', () => {
   });
 
   describe('findAll', () => {
-    const paginationDto: PaginationDto = { page: 1, limit: 10 };
-    const filtrosDto: FiltrosZonaComunDto = {};
+    const filtrosDto: FiltrosZonaComunDto = { page: 1, limit: 10 };
 
     const respuestaFindAll = {
       data: [
@@ -157,10 +155,10 @@ describe('ZonasComunesController', () => {
       mockZonasComunesService.findAll.mockResolvedValue(respuestaFindAll);
 
       // Act
-      const resultado = await controller.findAll(paginationDto, filtrosDto);
+      const resultado = await controller.findAll(filtrosDto);
 
       // Assert
-      expect(service.findAll).toHaveBeenCalledWith(paginationDto, filtrosDto);
+      expect(service.findAll).toHaveBeenCalledWith(filtrosDto, filtrosDto);
       expect(service.findAll).toHaveBeenCalledTimes(1);
       expect(resultado).toEqual(respuestaFindAll);
       expect(resultado).toHaveProperty('data');
@@ -171,6 +169,8 @@ describe('ZonasComunesController', () => {
     it('debería aplicar filtros correctamente', async () => {
       // Arrange
       const filtrosConDatos: FiltrosZonaComunDto = {
+        page: 1,
+        limit: 10,
         piso: 1,
         requerido_aseo_hoy: true,
         ultimo_aseo_tipo: TiposAseo.LIMPIEZA,
@@ -179,14 +179,11 @@ describe('ZonasComunesController', () => {
       mockZonasComunesService.findAll.mockResolvedValue(respuestaFindAll);
 
       // Act
-      const resultado = await controller.findAll(
-        paginationDto,
-        filtrosConDatos,
-      );
+      const resultado = await controller.findAll(filtrosConDatos);
 
       // Assert
       expect(service.findAll).toHaveBeenCalledWith(
-        paginationDto,
+        filtrosConDatos,
         filtrosConDatos,
       );
       expect(resultado).toEqual(respuestaFindAll);
@@ -202,7 +199,7 @@ describe('ZonasComunesController', () => {
       mockZonasComunesService.findAll.mockResolvedValue(respuestaVacia);
 
       // Act
-      const resultado = await controller.findAll(paginationDto, filtrosDto);
+      const resultado = await controller.findAll(filtrosDto);
 
       // Assert
       expect(resultado.data).toEqual([]);
@@ -550,8 +547,7 @@ describe('ZonasComunesController', () => {
         requerido_aseo_hoy: false,
       };
       const updateDto: UpdateZonaComunDto = { nombre: 'updated' };
-      const paginationDto: PaginationDto = { page: 1, limit: 10 };
-      const filtrosDto: FiltrosZonaComunDto = {};
+      const filtrosDto: FiltrosZonaComunDto = { page: 1, limit: 10 };
 
       mockZonasComunesService.create.mockResolvedValue({});
       mockZonasComunesService.findAll.mockResolvedValue({ data: [], meta: {} });
@@ -563,7 +559,7 @@ describe('ZonasComunesController', () => {
 
       // Act
       await controller.create(createDto);
-      await controller.findAll(paginationDto, filtrosDto);
+      await controller.findAll(filtrosDto);
       await controller.findOne(1);
       await controller.update(1, updateDto);
       await controller.remove(1);
@@ -573,7 +569,7 @@ describe('ZonasComunesController', () => {
       // Assert
       expect(mockZonasComunesService.create).toHaveBeenCalledWith(createDto);
       expect(mockZonasComunesService.findAll).toHaveBeenCalledWith(
-        paginationDto,
+        filtrosDto,
         filtrosDto,
       );
       expect(mockZonasComunesService.findOne).toHaveBeenCalledWith(1);
@@ -593,8 +589,7 @@ describe('ZonasComunesController', () => {
         TiposAseo.DESINFECCION_BANIO,
       ];
 
-      tiposAseoValidos.forEach((tipo) => {
-        const filtrosDto: FiltrosZonaComunDto = { ultimo_aseo_tipo: tipo };
+      tiposAseoValidos.forEach(() => {
         const respuesta = {
           data: [],
           meta: { page: 1, limit: 10, total: 0, lastPage: 1 },
@@ -605,11 +600,12 @@ describe('ZonasComunesController', () => {
 
       // Act & Assert
       for (const tipo of tiposAseoValidos) {
-        const filtros: FiltrosZonaComunDto = { ultimo_aseo_tipo: tipo };
-        const resultado = await controller.findAll(
-          { page: 1, limit: 10 },
-          filtros,
-        );
+        const filtros: FiltrosZonaComunDto = {
+          page: 1,
+          limit: 10,
+          ultimo_aseo_tipo: tipo,
+        };
+        const resultado = await controller.findAll(filtros);
         expect(resultado).toBeDefined();
       }
     });
@@ -673,7 +669,7 @@ describe('ZonasComunesController', () => {
       mockZonasComunesService.findAll.mockResolvedValue(respuestaEsperada);
 
       // Act
-      const resultado = await controller.findAll({ page: 1, limit: 10 }, {});
+      const resultado = await controller.findAll({ page: 1, limit: 10 });
 
       // Assert
       expect(resultado).toMatchObject({
