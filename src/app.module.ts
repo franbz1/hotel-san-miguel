@@ -21,6 +21,7 @@ import { AnaliticsModule } from './analitics/analitics.module';
 import { ConfiguracionAseoModule } from './configuracion-aseo/configuracion-aseo.module';
 import { ZonasComunesModule } from './zonas-comunes/zonas-comunes.module';
 import { RegistroAseoHabitacionesModule } from './registro-aseo-habitaciones/registro-aseo-habitaciones.module';
+import { RegistroAseoZonasComunesModule } from './registro-aseo-zonas-comunes/registro-aseo-zonas-comunes.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { RegistroAseoHabitacionesModule } from './registro-aseo-habitaciones/reg
     ConfiguracionAseoModule,
     ZonasComunesModule,
     RegistroAseoHabitacionesModule,
+    RegistroAseoZonasComunesModule,
   ],
   controllers: [],
   providers: [CreateDocService, HabitacionSseService],
