@@ -20,6 +20,7 @@ import { CronModule } from './cron/cron.module';
 import { AnaliticsModule } from './analitics/analitics.module';
 import { ConfiguracionAseoModule } from './configuracion-aseo/configuracion-aseo.module';
 import { ZonasComunesModule } from './zonas-comunes/zonas-comunes.module';
+import { RegistroAseoHabitacionesModule } from './registro-aseo-habitaciones/registro-aseo-habitaciones.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ZonasComunesModule } from './zonas-comunes/zonas-comunes.module';
     AnaliticsModule,
     ConfiguracionAseoModule,
     ZonasComunesModule,
+    RegistroAseoHabitacionesModule,
   ],
   controllers: [],
   providers: [CreateDocService, HabitacionSseService],

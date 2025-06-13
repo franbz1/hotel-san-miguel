@@ -245,13 +245,13 @@ src/registro-aseo-habitaciones/
 ```
 **Endpoints necesarios:**
 
-- `GET /registro-aseo-habitaciones`  - Listar registros con filtros
-- `GET /registro-aseo-habitaciones/:id`  - Obtener registro específico
-- `POST /registro-aseo-habitaciones`  - Crear registro (ASEO, ADMINISTRADOR)
-- `PUT /registro-aseo-habitaciones/:id`  - Actualizar registro (ASEO, ADMINISTRADOR)
-- `GET /registro-aseo-habitaciones/habitacion/:habitacionId`  - Por habitación
-- `GET /registro-aseo-habitaciones/fecha/:fecha`  - Por fecha
-- `GET /registro-aseo-habitaciones/usuario/:usuarioId`  - Por usuario
+- `GET /registro-aseo-habitaciones`  - Listar registros con filtros y paginacion (ASEO, ADMINISTRADOR, CAJERO)
+- `GET /registro-aseo-habitaciones/:id`  - Obtener registro específico (ASEO, ADMINISTRADOR, CAJERO)
+- `POST /registro-aseo-habitaciones`  - Crear registro (ASEO, ADMINISTRADOR, CAJERO)
+- `PUT /registro-aseo-habitaciones/:id`  - Actualizar registro (ASEO, ADMINISTRADOR, CAJERO)
+- `GET /registro-aseo-habitaciones/habitacion/:habitacionId`  - Por habitación (ASEO, ADMINISTRADOR, CAJERO)
+- `GET /registro-aseo-habitaciones/fecha/:fecha`  - Por fecha (ASEO, ADMINISTRADOR, CAJERO)
+- `GET /registro-aseo-habitaciones/usuario/:usuarioId`  - Por usuario (ASEO, ADMINISTRADOR, CAJERO)
 #### 2.2 Módulo de Registro Aseo Zonas Comunes
 ```
 src/registro-aseo-zonas-comunes/
