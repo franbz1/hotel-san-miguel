@@ -203,7 +203,7 @@ describe('ZonasComunesService', () => {
       });
       expect(resultado).toEqual({
         data: zonasComunes,
-        meta: { page: 1, limit: 10, totalZonasComunes: 2, lastPage: 1 },
+        meta: { page: 1, limit: 10, total: 2, lastPage: 1 },
       });
     });
 
@@ -263,7 +263,7 @@ describe('ZonasComunesService', () => {
       // Assert
       expect(resultado).toEqual({
         data: [],
-        meta: { page: 1, limit: 10, totalZonasComunes: 0, lastPage: 1 },
+        meta: { page: 1, limit: 10, total: 0, lastPage: 0 },
       });
       expect(mockPrismaService.zonaComun.findMany).not.toHaveBeenCalled();
     });
@@ -282,7 +282,7 @@ describe('ZonasComunesService', () => {
       // Assert
       expect(resultado).toEqual({
         data: [],
-        meta: { page: 5, limit: 10, totalZonasComunes: 2, lastPage: 1 },
+        meta: { page: 5, limit: 10, total: 2, lastPage: 1 },
       });
       expect(mockPrismaService.zonaComun.findMany).not.toHaveBeenCalled();
     });
@@ -659,7 +659,7 @@ describe('ZonasComunesService', () => {
         meta: {
           page: expect.any(Number),
           limit: expect.any(Number),
-          totalZonasComunes: expect.any(Number),
+          total: expect.any(Number),
           lastPage: expect.any(Number),
         },
       });

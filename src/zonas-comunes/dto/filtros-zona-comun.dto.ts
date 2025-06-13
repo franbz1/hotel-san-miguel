@@ -9,8 +9,9 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { TiposAseo } from '../entities/tipos-aseo.enum';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
 
-export class FiltrosZonaComunDto {
+export class FiltrosZonaComunDto extends PaginationDto {
   @ApiProperty({
     description: 'Filtrar por número de piso',
     example: 1,

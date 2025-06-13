@@ -149,7 +149,7 @@ describe('ZonasComunesController', () => {
           updatedAt: new Date(),
         },
       ],
-      meta: { page: 1, limit: 10, totalZonasComunes: 1, lastPage: 1 },
+      meta: { page: 1, limit: 10, total: 1, lastPage: 1 },
     };
 
     it('debería obtener todas las zonas comunes con paginación', async () => {
@@ -196,7 +196,7 @@ describe('ZonasComunesController', () => {
       // Arrange
       const respuestaVacia = {
         data: [],
-        meta: { page: 1, limit: 10, totalZonasComunes: 0, lastPage: 1 },
+        meta: { page: 1, limit: 10, total: 0, lastPage: 1 },
       };
 
       mockZonasComunesService.findAll.mockResolvedValue(respuestaVacia);
@@ -206,7 +206,7 @@ describe('ZonasComunesController', () => {
 
       // Assert
       expect(resultado.data).toEqual([]);
-      expect(resultado.meta.totalZonasComunes).toBe(0);
+      expect(resultado.meta.total).toBe(0);
     });
   });
 
@@ -227,7 +227,7 @@ describe('ZonasComunesController', () => {
       mockZonasComunesService.findOne.mockResolvedValue(zonaComunEncontrada);
 
       // Act
-      const resultado = await controller.findOne('1');
+      const resultado = await controller.findOne(1);
 
       // Assert
       expect(service.findOne).toHaveBeenCalledWith(1);
@@ -244,10 +244,8 @@ describe('ZonasComunesController', () => {
       );
 
       // Act & Assert
-      await expect(controller.findOne('999')).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(controller.findOne('999')).rejects.toThrow(
+      await expect(controller.findOne(999)).rejects.toThrow(NotFoundException);
+      await expect(controller.findOne(999)).rejects.toThrow(
         'Zona común con ID 999 no encontrada',
       );
       expect(service.findOne).toHaveBeenCalledWith(999);
@@ -258,7 +256,7 @@ describe('ZonasComunesController', () => {
       mockZonasComunesService.findOne.mockResolvedValue(zonaComunEncontrada);
 
       // Act
-      await controller.findOne('123');
+      await controller.findOne(123);
 
       // Assert
       expect(service.findOne).toHaveBeenCalledWith(123);
@@ -287,7 +285,7 @@ describe('ZonasComunesController', () => {
       mockZonasComunesService.update.mockResolvedValue(zonaComunActualizada);
 
       // Act
-      const resultado = await controller.update('1', updateZonaComunDto);
+      const resultado = await controller.update(1, updateZonaComunDto);
 
       // Assert
       expect(service.update).toHaveBeenCalledWith(1, updateZonaComunDto);
@@ -304,12 +302,12 @@ describe('ZonasComunesController', () => {
       );
 
       // Act & Assert
-      await expect(
-        controller.update('999', updateZonaComunDto),
-      ).rejects.toThrow(NotFoundException);
-      await expect(
-        controller.update('999', updateZonaComunDto),
-      ).rejects.toThrow('Zona común con ID 999 no encontrada');
+      await expect(controller.update(999, updateZonaComunDto)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(controller.update(999, updateZonaComunDto)).rejects.toThrow(
+        'Zona común con ID 999 no encontrada',
+      );
       expect(service.update).toHaveBeenCalledWith(999, updateZonaComunDto);
     });
 
@@ -323,10 +321,10 @@ describe('ZonasComunesController', () => {
       );
 
       // Act & Assert
-      await expect(controller.update('1', updateDtoVacio)).rejects.toThrow(
+      await expect(controller.update(1, updateDtoVacio)).rejects.toThrow(
         BadRequestException,
       );
-      await expect(controller.update('1', updateDtoVacio)).rejects.toThrow(
+      await expect(controller.update(1, updateDtoVacio)).rejects.toThrow(
         'Debe enviar datos para actualizar la zona común',
       );
     });
@@ -349,7 +347,7 @@ describe('ZonasComunesController', () => {
       mockZonasComunesService.remove.mockResolvedValue(zonaComunEliminada);
 
       // Act
-      const resultado = await controller.remove('1');
+      const resultado = await controller.remove(1);
 
       // Assert
       expect(service.remove).toHaveBeenCalledWith(1);
@@ -364,8 +362,8 @@ describe('ZonasComunesController', () => {
       );
 
       // Act & Assert
-      await expect(controller.remove('999')).rejects.toThrow(NotFoundException);
-      await expect(controller.remove('999')).rejects.toThrow(
+      await expect(controller.remove(999)).rejects.toThrow(NotFoundException);
+      await expect(controller.remove(999)).rejects.toThrow(
         'Zona común con ID 999 no encontrada',
       );
       expect(service.remove).toHaveBeenCalledWith(999);
@@ -401,7 +399,7 @@ describe('ZonasComunesController', () => {
       mockZonasComunesService.findByPiso.mockResolvedValue(zonasDelPiso);
 
       // Act
-      const resultado = await controller.findByPiso('1');
+      const resultado = await controller.findByPiso(1);
 
       // Assert
       expect(service.findByPiso).toHaveBeenCalledWith(1);
@@ -418,7 +416,7 @@ describe('ZonasComunesController', () => {
       mockZonasComunesService.findByPiso.mockResolvedValue([]);
 
       // Act
-      const resultado = await controller.findByPiso('99');
+      const resultado = await controller.findByPiso(99);
 
       // Assert
       expect(service.findByPiso).toHaveBeenCalledWith(99);
@@ -566,10 +564,10 @@ describe('ZonasComunesController', () => {
       // Act
       await controller.create(createDto);
       await controller.findAll(paginationDto, filtrosDto);
-      await controller.findOne('1');
-      await controller.update('1', updateDto);
-      await controller.remove('1');
-      await controller.findByPiso('1');
+      await controller.findOne(1);
+      await controller.update(1, updateDto);
+      await controller.remove(1);
+      await controller.findByPiso(1);
       await controller.findRequierenAseo();
 
       // Assert
@@ -599,7 +597,7 @@ describe('ZonasComunesController', () => {
         const filtrosDto: FiltrosZonaComunDto = { ultimo_aseo_tipo: tipo };
         const respuesta = {
           data: [],
-          meta: { page: 1, limit: 10, totalZonasComunes: 0, lastPage: 1 },
+          meta: { page: 1, limit: 10, total: 0, lastPage: 1 },
         };
 
         mockZonasComunesService.findAll.mockResolvedValueOnce(respuesta);
@@ -668,7 +666,7 @@ describe('ZonasComunesController', () => {
         meta: {
           page: 1,
           limit: 10,
-          totalZonasComunes: 1,
+          total: 1,
           lastPage: 1,
         },
       };
@@ -683,7 +681,7 @@ describe('ZonasComunesController', () => {
         meta: {
           page: expect.any(Number),
           limit: expect.any(Number),
-          totalZonasComunes: expect.any(Number),
+          total: expect.any(Number),
           lastPage: expect.any(Number),
         },
       });

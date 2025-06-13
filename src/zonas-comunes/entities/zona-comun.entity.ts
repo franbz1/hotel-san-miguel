@@ -6,7 +6,7 @@ import { TiposAseo } from './tipos-aseo.enum';
  */
 export class ZonaComun {
   @ApiProperty({
-    description: 'Identificador único de la zona común',
+    description: 'ID único de la zona común',
     example: 1,
   })
   public id: number;
@@ -26,37 +26,33 @@ export class ZonaComun {
   @ApiProperty({
     description: 'Indica si la zona común requiere aseo hoy',
     example: false,
-    default: false,
   })
   public requerido_aseo_hoy: boolean;
 
   @ApiProperty({
     description: 'Fecha del último aseo realizado en la zona común',
     example: '2024-01-15T10:30:00Z',
-    type: Date,
-    required: false,
+    nullable: true,
   })
-  public ultimo_aseo_fecha?: Date;
+  public ultimo_aseo_fecha: Date | null;
 
   @ApiProperty({
     description: 'Tipo del último aseo realizado en la zona común',
     enum: TiposAseo,
     example: TiposAseo.LIMPIEZA,
-    required: false,
+    nullable: true,
   })
-  public ultimo_aseo_tipo?: TiposAseo;
+  public ultimo_aseo_tipo: TiposAseo | null;
 
   @ApiProperty({
-    description: 'Fecha de creación de la zona común',
+    description: 'Fecha de creación del registro',
     example: '2024-01-15T10:30:00Z',
-    type: Date,
   })
   public createdAt: Date;
 
   @ApiProperty({
-    description: 'Fecha de última actualización de la zona común',
+    description: 'Fecha de última actualización del registro',
     example: '2024-01-15T10:30:00Z',
-    type: Date,
   })
   public updatedAt: Date;
 
