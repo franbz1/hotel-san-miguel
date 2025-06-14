@@ -230,6 +230,7 @@ model Habitacion {
 model ConfiguracionAseo {
   id Int @id @default(autoincrement())
   hora_limite_aseo String @default("17:00")
+  hora_proceso_nocturno_utc String @default("05:00")
   frecuencia_rotacion_colchones Int @default(180) // 6 meses
   dias_aviso_rotacion_colchones Int @default(5)
 

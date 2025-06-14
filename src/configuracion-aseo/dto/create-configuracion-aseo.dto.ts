@@ -29,6 +29,21 @@ export class CreateConfiguracionAseoDto {
   public hora_limite_aseo?: string;
 
   @ApiProperty({
+    description:
+      'Hora en UTC para ejecutar el proceso nocturno de aseo (formato HH:MM)',
+    example: '05:00',
+    default: '05:00',
+  })
+  @IsString({
+    message: 'La hora del proceso nocturno debe ser un texto',
+  })
+  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, {
+    message: 'La hora del proceso nocturno debe tener formato HH:MM (24 horas)',
+  })
+  @IsOptional()
+  public hora_proceso_nocturno_utc?: string;
+
+  @ApiProperty({
     description: 'Frecuencia de rotación de colchones en días',
     example: 180,
     default: 180,

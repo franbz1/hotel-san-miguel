@@ -26,6 +26,7 @@ export class ConfiguracionAseoService {
         configuracion = await this.prisma.configuracionAseo.create({
           data: {
             hora_limite_aseo: '17:00',
+            hora_proceso_nocturno_utc: '05:00',
             frecuencia_rotacion_colchones: 180,
             dias_aviso_rotacion_colchones: 5,
             habilitar_notificaciones: false,
@@ -72,6 +73,7 @@ export class ConfiguracionAseoService {
         return await this.prisma.configuracionAseo.create({
           data: {
             hora_limite_aseo: '17:00',
+            hora_proceso_nocturno_utc: '05:00',
             frecuencia_rotacion_colchones: 180,
             dias_aviso_rotacion_colchones: 5,
             habilitar_notificaciones: false,
