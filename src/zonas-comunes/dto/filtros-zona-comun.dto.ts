@@ -63,3 +63,4 @@ export class FiltrosZonaComunDto extends PaginationDto {
   @IsOptional()
   public ultimo_aseo_tipo?: TiposAseo;
 }
+ 

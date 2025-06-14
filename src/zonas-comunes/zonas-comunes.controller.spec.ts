@@ -67,7 +67,7 @@ describe('ZonasComunesController', () => {
 
   describe('Definición del controlador', () => {
     it('debería estar definido', () => {
-      expect(controller).toBeDefined();
+    expect(controller).toBeDefined();
     });
   });
 
