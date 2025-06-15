@@ -8,7 +8,7 @@ import {
   Max,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { TiposAseo } from '../entities/tipos-aseo.enum';
+import { TiposAseo } from '../../common/enums/tipos-aseo.enum';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 
 export class FiltrosZonaComunDto extends PaginationDto {

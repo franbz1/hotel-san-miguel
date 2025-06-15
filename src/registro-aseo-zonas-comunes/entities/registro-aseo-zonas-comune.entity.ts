@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TiposAseo } from 'src/zonas-comunes/entities/tipos-aseo.enum';
+import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
 
 /**
  * Registro de aseo realizado en una zona común específica

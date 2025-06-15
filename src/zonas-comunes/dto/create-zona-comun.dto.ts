@@ -11,7 +11,7 @@ import {
   Max,
   IsDateString,
 } from 'class-validator';
-import { TiposAseo } from '../entities/tipos-aseo.enum';
+import { TiposAseo } from '../../common/enums/tipos-aseo.enum';
 
 export class CreateZonaComunDto {
   @ApiProperty({

@@ -6,7 +6,7 @@ import { CreateZonaComunDto } from './dto/create-zona-comun.dto';
 import { UpdateZonaComunDto } from './dto/update-zona-comun.dto';
 import { FiltrosZonaComunDto } from './dto/filtros-zona-comun.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
-import { TiposAseo } from './entities/tipos-aseo.enum';
+import { TiposAseo } from '../common/enums/tipos-aseo.enum';
 
 describe('ZonasComunesService', () => {
   let service: ZonasComunesService;

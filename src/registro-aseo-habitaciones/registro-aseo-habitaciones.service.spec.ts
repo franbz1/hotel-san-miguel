@@ -6,7 +6,7 @@ import { CreateRegistroAseoHabitacionDto } from './dto/create-registro-aseo-habi
 import { UpdateRegistroAseoHabitacionDto } from './dto/update-registro-aseo-habitacion.dto';
 import { FiltrosRegistroAseoHabitacionDto } from './dto/filtros-registro-aseo-habitacion.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
-import { TiposAseo } from 'src/zonas-comunes/entities/tipos-aseo.enum';
+import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
 
 describe('RegistroAseoHabitacionesService', () => {
   let service: RegistroAseoHabitacionesService;

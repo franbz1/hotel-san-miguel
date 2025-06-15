@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TiposAseo } from './tipos-aseo.enum';
+import { TiposAseo } from '../../common/enums/tipos-aseo.enum';
 
 /**
  * Zona común del hotel que requiere aseo

@@ -13,7 +13,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { TiposAseo } from 'src/zonas-comunes/entities/tipos-aseo.enum';
+import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
 
 export class CreateRegistroAseoHabitacionDto {
   @ApiProperty({

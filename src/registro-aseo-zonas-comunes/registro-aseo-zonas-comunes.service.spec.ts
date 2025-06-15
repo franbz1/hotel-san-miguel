@@ -6,7 +6,7 @@ import { CreateRegistroAseoZonaComunDto } from './dto/create-registro-aseo-zonas
 import { UpdateRegistroAseoZonaComunDto } from './dto/update-registro-aseo-zonas-comune.dto';
 import { FiltrosRegistroAseoZonaComunDto } from './dto/filtros-registro-aseo-zona-comun.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
-import { TiposAseo } from 'src/zonas-comunes/entities/tipos-aseo.enum';
+import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
 
 describe('RegistroAseoZonasComunesService', () => {
   let service: RegistroAseoZonasComunesService;

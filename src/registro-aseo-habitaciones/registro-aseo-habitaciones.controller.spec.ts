@@ -5,7 +5,7 @@ import { CreateRegistroAseoHabitacionDto } from './dto/create-registro-aseo-habi
 import { UpdateRegistroAseoHabitacionDto } from './dto/update-registro-aseo-habitacion.dto';
 import { FiltrosRegistroAseoHabitacionDto } from './dto/filtros-registro-aseo-habitacion.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { TiposAseo } from 'src/zonas-comunes/entities/tipos-aseo.enum';
+import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
 
