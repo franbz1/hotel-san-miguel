@@ -6,6 +6,8 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import notFoundError from 'src/common/errors/notfoundError';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
+import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
+import { Prisma } from '@prisma/client';
 
 /**
  * Service CRUD para manejar registros de aseo de habitaciones
@@ -23,11 +25,23 @@ export class RegistroAseoHabitacionesService {
     createRegistroAseoHabitacionDto: CreateRegistroAseoHabitacionDto,
   ) {
     try {
-      return await this.prisma.registroAseoHabitacion.create({
-        data: createRegistroAseoHabitacionDto,
-        select: this.defaultRegistroSelection(),
+      return await this.prisma.$transaction(async (tx) => {
+        const registro = await tx.registroAseoHabitacion.create({
+          data: createRegistroAseoHabitacionDto,
+          select: this.defaultRegistroSelection(),
+        });
+
+        await this.actualizarEstadosAseoHabitacion(
+          createRegistroAseoHabitacionDto.tipos_realizados,
+          tx,
+          createRegistroAseoHabitacionDto.habitacionId,
+          new Date(createRegistroAseoHabitacionDto.fecha_registro),
+        );
+
+        return registro;
       });
-    } catch {
+    } catch (error) {
+      console.error('Error al crear registro de aseo de habitación:', error);
       throw new BadRequestException(
         'Error al crear registro de aseo de habitación',
       );
@@ -264,5 +278,113 @@ export class RegistroAseoHabitacionesService {
       createdAt: true,
       updatedAt: true,
     };
+  }
+
+  /**
+   * Actualiza los estados de aseo de una habitación cuando se crea un nuevo registro
+   * @param tiposRealizados Tipos de aseo realizados
+   * @param tx Transacción de prisma
+   * @param habitacionId ID de la habitación
+   * @param fechaRegistro Fecha del registro de aseo
+   */
+  private async actualizarEstadosAseoHabitacion(
+    tiposRealizados: TiposAseo[],
+    tx: Prisma.TransactionClient,
+    habitacionId: number,
+    fechaRegistro: Date,
+  ) {
+    const habitacion = await tx.habitacion.findUnique({
+      where: {
+        id: habitacionId,
+        deleted: false,
+      },
+    });
+
+    if (!habitacion) throw notFoundError(habitacionId);
+
+    // Determinar el tipo de aseo más relevante basado en prioridades
+    const tipoAseoMasRelevante =
+      this.determinarTipoAseoMasRelevante(tiposRealizados);
+
+    // Preparar datos de actualización
+    const dataToUpdate: any = {
+      ultimo_aseo_fecha: fechaRegistro,
+      ultimo_aseo_tipo: tipoAseoMasRelevante,
+      requerido_aseo_hoy: false,
+    };
+
+    // Si se realizó rotación de colchones, calcular próxima fecha
+    if (tiposRealizados.includes(TiposAseo.ROTACION_COLCHONES)) {
+      const configuracion = await this.obtenerConfiguracionAseo(tx);
+      const proximaRotacion = new Date(fechaRegistro);
+      proximaRotacion.setDate(
+        proximaRotacion.getDate() + configuracion.frecuencia_rotacion_colchones,
+      );
+
+      dataToUpdate.ultima_rotacion_colchones = fechaRegistro;
+      dataToUpdate.proxima_rotacion_colchones = proximaRotacion;
+      dataToUpdate.requerido_rotacion_colchones = false;
+    }
+
+    await tx.habitacion.update({
+      where: {
+        id: habitacionId,
+        deleted: false,
+      },
+      data: dataToUpdate,
+    });
+  }
+
+  /**
+   * Determina el tipo de aseo más relevante basado en prioridades de importancia
+   * @param tipos Array de tipos de aseo realizados
+   * @returns El tipo de aseo más relevante
+   */
+  private determinarTipoAseoMasRelevante(tipos: TiposAseo[]): TiposAseo {
+    // Definir prioridades (mayor número = mayor prioridad)
+    const prioridades = {
+      [TiposAseo.ROTACION_COLCHONES]: 5,
+      [TiposAseo.DESINFECCION]: 4,
+      [TiposAseo.DESINFECCION_BANIO]: 3,
+      [TiposAseo.LIMPIEZA_BANIO]: 2,
+      [TiposAseo.LIMPIEZA]: 1,
+    };
+
+    return tipos.reduce((tipoMasRelevante, tipoActual) => {
+      return prioridades[tipoActual] > prioridades[tipoMasRelevante]
+        ? tipoActual
+        : tipoMasRelevante;
+    });
+  }
+
+  /**
+   * Obtiene la configuración de aseo actual
+   * @param tx Transacción de prisma
+   * @returns Configuración de aseo
+   */
+  private async obtenerConfiguracionAseo(tx: Prisma.TransactionClient) {
+    let configuracion = await tx.configuracionAseo.findFirst({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Si no existe configuración, crear una por defecto
+    if (!configuracion) {
+      configuracion = await tx.configuracionAseo.create({
+        data: {
+          hora_limite_aseo: '17:00',
+          hora_proceso_nocturno_utc: '05:00',
+          frecuencia_rotacion_colchones: 180,
+          dias_aviso_rotacion_colchones: 5,
+          habilitar_notificaciones: false,
+          elementos_aseo_default: [],
+          elementos_proteccion_default: [],
+          productos_quimicos_default: [],
+          areas_intervenir_habitacion_default: [],
+          areas_intervenir_banio_default: [],
+        },
+      });
+    }
+
+    return configuracion;
   }
 }

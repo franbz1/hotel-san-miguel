@@ -20,6 +20,7 @@ describe('RegistroAseoHabitacionesService', () => {
       update: jest.fn(),
       count: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -71,42 +72,53 @@ describe('RegistroAseoHabitacionesService', () => {
       deleted: false,
     };
 
-    it('debería crear un registro de aseo de habitación correctamente', async () => {
-      // Arrange
-      mockPrismaService.registroAseoHabitacion.create.mockResolvedValue(
-        registroCreado,
-      );
+    const mockHabitacion = {
+      id: 101,
+      numero_habitacion: 101,
+      ultimo_aseo_fecha: new Date('2024-01-14T10:00:00Z'),
+      ultimo_aseo_tipo: TiposAseo.LIMPIEZA,
+      requerido_aseo_hoy: true,
+    };
 
+    const mockConfiguracion = {
+      id: 1,
+      frecuencia_rotacion_colchones: 180,
+      dias_aviso_rotacion_colchones: 5,
+    };
+
+    beforeEach(() => {
+      // Configurar mock de transacción por defecto
+      const mockTransaction = {
+        registroAseoHabitacion: {
+          create: jest.fn().mockResolvedValue(registroCreado),
+        },
+        habitacion: {
+          findUnique: jest.fn().mockResolvedValue(mockHabitacion),
+          update: jest.fn().mockResolvedValue(mockHabitacion),
+        },
+        configuracionAseo: {
+          findFirst: jest.fn().mockResolvedValue(mockConfiguracion),
+          create: jest.fn().mockResolvedValue(mockConfiguracion),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+    });
+
+    it('debería crear un registro de aseo de habitación correctamente', async () => {
       // Act
       const resultado = await service.create(createRegistroDto);
 
       // Assert
-      expect(
-        mockPrismaService.registroAseoHabitacion.create,
-      ).toHaveBeenCalledWith({
-        data: createRegistroDto,
-        select: {
-          id: true,
-          usuarioId: true,
-          habitacionId: true,
-          fecha_registro: true,
-          areas_intervenidas: true,
-          areas_intervenidas_banio: true,
-          procedimiento_rotacion_colchones: true,
-          tipos_realizados: true,
-          objetos_perdidos: true,
-          rastros_de_animales: true,
-          observaciones: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
+      expect(mockPrismaService.$transaction).toHaveBeenCalledTimes(1);
       expect(resultado).toEqual(registroCreado);
     });
 
     it('debería lanzar BadRequestException cuando ocurre un error en la creación', async () => {
       // Arrange
-      mockPrismaService.registroAseoHabitacion.create.mockRejectedValue(
+      mockPrismaService.$transaction.mockRejectedValue(
         new Error('Database error'),
       );
 
@@ -119,63 +131,155 @@ describe('RegistroAseoHabitacionesService', () => {
       );
     });
 
-    it('debería manejar la creación con datos opcionales completos', async () => {
+    it('debería actualizar el estado de la habitación al crear un registro', async () => {
       // Arrange
-      const createDtoCompleto: CreateRegistroAseoHabitacionDto = {
-        usuarioId: 2,
-        habitacionId: 102,
-        fecha_registro: '2024-01-16T14:00:00Z',
-        areas_intervenidas: ['Cama', 'Escritorio'],
-        areas_intervenidas_banio: ['Lavamanos', 'Ducha'],
-        procedimiento_rotacion_colchones:
-          'Rotación 180° y volteo del colchón principal',
-        tipos_realizados: [
-          TiposAseo.DESINFECCION,
-          TiposAseo.ROTACION_COLCHONES,
-        ],
-        objetos_perdidos: true,
-        rastros_de_animales: false,
-        observaciones: 'Se encontró una billetera bajo la cama',
+      const mockTransaction = {
+        registroAseoHabitacion: {
+          create: jest.fn().mockResolvedValue(registroCreado),
+        },
+        habitacion: {
+          findUnique: jest.fn().mockResolvedValue(mockHabitacion),
+          update: jest.fn().mockResolvedValue(mockHabitacion),
+        },
+        configuracionAseo: {
+          findFirst: jest.fn().mockResolvedValue(mockConfiguracion),
+        },
       };
 
-      const registroCompletoCreado = {
-        id: 2,
-        ...createDtoCompleto,
-        fecha_registro: new Date('2024-01-16T14:00:00Z'),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deleted: false,
-      };
-
-      mockPrismaService.registroAseoHabitacion.create.mockResolvedValue(
-        registroCompletoCreado,
-      );
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
 
       // Act
-      const resultado = await service.create(createDtoCompleto);
+      const resultado = await service.create(createRegistroDto);
 
       // Assert
       expect(
-        mockPrismaService.registroAseoHabitacion.create,
+        mockTransaction.registroAseoHabitacion.create,
       ).toHaveBeenCalledWith({
-        data: createDtoCompleto,
-        select: {
-          id: true,
-          usuarioId: true,
-          habitacionId: true,
-          fecha_registro: true,
-          areas_intervenidas: true,
-          areas_intervenidas_banio: true,
-          procedimiento_rotacion_colchones: true,
-          tipos_realizados: true,
-          objetos_perdidos: true,
-          rastros_de_animales: true,
-          observaciones: true,
-          createdAt: true,
-          updatedAt: true,
+        data: createRegistroDto,
+        select: expect.any(Object),
+      });
+
+      expect(mockTransaction.habitacion.findUnique).toHaveBeenCalledWith({
+        where: { id: 101, deleted: false },
+      });
+
+      expect(mockTransaction.habitacion.update).toHaveBeenCalledWith({
+        where: { id: 101, deleted: false },
+        data: {
+          ultimo_aseo_fecha: new Date('2024-01-15T10:30:00Z'),
+          ultimo_aseo_tipo: TiposAseo.LIMPIEZA_BANIO, // El más relevante según prioridades
+          requerido_aseo_hoy: false,
         },
       });
-      expect(resultado).toEqual(registroCompletoCreado);
+
+      expect(resultado).toEqual(registroCreado);
+    });
+
+    it('debería manejar rotación de colchones y calcular próxima fecha', async () => {
+      // Arrange
+      const createDtoConRotacion: CreateRegistroAseoHabitacionDto = {
+        ...createRegistroDto,
+        tipos_realizados: [TiposAseo.LIMPIEZA, TiposAseo.ROTACION_COLCHONES],
+        procedimiento_rotacion_colchones: 'Rotación 180° del colchón',
+      };
+
+      const fechaRegistro = new Date('2024-01-15T10:30:00Z');
+      const proximaRotacion = new Date('2024-07-13T10:30:00Z'); // 180 días después
+
+      const mockTransaction = {
+        registroAseoHabitacion: {
+          create: jest.fn().mockResolvedValue({ id: 1 }),
+        },
+        habitacion: {
+          findUnique: jest.fn().mockResolvedValue(mockHabitacion),
+          update: jest.fn().mockResolvedValue(mockHabitacion),
+        },
+        configuracionAseo: {
+          findFirst: jest.fn().mockResolvedValue(mockConfiguracion),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      await service.create(createDtoConRotacion);
+
+      // Assert
+      expect(mockTransaction.habitacion.update).toHaveBeenCalledWith({
+        where: { id: 101, deleted: false },
+        data: expect.objectContaining({
+          ultimo_aseo_fecha: fechaRegistro,
+          ultimo_aseo_tipo: TiposAseo.ROTACION_COLCHONES, // Máxima prioridad
+          requerido_aseo_hoy: false,
+          ultima_rotacion_colchones: fechaRegistro,
+          proxima_rotacion_colchones: expect.any(Date),
+          requerido_rotacion_colchones: false,
+        }),
+      });
+    });
+
+    it('debería crear configuración por defecto si no existe', async () => {
+      // Arrange
+      const mockTransaction = {
+        registroAseoHabitacion: {
+          create: jest.fn().mockResolvedValue(registroCreado),
+        },
+        habitacion: {
+          findUnique: jest.fn().mockResolvedValue(mockHabitacion),
+          update: jest.fn().mockResolvedValue(mockHabitacion),
+        },
+        configuracionAseo: {
+          findFirst: jest.fn().mockResolvedValue(null), // No existe configuración
+          create: jest.fn().mockResolvedValue(mockConfiguracion),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      await service.create(createRegistroDto);
+
+      // Assert
+      expect(mockTransaction.configuracionAseo.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          frecuencia_rotacion_colchones: 180,
+          dias_aviso_rotacion_colchones: 5,
+        }),
+      });
+    });
+
+    it('debería lanzar NotFoundException cuando la habitación no existe', async () => {
+      // Arrange
+      const mockTransaction = {
+        registroAseoHabitacion: {
+          create: jest.fn().mockResolvedValue(registroCreado),
+        },
+        habitacion: {
+          findUnique: jest.fn().mockResolvedValue(null), // Habitación no existe
+          update: jest.fn(),
+        },
+        configuracionAseo: {
+          findFirst: jest.fn().mockResolvedValue(mockConfiguracion),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act & Assert
+      await expect(service.create(createRegistroDto)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.create(createRegistroDto)).rejects.toThrow(
+        'No se encontró el elemento con el ID: 101',
+      );
     });
   });
 
