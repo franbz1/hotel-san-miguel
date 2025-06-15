@@ -20,6 +20,7 @@ describe('RegistroAseoZonasComunesService', () => {
       update: jest.fn(),
       count: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -68,39 +69,43 @@ describe('RegistroAseoZonasComunesService', () => {
       deleted: false,
     };
 
-    it('debería crear un registro de aseo de zona común correctamente', async () => {
-      // Arrange
-      mockPrismaService.registroAseoZonaComun.create.mockResolvedValue(
-        registroCreado,
-      );
+    const mockZonaComun = {
+      id: 1,
+      nombre: 'Lobby',
+      ultimo_aseo_fecha: new Date('2024-01-14T10:00:00Z'),
+      ultimo_aseo_tipo: TiposAseo.LIMPIEZA,
+      requerido_aseo_hoy: true,
+    };
 
+    beforeEach(() => {
+      // Configurar mock de transacción por defecto
+      const mockTransaction = {
+        registroAseoZonaComun: {
+          create: jest.fn().mockResolvedValue(registroCreado),
+        },
+        zonaComun: {
+          findUnique: jest.fn().mockResolvedValue(mockZonaComun),
+          update: jest.fn().mockResolvedValue(mockZonaComun),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+    });
+
+    it('debería crear un registro de aseo de zona común correctamente', async () => {
       // Act
       const resultado = await service.create(createRegistroDto);
 
       // Assert
-      expect(
-        mockPrismaService.registroAseoZonaComun.create,
-      ).toHaveBeenCalledWith({
-        data: createRegistroDto,
-        select: {
-          id: true,
-          usuarioId: true,
-          zonaComunId: true,
-          fecha_registro: true,
-          tipos_realizados: true,
-          objetos_perdidos: true,
-          rastros_de_animales: true,
-          observaciones: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
+      expect(mockPrismaService.$transaction).toHaveBeenCalledTimes(1);
       expect(resultado).toEqual(registroCreado);
     });
 
     it('debería lanzar BadRequestException cuando ocurre un error en la creación', async () => {
       // Arrange
-      mockPrismaService.registroAseoZonaComun.create.mockRejectedValue(
+      mockPrismaService.$transaction.mockRejectedValue(
         new Error('Database error'),
       );
 
@@ -134,32 +139,159 @@ describe('RegistroAseoZonasComunesService', () => {
         deleted: false,
       };
 
-      mockPrismaService.registroAseoZonaComun.create.mockResolvedValue(
-        registroCompletoCreado,
-      );
+      const mockTransactionCompleto = {
+        registroAseoZonaComun: {
+          create: jest.fn().mockResolvedValue(registroCompletoCreado),
+        },
+        zonaComun: {
+          findUnique: jest.fn().mockResolvedValue({ id: 2, nombre: 'Piscina' }),
+          update: jest.fn().mockResolvedValue({ id: 2, nombre: 'Piscina' }),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransactionCompleto);
+      });
 
       // Act
       const resultado = await service.create(createDtoCompleto);
 
       // Assert
-      expect(
-        mockPrismaService.registroAseoZonaComun.create,
-      ).toHaveBeenCalledWith({
-        data: createDtoCompleto,
-        select: {
-          id: true,
-          usuarioId: true,
-          zonaComunId: true,
-          fecha_registro: true,
-          tipos_realizados: true,
-          objetos_perdidos: true,
-          rastros_de_animales: true,
-          observaciones: true,
-          createdAt: true,
-          updatedAt: true,
+      expect(mockPrismaService.$transaction).toHaveBeenCalledTimes(1);
+      expect(resultado).toEqual(registroCompletoCreado);
+    });
+
+    it('debería actualizar el estado de la zona común al crear un registro', async () => {
+      // Arrange
+      const mockTransaction = {
+        registroAseoZonaComun: {
+          create: jest.fn().mockResolvedValue(registroCreado),
+        },
+        zonaComun: {
+          findUnique: jest.fn().mockResolvedValue(mockZonaComun),
+          update: jest.fn().mockResolvedValue(mockZonaComun),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      const resultado = await service.create(createRegistroDto);
+
+      // Assert
+      expect(mockTransaction.registroAseoZonaComun.create).toHaveBeenCalledWith({
+        data: createRegistroDto,
+        select: expect.any(Object),
+      });
+
+      expect(mockTransaction.zonaComun.findUnique).toHaveBeenCalledWith({
+        where: { id: 1, deleted: false },
+      });
+
+      expect(mockTransaction.zonaComun.update).toHaveBeenCalledWith({
+        where: { id: 1, deleted: false },
+        data: {
+          ultimo_aseo_fecha: new Date('2024-01-15T10:30:00Z'),
+          ultimo_aseo_tipo: TiposAseo.DESINFECCION, // El más relevante según prioridades
+          requerido_aseo_hoy: false,
         },
       });
-      expect(resultado).toEqual(registroCompletoCreado);
+
+      expect(resultado).toEqual(registroCreado);
+    });
+
+    it('debería determinar correctamente el tipo de aseo más relevante', async () => {
+      // Arrange
+      const createDtoMultiplesTipos: CreateRegistroAseoZonaComunDto = {
+        ...createRegistroDto,
+        tipos_realizados: [TiposAseo.LIMPIEZA, TiposAseo.DESINFECCION],
+      };
+
+      const mockTransaction = {
+        registroAseoZonaComun: {
+          create: jest.fn().mockResolvedValue({ id: 1 }),
+        },
+        zonaComun: {
+          findUnique: jest.fn().mockResolvedValue(mockZonaComun),
+          update: jest.fn().mockResolvedValue(mockZonaComun),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      await service.create(createDtoMultiplesTipos);
+
+      // Assert - Debería elegir DESINFECCION como el más relevante
+      expect(mockTransaction.zonaComun.update).toHaveBeenCalledWith({
+        where: { id: 1, deleted: false },
+        data: expect.objectContaining({
+          ultimo_aseo_tipo: TiposAseo.DESINFECCION,
+        }),
+      });
+    });
+
+    it('debería lanzar NotFoundException cuando la zona común no existe', async () => {
+      // Arrange
+      const mockTransaction = {
+        registroAseoZonaComun: {
+          create: jest.fn().mockResolvedValue(registroCreado),
+        },
+        zonaComun: {
+          findUnique: jest.fn().mockResolvedValue(null), // Zona común no existe
+          update: jest.fn(),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act & Assert
+      await expect(service.create(createRegistroDto)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.create(createRegistroDto)).rejects.toThrow(
+        'No se encontró el elemento con el ID: 1',
+      );
+    });
+
+    it('debería usar la fecha del registro para actualizar ultimo_aseo_fecha', async () => {
+      // Arrange
+      const fechaEspecifica = '2024-01-20T15:45:00Z';
+      const createDtoConFecha: CreateRegistroAseoZonaComunDto = {
+        ...createRegistroDto,
+        fecha_registro: fechaEspecifica,
+      };
+
+      const mockTransaction = {
+        registroAseoZonaComun: {
+          create: jest.fn().mockResolvedValue({ id: 1 }),
+        },
+        zonaComun: {
+          findUnique: jest.fn().mockResolvedValue(mockZonaComun),
+          update: jest.fn().mockResolvedValue(mockZonaComun),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      await service.create(createDtoConFecha);
+
+      // Assert
+      expect(mockTransaction.zonaComun.update).toHaveBeenCalledWith({
+        where: { id: 1, deleted: false },
+        data: expect.objectContaining({
+          ultimo_aseo_fecha: new Date(fechaEspecifica),
+        }),
+      });
     });
   });
 

@@ -6,6 +6,8 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import notFoundError from 'src/common/errors/notfoundError';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
+import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
+import { Prisma } from '@prisma/client';
 
 /**
  * Service CRUD para manejar registros de aseo de zonas comunes
@@ -21,11 +23,22 @@ export class RegistroAseoZonasComunesService {
    */
   async create(createRegistroAseoZonaComunDto: CreateRegistroAseoZonaComunDto) {
     try {
-      return await this.prisma.registroAseoZonaComun.create({
-        data: createRegistroAseoZonaComunDto,
-        select: this.defaultRegistroSelection(),
+      return await this.prisma.$transaction(async (tx) => {
+        const registro = await tx.registroAseoZonaComun.create({
+          data: createRegistroAseoZonaComunDto,
+          select: this.defaultRegistroSelection(),
+        });
+
+        await this.actualizarEstadosAseoZonasComunes(
+          createRegistroAseoZonaComunDto.tipos_realizados,
+          tx,
+          createRegistroAseoZonaComunDto.zonaComunId,
+          new Date(createRegistroAseoZonaComunDto.fecha_registro),
+        );
+        return registro;
       });
-    } catch {
+    } catch (error) {
+      console.error('Error al crear registro de aseo de zona común:', error);
       throw new BadRequestException(
         'Error al crear registro de aseo de zona común',
       );
@@ -259,5 +272,63 @@ export class RegistroAseoZonasComunesService {
       createdAt: true,
       updatedAt: true,
     };
+  }
+
+  /**
+   * Actualiza los estados de cuando se realizo el ultimo aseo de una zona común y si es hoy se requiere aseo cuando se crea un nuevo reporte de aseo
+   * mediante una transaccion
+   * @param tipoAseo Tipo de aseo realizado
+   * @param tx Transaccion de prisma
+   * @param idZonaComun ID de la zona común
+   * @param fechaRegistro Fecha del registro de aseo
+   */
+  private async actualizarEstadosAseoZonasComunes(
+    tipoAseo: TiposAseo[],
+    tx: Prisma.TransactionClient,
+    idZonaComun: number,
+    fechaRegistro: Date,
+  ) {
+    const zonaComun = await tx.zonaComun.findUnique({
+      where: {
+        id: idZonaComun,
+        deleted: false,
+      },
+    });
+
+    if (!zonaComun) throw notFoundError(idZonaComun);
+
+    // Determinar el tipo de aseo más relevante basado en prioridades
+    const tipoAseoMasRelevante = this.determinarTipoAseoMasRelevante(tipoAseo);
+
+    await tx.zonaComun.update({
+      where: {
+        id: idZonaComun,
+        deleted: false,
+      },
+      data: {
+        ultimo_aseo_fecha: fechaRegistro,
+        ultimo_aseo_tipo: tipoAseoMasRelevante,
+        requerido_aseo_hoy: false,
+      },
+    });
+  }
+
+  /**
+   * Determina el tipo de aseo más relevante basado en prioridades de importancia
+   * @param tipos Array de tipos de aseo realizados
+   * @returns El tipo de aseo más relevante
+   */
+  private determinarTipoAseoMasRelevante(tipos: TiposAseo[]): TiposAseo {
+    // Definir prioridades (mayor número = mayor prioridad)
+    const prioridades = {
+      [TiposAseo.DESINFECCION]: 2,
+      [TiposAseo.LIMPIEZA]: 1,
+    };
+
+    return tipos.reduce((tipoMasRelevante, tipoActual) => {
+      return prioridades[tipoActual] > prioridades[tipoMasRelevante]
+        ? tipoActual
+        : tipoMasRelevante;
+    });
   }
 }
