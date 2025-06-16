@@ -8,5 +8,6 @@ import { AuthModule } from 'src/auth/auth.module';
   controllers: [ConfiguracionAseoController],
   imports: [PrismaModule, AuthModule],
   providers: [ConfiguracionAseoService],
+  exports: [ConfiguracionAseoService],
 })
 export class ConfiguracionAseoModule {}
