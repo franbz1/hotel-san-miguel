@@ -23,6 +23,7 @@ import { ZonasComunesModule } from './zonas-comunes/zonas-comunes.module';
 import { RegistroAseoHabitacionesModule } from './registro-aseo-habitaciones/registro-aseo-habitaciones.module';
 import { RegistroAseoZonasComunesModule } from './registro-aseo-zonas-comunes/registro-aseo-zonas-comunes.module';
 import { ReportesAseoModule } from './reportes-aseo/reportes-aseo.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { ReportesAseoModule } from './reportes-aseo/reportes-aseo.module';
     RegistroAseoHabitacionesModule,
     RegistroAseoZonasComunesModule,
     ReportesAseoModule,
+    NotificacionesModule,
   ],
   controllers: [],
   providers: [CreateDocService, HabitacionSseService],
