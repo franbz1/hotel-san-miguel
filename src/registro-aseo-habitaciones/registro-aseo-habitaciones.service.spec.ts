@@ -55,7 +55,7 @@ describe('RegistroAseoHabitacionesService', () => {
 
   describe('Definición del servicio', () => {
     it('debería estar definido', () => {
-      expect(service).toBeDefined();
+    expect(service).toBeDefined();
     });
   });
 
