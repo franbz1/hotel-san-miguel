@@ -9,13 +9,18 @@ import { FiltrosZonaComunDto } from './dto/filtros-zona-comun.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
+import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
+import { ConfiguracionAseoService } from 'src/configuracion-aseo/configuracion-aseo.service';
 
 /**
  * Service CRUD para manejar zonas comunes
  */
 @Injectable()
 export class ZonasComunesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configuracionAseoService: ConfiguracionAseoService,
+  ) {}
 
   /**
    * Crea una nueva zona común.
@@ -24,8 +29,21 @@ export class ZonasComunesService {
    */
   async create(createZonaComunDto: CreateZonaComunDto) {
     try {
+      const { frecuencia_desinfeccion_zona_comun } =
+        await this.configuracionAseoService.obtenerConfiguracion();
+
       return await this.prisma.zonaComun.create({
-        data: createZonaComunDto,
+        data: {
+          ...createZonaComunDto,
+          ultimo_aseo_fecha: new Date(),
+          ultimo_aseo_tipo: TiposAseo.LIMPIEZA,
+          requerido_aseo_hoy: false,
+          requerido_desinfeccion_hoy: false,
+          proxima_desinfeccion_zona_comun: new Date(
+            new Date().getTime() +
+              frecuencia_desinfeccion_zona_comun * 24 * 60 * 60 * 1000,
+          ),
+        },
         select: this.defaultZonaComunSelection(),
       });
     } catch {

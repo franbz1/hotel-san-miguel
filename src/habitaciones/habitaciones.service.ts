@@ -9,13 +9,14 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 import notFoundError from 'src/common/errors/notfoundError';
-import { HabitacionSseService } from 'src/sse/habitacionSse.service';
+import { TiposAseo } from '@prisma/client';
+import { ConfiguracionAseoService } from 'src/configuracion-aseo/configuracion-aseo.service';
 
 @Injectable()
 export class HabitacionesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly habitacionSseService: HabitacionSseService,
+    private readonly configuracionAseoService: ConfiguracionAseoService,
   ) {}
 
   /**
@@ -39,8 +40,23 @@ export class HabitacionesService {
     }
 
     try {
+      const { frecuencia_rotacion_colchones } =
+        await this.configuracionAseoService.obtenerConfiguracion();
+
       return await this.prisma.habitacion.create({
-        data: createHabitacionDto,
+        data: {
+          ...createHabitacionDto,
+          ultimo_aseo_fecha: new Date(),
+          ultimo_aseo_tipo: TiposAseo.LIMPIEZA,
+          ultima_rotacion_colchones: new Date(),
+          proxima_rotacion_colchones: new Date(
+            new Date().getTime() +
+              frecuencia_rotacion_colchones * 24 * 60 * 60 * 1000,
+          ),
+          requerido_aseo_hoy: false,
+          requerido_desinfeccion_hoy: false,
+          requerido_rotacion_colchones: false,
+        },
       });
     } catch (error) {
       // Mantenemos el manejo de otros posibles errores de Prisma
