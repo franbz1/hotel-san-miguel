@@ -22,7 +22,6 @@ import {
  */
 @ApiTags('configuracion-aseo')
 @ApiBearerAuth()
-@Auth(Role.ADMINISTRADOR) // Requiere autenticación para todos los endpoints
 @ApiExtraModels(ConfiguracionAseo)
 @Controller('configuracion-aseo')
 export class ConfiguracionAseoController {
@@ -34,6 +33,7 @@ export class ConfiguracionAseoController {
   // READ - Obtener la configuración actual de aseo
   // ================================================================
   @Get()
+  @Auth(Role.ADMINISTRADOR, Role.CAJERO, Role.ASEO)
   @ApiOperation({
     summary: 'Obtener la configuración actual de aseo',
     description:
