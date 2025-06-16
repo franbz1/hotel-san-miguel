@@ -7,14 +7,18 @@ import { PaginationDto } from 'src/common/dtos/paginationDto';
 import notFoundError from 'src/common/errors/notfoundError';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
-import { Prisma } from '@prisma/client';
+import { ConfiguracionAseo, Prisma } from '@prisma/client';
+import { ConfiguracionAseoService } from 'src/configuracion-aseo/configuracion-aseo.service';
 
 /**
  * Service CRUD para manejar registros de aseo de habitaciones
  */
 @Injectable()
 export class RegistroAseoHabitacionesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configuracionAseoService: ConfiguracionAseoService,
+  ) {}
 
   /**
    * Crea un nuevo registro de aseo de habitación.
@@ -315,7 +319,7 @@ export class RegistroAseoHabitacionesService {
 
     // Si se realizó rotación de colchones, calcular próxima fecha
     if (tiposRealizados.includes(TiposAseo.ROTACION_COLCHONES)) {
-      const configuracion = await this.obtenerConfiguracionAseo(tx);
+      const configuracion = await this.obtenerConfiguracionAseo();
       const proximaRotacion = new Date(fechaRegistro);
       proximaRotacion.setDate(
         proximaRotacion.getDate() + configuracion.frecuencia_rotacion_colchones,
@@ -359,31 +363,11 @@ export class RegistroAseoHabitacionesService {
 
   /**
    * Obtiene la configuración de aseo actual
-   * @param tx Transacción de prisma
    * @returns Configuración de aseo
    */
-  private async obtenerConfiguracionAseo(tx: Prisma.TransactionClient) {
-    let configuracion = await tx.configuracionAseo.findFirst({
-      orderBy: { createdAt: 'desc' },
-    });
-
-    // Si no existe configuración, crear una por defecto
-    if (!configuracion) {
-      configuracion = await tx.configuracionAseo.create({
-        data: {
-          hora_limite_aseo: '17:00',
-          hora_proceso_nocturno_utc: '05:00',
-          frecuencia_rotacion_colchones: 180,
-          dias_aviso_rotacion_colchones: 5,
-          habilitar_notificaciones: false,
-          elementos_aseo_default: [],
-          elementos_proteccion_default: [],
-          productos_quimicos_default: [],
-          areas_intervenir_habitacion_default: [],
-          areas_intervenir_banio_default: [],
-        },
-      });
-    }
+  private async obtenerConfiguracionAseo(): Promise<ConfiguracionAseo> {
+    const configuracion =
+      await this.configuracionAseoService.obtenerConfiguracion();
 
     return configuracion;
   }

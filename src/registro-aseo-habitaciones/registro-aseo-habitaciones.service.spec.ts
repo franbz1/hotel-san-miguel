@@ -7,6 +7,7 @@ import { UpdateRegistroAseoHabitacionDto } from './dto/update-registro-aseo-habi
 import { FiltrosRegistroAseoHabitacionDto } from './dto/filtros-registro-aseo-habitacion.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
+import { ConfiguracionAseoService } from 'src/configuracion-aseo/configuracion-aseo.service';
 
 describe('RegistroAseoHabitacionesService', () => {
   let service: RegistroAseoHabitacionesService;
@@ -23,6 +24,11 @@ describe('RegistroAseoHabitacionesService', () => {
     $transaction: jest.fn(),
   };
 
+  // Mock de ConfiguracionAseoService
+  const mockConfiguracionAseoService = {
+    obtenerConfiguracion: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -30,6 +36,10 @@ describe('RegistroAseoHabitacionesService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: ConfiguracionAseoService,
+          useValue: mockConfiguracionAseoService,
         },
       ],
     }).compile();
@@ -185,8 +195,29 @@ describe('RegistroAseoHabitacionesService', () => {
         procedimiento_rotacion_colchones: 'Rotación 180° del colchón',
       };
 
+      const mockConfiguracionCompleta = {
+        id: 1,
+        frecuencia_rotacion_colchones: 180, // 180 días
+        dias_aviso_rotacion_colchones: 5,
+        hora_limite_aseo: '17:00',
+        hora_proceso_nocturno_utc: '05:00',
+        habilitar_notificaciones: false,
+        elementos_aseo_default: [],
+        elementos_proteccion_default: [],
+        productos_quimicos_default: [],
+        areas_intervenir_habitacion_default: [],
+        areas_intervenir_banio_default: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      mockConfiguracionAseoService.obtenerConfiguracion.mockResolvedValue(
+        mockConfiguracionCompleta,
+      );
+
       const fechaRegistro = new Date('2024-01-15T10:30:00Z');
-      const proximaRotacion = new Date('2024-07-13T10:30:00Z'); // 180 días después
+      const proximaRotacionEsperada = new Date('2024-07-13T10:30:00Z'); // +180 días
 
       const mockTransaction = {
         registroAseoHabitacion: {
@@ -195,9 +226,6 @@ describe('RegistroAseoHabitacionesService', () => {
         habitacion: {
           findUnique: jest.fn().mockResolvedValue(mockHabitacion),
           update: jest.fn().mockResolvedValue(mockHabitacion),
-        },
-        configuracionAseo: {
-          findFirst: jest.fn().mockResolvedValue(mockConfiguracion),
         },
       };
 
@@ -209,17 +237,212 @@ describe('RegistroAseoHabitacionesService', () => {
       await service.create(createDtoConRotacion);
 
       // Assert
+      expect(mockConfiguracionAseoService.obtenerConfiguracion).toHaveBeenCalledTimes(1);
       expect(mockTransaction.habitacion.update).toHaveBeenCalledWith({
         where: { id: 101, deleted: false },
-        data: expect.objectContaining({
+        data: {
           ultimo_aseo_fecha: fechaRegistro,
           ultimo_aseo_tipo: TiposAseo.ROTACION_COLCHONES, // Máxima prioridad
           requerido_aseo_hoy: false,
           ultima_rotacion_colchones: fechaRegistro,
+          proxima_rotacion_colchones: proximaRotacionEsperada,
+          requerido_rotacion_colchones: false,
+        },
+      });
+    });
+
+    it('debería NO actualizar campos de rotación cuando NO se incluye ROTACION_COLCHONES', async () => {
+      // Arrange
+      const createDtoSinRotacion: CreateRegistroAseoHabitacionDto = {
+        ...createRegistroDto,
+        tipos_realizados: [TiposAseo.LIMPIEZA, TiposAseo.DESINFECCION],
+      };
+
+      const mockTransaction = {
+        registroAseoHabitacion: {
+          create: jest.fn().mockResolvedValue({ id: 1 }),
+        },
+        habitacion: {
+          findUnique: jest.fn().mockResolvedValue(mockHabitacion),
+          update: jest.fn().mockResolvedValue(mockHabitacion),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      await service.create(createDtoSinRotacion);
+
+      // Assert
+      expect(mockConfiguracionAseoService.obtenerConfiguracion).not.toHaveBeenCalled();
+      expect(mockTransaction.habitacion.update).toHaveBeenCalledWith({
+        where: { id: 101, deleted: false },
+        data: {
+          ultimo_aseo_fecha: new Date('2024-01-15T10:30:00Z'),
+          ultimo_aseo_tipo: TiposAseo.DESINFECCION, // Mayor prioridad que LIMPIEZA
+          requerido_aseo_hoy: false,
+        },
+      });
+    });
+
+    it('debería calcular correctamente la próxima rotación con diferentes frecuencias', async () => {
+      // Arrange
+      const fechaBase = '2024-02-01T14:00:00Z';
+      const createDtoRotacion: CreateRegistroAseoHabitacionDto = {
+        ...createRegistroDto,
+        tipos_realizados: [TiposAseo.ROTACION_COLCHONES],
+        fecha_registro: fechaBase,
+        procedimiento_rotacion_colchones: 'Rotación completa del colchón',
+      };
+
+      const mockConfiguracionConFrecuencia90 = {
+        id: 1,
+        frecuencia_rotacion_colchones: 90, // 90 días
+        dias_aviso_rotacion_colchones: 5,
+        hora_limite_aseo: '17:00',
+        hora_proceso_nocturno_utc: '05:00',
+        habilitar_notificaciones: false,
+        elementos_aseo_default: [],
+        elementos_proteccion_default: [],
+        productos_quimicos_default: [],
+        areas_intervenir_habitacion_default: [],
+        areas_intervenir_banio_default: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      mockConfiguracionAseoService.obtenerConfiguracion.mockResolvedValue(
+        mockConfiguracionConFrecuencia90,
+      );
+
+      const fechaEsperada = new Date('2024-02-01T14:00:00Z');
+      const proximaRotacionEsperada = new Date('2024-05-01T14:00:00Z'); // +90 días
+
+      const mockTransaction = {
+        registroAseoHabitacion: {
+          create: jest.fn().mockResolvedValue({ id: 1 }),
+        },
+        habitacion: {
+          findUnique: jest.fn().mockResolvedValue(mockHabitacion),
+          update: jest.fn().mockResolvedValue(mockHabitacion),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      await service.create(createDtoRotacion);
+
+      // Assert
+      expect(mockTransaction.habitacion.update).toHaveBeenCalledWith({
+        where: { id: 101, deleted: false },
+        data: expect.objectContaining({
+          proxima_rotacion_colchones: proximaRotacionEsperada,
+        }),
+      });
+    });
+
+    it('debería manejar rotación con múltiples tipos de aseo realizados', async () => {
+      // Arrange
+      const createDtoMultiplesTipos: CreateRegistroAseoHabitacionDto = {
+        ...createRegistroDto,
+        tipos_realizados: [
+          TiposAseo.LIMPIEZA,
+          TiposAseo.DESINFECCION,
+          TiposAseo.ROTACION_COLCHONES,
+          TiposAseo.LIMPIEZA_BANIO,
+        ],
+        procedimiento_rotacion_colchones: 'Rotación y desinfección completa',
+      };
+
+      const mockConfiguracion = {
+        id: 1,
+        frecuencia_rotacion_colchones: 120,
+        dias_aviso_rotacion_colchones: 5,
+        hora_limite_aseo: '17:00',
+        hora_proceso_nocturno_utc: '05:00',
+        habilitar_notificaciones: false,
+        elementos_aseo_default: [],
+        elementos_proteccion_default: [],
+        productos_quimicos_default: [],
+        areas_intervenir_habitacion_default: [],
+        areas_intervenir_banio_default: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      mockConfiguracionAseoService.obtenerConfiguracion.mockResolvedValue(
+        mockConfiguracion,
+      );
+
+      const mockTransaction = {
+        registroAseoHabitacion: {
+          create: jest.fn().mockResolvedValue({ id: 1 }),
+        },
+        habitacion: {
+          findUnique: jest.fn().mockResolvedValue(mockHabitacion),
+          update: jest.fn().mockResolvedValue(mockHabitacion),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      await service.create(createDtoMultiplesTipos);
+
+      // Assert
+      expect(mockTransaction.habitacion.update).toHaveBeenCalledWith({
+        where: { id: 101, deleted: false },
+        data: expect.objectContaining({
+          ultimo_aseo_tipo: TiposAseo.ROTACION_COLCHONES, // Máxima prioridad (5)
+          ultima_rotacion_colchones: new Date('2024-01-15T10:30:00Z'),
           proxima_rotacion_colchones: expect.any(Date),
           requerido_rotacion_colchones: false,
         }),
       });
+    });
+
+    it('debería manejar errores al obtener la configuración de aseo', async () => {
+      // Arrange
+      const createDtoConRotacion: CreateRegistroAseoHabitacionDto = {
+        ...createRegistroDto,
+        tipos_realizados: [TiposAseo.ROTACION_COLCHONES],
+        procedimiento_rotacion_colchones: 'Rotación del colchón',
+      };
+
+      mockConfiguracionAseoService.obtenerConfiguracion.mockRejectedValue(
+        new Error('Error al obtener configuración'),
+      );
+
+      const mockTransaction = {
+        registroAseoHabitacion: {
+          create: jest.fn().mockResolvedValue({ id: 1 }),
+        },
+        habitacion: {
+          findUnique: jest.fn().mockResolvedValue(mockHabitacion),
+          update: jest.fn(),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act & Assert
+      await expect(service.create(createDtoConRotacion)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.create(createDtoConRotacion)).rejects.toThrow(
+        'Error al crear registro de aseo de habitación',
+      );
     });
 
     it('debería crear configuración por defecto si no existe', async () => {
