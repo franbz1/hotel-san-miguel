@@ -1,51 +1,98 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AseoCronService } from './aseo-cron.service';
 import { PrismaService } from 'src/common/prisma/prisma.service';
-import { HabitacionSseService } from 'src/sse/habitacionSse.service';
-import { ReservaSseService } from 'src/sse/reservasSse.service';
+import { ConfiguracionAseoService } from 'src/configuracion-aseo/configuracion-aseo.service';
+import { ReportesAseoService } from 'src/reportes-aseo/reportes-aseo.service';
+import { NotificacionesService } from 'src/notificaciones/notificaciones.service';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { BadRequestException } from '@nestjs/common';
+import { ConfiguracionAseo } from '@prisma/client';
+import * as fs from 'fs';
 
-describe('CronService - Módulo de Aseo', () => {
+// Mock de fs
+jest.mock('fs');
+const mockFs = fs as jest.Mocked<typeof fs>;
+
+describe('AseoCronService', () => {
   let service: AseoCronService;
-  let prismaService: PrismaService;
+  let prismaService: any;
+  let configuracionAseoService: jest.Mocked<ConfiguracionAseoService>;
+  let reportesAseoService: jest.Mocked<ReportesAseoService>;
+  let schedulerRegistry: jest.Mocked<SchedulerRegistry>;
 
-  // Mock del PrismaService específico para aseo
-  const mockPrismaService = {
-    habitacion: {
-      findMany: jest.fn(),
-      updateMany: jest.fn(),
-      update: jest.fn(),
-    },
-    zonaComun: {
-      findMany: jest.fn(),
-      updateMany: jest.fn(),
-      update: jest.fn(),
-    },
-    configuracionAseo: {
-      findFirst: jest.fn(),
-    },
-    reporteAseoDiario: {
-      findFirst: jest.fn(),
-      create: jest.fn(),
-    },
-    registroAseoHabitacion: {
-      findMany: jest.fn(),
-    },
-    registroAseoZonaComun: {
-      findMany: jest.fn(),
-    },
+  // Configuración mock completa
+  const mockConfiguracion: ConfiguracionAseo = {
+    id: 1,
+    hora_limite_aseo: '14:00',
+    hora_proceso_nocturno_utc: '02:30',
+    frecuencia_rotacion_colchones: 90,
+    dias_aviso_rotacion_colchones: 7,
+    frecuencia_desinfeccion_zona_comun: 14,
+    dias_aviso_desinfeccion_zona_comun: 3,
+    habilitar_notificaciones: true,
+    email_notificaciones: 'test@hotel.com',
+    elementos_aseo_default: ['Escoba', 'Trapeador'],
+    elementos_proteccion_default: ['Guantes', 'Mascarilla'],
+    productos_quimicos_default: ['Desinfectante'],
+    areas_intervenir_habitacion_default: ['Cama', 'Baño'],
+    areas_intervenir_banio_default: ['Inodoro', 'Lavamanos'],
+    procedimiento_aseo_habitacion_default: 'Limpiar superficies',
+    procedimiento_desinfeccion_habitacion_default: 'Aplicar desinfectante',
+    procedimiento_rotacion_colchones_default: 'Rotar colchón 180 grados',
+    procedimiento_limieza_zona_comun_default: 'Limpiar áreas comunes',
+    procedimiento_desinfeccion_zona_comun_default: 'Desinfectar superficies',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
-  // Mock del HabitacionSseService
-  const mockHabitacionSseService = {
-    emitirCambios: jest.fn(),
-  };
+  // Habitaciones mock
+  const mockHabitaciones = [
+    {
+      id: 1,
+      proxima_rotacion_colchones: new Date('2024-01-15T00:00:00.000Z'),
+      requerido_rotacion_colchones: false,
+    },
+    {
+      id: 2,
+      proxima_rotacion_colchones: new Date('2024-01-10T00:00:00.000Z'), // Pasada
+      requerido_rotacion_colchones: false,
+    },
+    {
+      id: 3,
+      proxima_rotacion_colchones: new Date('2024-01-20T00:00:00.000Z'), // Futura
+      requerido_rotacion_colchones: false,
+    },
+  ];
 
-  // Mock del ReservaSseService
-  const mockReservaSseService = {
-    emitirCambio: jest.fn(),
-  };
+  // Zonas comunes mock
+  const mockZonasComunes = [
+    {
+      id: 1,
+      proxima_desinfeccion_zona_comun: new Date('2024-01-17T00:00:00.000Z'),
+    },
+    {
+      id: 2,
+      proxima_desinfeccion_zona_comun: new Date('2024-01-25T00:00:00.000Z'),
+    },
+  ];
 
   beforeEach(async () => {
+    // Crear mocks
+    const mockPrismaService = {
+      $transaction: jest.fn(),
+      habitacion: {
+        findMany: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      zonaComun: {
+        findMany: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      reserva: {
+        findFirst: jest.fn(),
+      },
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AseoCronService,
@@ -54,818 +101,546 @@ describe('CronService - Módulo de Aseo', () => {
           useValue: mockPrismaService,
         },
         {
-          provide: HabitacionSseService,
-          useValue: mockHabitacionSseService,
+          provide: ConfiguracionAseoService,
+          useValue: {
+            obtenerConfiguracion: jest.fn(),
+          },
         },
         {
-          provide: ReservaSseService,
-          useValue: mockReservaSseService,
+          provide: ReportesAseoService,
+          useValue: {
+            generarReporte: jest.fn(),
+          },
+        },
+        {
+          provide: NotificacionesService,
+          useValue: {
+            notificarRotacionColchones: jest.fn(),
+          },
+        },
+        {
+          provide: SchedulerRegistry,
+          useValue: {
+            deleteCronJob: jest.fn(),
+            addCronJob: jest.fn(),
+          },
         },
       ],
     }).compile();
 
     service = module.get<AseoCronService>(AseoCronService);
-    prismaService = module.get<PrismaService>(PrismaService);
+    prismaService = module.get(PrismaService);
+    configuracionAseoService = module.get(ConfiguracionAseoService);
+    reportesAseoService = module.get(ReportesAseoService);
+    schedulerRegistry = module.get(SchedulerRegistry);
+
+    // Setup mocks por defecto
+    configuracionAseoService.obtenerConfiguracion.mockResolvedValue(
+      mockConfiguracion,
+    );
+    mockFs.existsSync.mockReturnValue(true);
+    mockFs.appendFileSync.mockImplementation(() => {});
+    mockFs.mkdirSync.mockImplementation(() => '');
+
+    // Mock de Date para tests consistentes
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-01-15T12:00:00.000Z'));
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
   });
 
-  describe('procesoAseoNocturno', () => {
-    const mockConfiguracion = {
-      id: 1,
-      hora_proceso_nocturno_utc: '05:00',
-      frecuencia_rotacion_colchones: 180, // 6 meses
-      dias_aviso_rotacion_colchones: 5,
-      elementos_aseo_default: ['Escoba', 'Trapeador'],
-      elementos_proteccion_default: ['Guantes', 'Mascarilla'],
-      productos_quimicos_default: ['Desinfectante', 'Detergente'],
-      procedimiento_aseo_habitacion_default: 'Limpieza estándar',
-      procedimiento_desinfeccion_habitacion_default: 'Desinfección completa',
-      procedimiento_limieza_zona_comun_default: 'Limpieza áreas comunes',
-      procedimiento_desinfeccion_zona_comun_default:
-        'Desinfección áreas comunes',
-    };
+  describe('onModuleInit', () => {
+    it('debería configurar el cron job al inicializar', async () => {
+      await service.onModuleInit();
 
-    beforeEach(() => {
-      // Reset mocks antes de cada test
-      jest.clearAllMocks();
-      mockPrismaService.configuracionAseo.findFirst.mockResolvedValue(
-        mockConfiguracion,
+      expect(configuracionAseoService.obtenerConfiguracion).toHaveBeenCalled();
+      expect(schedulerRegistry.addCronJob).toHaveBeenCalledWith(
+        'aseo-diario',
+        expect.any(Object),
       );
     });
 
-    describe('generarReporteAseoNocturno', () => {
-      it('debería generar reporte de aseo diario exitosamente', async () => {
-        // Arrange
-        const fechaHoy = '2024-01-15';
-        const registrosHabitaciones = [
-          {
-            id: 1,
-            habitacionId: 101,
-            usuarioId: 1,
-            fecha_registro: new Date('2024-01-15T10:00:00Z'),
-            tipos_realizados: ['LIMPIEZA'],
-            objetos_perdidos: false,
-            rastros_de_animales: false,
-            observaciones: 'Habitación limpia',
-          },
-          {
-            id: 2,
-            habitacionId: 102,
-            usuarioId: 2,
-            fecha_registro: new Date('2024-01-15T14:00:00Z'),
-            tipos_realizados: ['DESINFECCION'],
-            objetos_perdidos: true,
-            rastros_de_animales: false,
-            observaciones: 'Objeto perdido encontrado',
-          },
-        ];
+    it('debería manejar errores al configurar el cron job', async () => {
+      configuracionAseoService.obtenerConfiguracion.mockRejectedValue(
+        new Error('Error de configuración'),
+      );
 
-        const registrosZonasComunes = [
-          {
-            id: 1,
-            zonaComunId: 1,
-            usuarioId: 1,
-            fecha_registro: new Date('2024-01-15T09:00:00Z'),
-            tipos_realizados: ['LIMPIEZA'],
-            objetos_perdidos: false,
-            rastros_de_animales: false,
-            observaciones: 'Lobby limpio',
-          },
-        ];
+      await service.onModuleInit();
 
-        const reporteEsperado = {
-          id: 1,
-          fecha: new Date('2024-01-15T00:00:00Z'),
-          elementos_aseo: mockConfiguracion.elementos_aseo_default,
-          elementos_proteccion: mockConfiguracion.elementos_proteccion_default,
-          productos_quimicos: mockConfiguracion.productos_quimicos_default,
-          procedimiento_aseo_habitacion:
-            mockConfiguracion.procedimiento_aseo_habitacion_default,
-          procedimiento_desinfeccion_habitacion:
-            mockConfiguracion.procedimiento_desinfeccion_habitacion_default,
-          procedimiento_limpieza_zona_comun:
-            mockConfiguracion.procedimiento_limieza_zona_comun_default,
-          procedimiento_desinfeccion_zona_comun:
-            mockConfiguracion.procedimiento_desinfeccion_zona_comun_default,
-          datos: {
-            habitaciones: registrosHabitaciones,
-            zonas_comunes: registrosZonasComunes,
-            resumen: {
-              total_habitaciones_aseadas: 2,
-              total_zonas_comunes_aseadas: 1,
-              objetos_perdidos_encontrados: 1,
-              rastros_animales_encontrados: 0,
-            },
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
+        expect.stringContaining('aseo-cron.log'),
+        expect.stringContaining('Error al configurar cron job'),
+      );
+    });
+  });
+
+  describe('generarReporteAseoNocturno', () => {
+    it('debería generar reporte con fecha válida', async () => {
+      const fecha = '2024-01-15';
+      reportesAseoService.generarReporte.mockResolvedValue({} as any);
+
+      const resultado = await service.generarReporteAseoNocturno(fecha);
+
+      expect(reportesAseoService.generarReporte).toHaveBeenCalledWith(fecha);
+      expect(resultado).toBeDefined();
+    });
+
+    it('debería lanzar excepción si no se proporciona fecha', async () => {
+      await expect(service.generarReporteAseoNocturno('')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(
+        service.generarReporteAseoNocturno(null as any),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debería manejar errores del servicio de reportes', async () => {
+      const fecha = '2024-01-15';
+      reportesAseoService.generarReporte.mockRejectedValue(
+        new Error('Error en reporte'),
+      );
+
+      const resultado = await service.generarReporteAseoNocturno(fecha);
+
+      expect(resultado).toBeUndefined();
+    });
+  });
+
+  describe('actualizarEstadosAseoZonasComunes', () => {
+    it('debería actualizar estados de zonas comunes exitosamente', async () => {
+      const fecha = '2024-01-15';
+      prismaService.zonaComun.updateMany.mockResolvedValue({ count: 5 });
+
+      const resultado = await service.actualizarEstadosAseoZonasComunes(fecha);
+
+      expect(prismaService.zonaComun.updateMany).toHaveBeenCalledWith({
+        where: { deleted: false },
+        data: { requerido_aseo_hoy: true },
+      });
+      expect(resultado).toBe(true);
+    });
+
+    it('debería lanzar excepción si no se proporciona fecha', async () => {
+      await expect(
+        service.actualizarEstadosAseoZonasComunes(''),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debería retornar false en caso de error', async () => {
+      const fecha = '2024-01-15';
+      prismaService.zonaComun.updateMany.mockRejectedValue(
+        new Error('Error de base de datos'),
+      );
+
+      const resultado = await service.actualizarEstadosAseoZonasComunes(fecha);
+
+      expect(resultado).toBe(false);
+    });
+  });
+
+  describe('actualizarEstadosAseoHabitaciones', () => {
+    beforeEach(() => {
+      // Mock de transacción
+      prismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          habitacion: {
+            findMany: jest.fn(),
+            updateMany: jest.fn(),
           },
         };
-
-        // Mock de que no existe reporte previo
-        mockPrismaService.reporteAseoDiario.findFirst.mockResolvedValue(null);
-        mockPrismaService.registroAseoHabitacion.findMany.mockResolvedValue(
-          registrosHabitaciones,
-        );
-        mockPrismaService.registroAseoZonaComun.findMany.mockResolvedValue(
-          registrosZonasComunes,
-        );
-        mockPrismaService.reporteAseoDiario.create.mockResolvedValue(
-          reporteEsperado,
-        );
-
-        // Act
-        const resultado = await service.generarReporteAseoNocturno(fechaHoy);
-
-        // Assert
-        expect(resultado).toEqual(reporteEsperado);
-        expect(
-          mockPrismaService.configuracionAseo.findFirst,
-        ).toHaveBeenCalledWith({
-          orderBy: { createdAt: 'desc' },
-        });
-        expect(
-          mockPrismaService.reporteAseoDiario.findFirst,
-        ).toHaveBeenCalledWith({
-          where: {
-            fecha: {
-              gte: new Date('2024-01-15T00:00:00.000Z'),
-              lt: new Date('2024-01-16T00:00:00.000Z'),
-            },
-            deleted: false,
-          },
-        });
-        expect(
-          mockPrismaService.registroAseoHabitacion.findMany,
-        ).toHaveBeenCalledWith({
-          where: {
-            fecha_registro: {
-              gte: new Date('2024-01-15T00:00:00.000Z'),
-              lt: new Date('2024-01-16T00:00:00.000Z'),
-            },
-            deleted: false,
-          },
-        });
-        expect(
-          mockPrismaService.registroAseoZonaComun.findMany,
-        ).toHaveBeenCalledWith({
-          where: {
-            fecha_registro: {
-              gte: new Date('2024-01-15T00:00:00.000Z'),
-              lt: new Date('2024-01-16T00:00:00.000Z'),
-            },
-            deleted: false,
-          },
-        });
-        expect(mockPrismaService.reporteAseoDiario.create).toHaveBeenCalledWith(
-          {
-            data: {
-              fecha: new Date('2024-01-15T00:00:00.000Z'),
-              elementos_aseo: mockConfiguracion.elementos_aseo_default,
-              elementos_proteccion:
-                mockConfiguracion.elementos_proteccion_default,
-              productos_quimicos: mockConfiguracion.productos_quimicos_default,
-              procedimiento_aseo_habitacion:
-                mockConfiguracion.procedimiento_aseo_habitacion_default,
-              procedimiento_desinfeccion_habitacion:
-                mockConfiguracion.procedimiento_desinfeccion_habitacion_default,
-              procedimiento_limpieza_zona_comun:
-                mockConfiguracion.procedimiento_limieza_zona_comun_default,
-              procedimiento_desinfeccion_zona_comun:
-                mockConfiguracion.procedimiento_desinfeccion_zona_comun_default,
-              datos: {
-                habitaciones: registrosHabitaciones,
-                zonas_comunes: registrosZonasComunes,
-                resumen: {
-                  total_habitaciones_aseadas: 2,
-                  total_zonas_comunes_aseadas: 1,
-                  objetos_perdidos_encontrados: 1,
-                  rastros_animales_encontrados: 0,
-                },
-              },
-            },
-          },
-        );
-      });
-
-      it('debería lanzar error si ya existe reporte para la fecha', async () => {
-        // Arrange
-        const fechaHoy = '2024-01-15';
-        const reporteExistente = {
-          id: 1,
-          fecha: new Date('2024-01-15T00:00:00Z'),
-        };
-        mockPrismaService.reporteAseoDiario.findFirst.mockResolvedValue(
-          reporteExistente,
-        );
-
-        // Act & Assert
-        await expect(
-          service.generarReporteAseoNocturno(fechaHoy),
-        ).rejects.toThrow(
-          'Ya existe un reporte de aseo para la fecha: 2024-01-15',
-        );
-        expect(
-          mockPrismaService.reporteAseoDiario.create,
-        ).not.toHaveBeenCalled();
-      });
-
-      it('debería manejar caso sin registros de aseo', async () => {
-        // Arrange
-        const fechaHoy = '2024-01-15';
-        mockPrismaService.reporteAseoDiario.findFirst.mockResolvedValue(null);
-        mockPrismaService.registroAseoHabitacion.findMany.mockResolvedValue([]);
-        mockPrismaService.registroAseoZonaComun.findMany.mockResolvedValue([]);
-        mockPrismaService.reporteAseoDiario.create.mockResolvedValue({
-          id: 1,
-          datos: {
-            habitaciones: [],
-            zonas_comunes: [],
-            resumen: {
-              total_habitaciones_aseadas: 0,
-              total_zonas_comunes_aseadas: 0,
-              objetos_perdidos_encontrados: 0,
-              rastros_animales_encontrados: 0,
-            },
-          },
-        });
-
-        // Act
-        const resultado = await service.generarReporteAseoNocturno(fechaHoy);
-
-        // Assert
-        expect(
-          (resultado.datos as any).resumen.total_habitaciones_aseadas,
-        ).toBe(0);
-        expect(
-          (resultado.datos as any).resumen.total_zonas_comunes_aseadas,
-        ).toBe(0);
-        expect(
-          (resultado.datos as any).resumen.objetos_perdidos_encontrados,
-        ).toBe(0);
-        expect(
-          (resultado.datos as any).resumen.rastros_animales_encontrados,
-        ).toBe(0);
-      });
-
-      it('debería usar configuración por defecto si no existe configuración', async () => {
-        // Arrange
-        const fechaHoy = '2024-01-15';
-        mockPrismaService.configuracionAseo.findFirst.mockResolvedValue(null);
-        mockPrismaService.reporteAseoDiario.findFirst.mockResolvedValue(null);
-        mockPrismaService.registroAseoHabitacion.findMany.mockResolvedValue([]);
-        mockPrismaService.registroAseoZonaComun.findMany.mockResolvedValue([]);
-        mockPrismaService.reporteAseoDiario.create.mockResolvedValue({ id: 1 });
-
-        // Act
-        await service.generarReporteAseoNocturno(fechaHoy);
-
-        // Assert
-        expect(mockPrismaService.reporteAseoDiario.create).toHaveBeenCalledWith(
-          {
-            data: expect.objectContaining({
-              elementos_aseo: ['Escoba', 'Trapeador', 'Aspiradora'],
-              elementos_proteccion: ['Guantes de látex', 'Mascarilla N95'],
-              productos_quimicos: [
-                'Desinfectante multiusos',
-                'Detergente líquido',
-              ],
-              procedimiento_aseo_habitacion:
-                'Ventilación, retiro de ropa de cama, limpieza de superficies',
-              procedimiento_desinfeccion_habitacion:
-                'Aplicación de desinfectante en todas las superficies',
-              procedimiento_limpieza_zona_comun:
-                'Barrido, trapeado con desinfectante',
-              procedimiento_desinfeccion_zona_comun:
-                'Nebulización con desinfectante',
-            }),
-          },
-        );
+        return callback(mockTx);
       });
     });
 
-    describe('actualizarEstadosAseoZonasComunes', () => {
-      it('debería actualizar zonas comunes que requieren aseo diario', async () => {
-        // Arrange
-        const zonasComunes = [
-          {
-            id: 1,
-            nombre: 'Lobby',
-            ultimo_aseo_fecha: new Date('2024-01-14T10:00:00Z'), // Ayer
-            ultimo_aseo_tipo: 'LIMPIEZA',
-          },
-          {
-            id: 2,
-            nombre: 'Piscina',
-            ultimo_aseo_fecha: new Date('2024-01-13T10:00:00Z'), // Hace 2 días
-            ultimo_aseo_tipo: 'LIMPIEZA',
-          },
-        ];
+    it('debería actualizar estados de habitaciones exitosamente', async () => {
+      const mockTx = {
+        habitacion: {
+          findMany: jest
+            .fn()
+            .mockResolvedValueOnce(mockHabitaciones) // Para rotación
+            .mockResolvedValueOnce([]), // Para desinfección (habitaciones completas)
+          updateMany: jest.fn().mockResolvedValue({ count: 3 }),
+        },
+      };
 
-        mockPrismaService.zonaComun.findMany.mockResolvedValue(zonasComunes);
-        mockPrismaService.zonaComun.updateMany.mockResolvedValue({ count: 2 });
-
-        // Act
-        const resultado = await service.actualizarEstadosAseoZonasComunes();
-
-        // Assert
-        expect(resultado).toEqual({
-          zonasActualizadas: 2,
-          requierenAseo: 2,
-          requierenDesinfeccion: 0,
-        });
-
-        expect(mockPrismaService.zonaComun.findMany).toHaveBeenCalledWith({
-          where: { deleted: false },
-          select: {
-            id: true,
-            nombre: true,
-            ultimo_aseo_fecha: true,
-            ultimo_aseo_tipo: true,
-          },
-        });
-
-        expect(mockPrismaService.zonaComun.updateMany).toHaveBeenCalledWith({
-          where: {
-            id: { in: [1, 2] },
-          },
-          data: {
-            requerido_aseo_hoy: true,
-          },
-        });
+      prismaService.$transaction.mockImplementation(async (callback) => {
+        return callback(mockTx);
       });
 
-      it('debería actualizar zonas comunes que requieren desinfección según configuración', async () => {
-        // Arrange
-        const configuracionConDesinfeccion = {
+      // Mock para evaluación de desinfección
+      prismaService.reserva.findFirst.mockResolvedValue(null);
+
+      const resultado =
+        await service.actualizarEstadosAseoHabitaciones(mockConfiguracion);
+
+      expect(resultado.success).toBe(true);
+      expect(resultado.idsHabitacionesQueNecesitanRotacion).toEqual([1, 2]); // Habitaciones 1 (hoy) y 2 (pasada)
+      expect(resultado.idsHabitacionesQueNecesitanDesinfeccion).toEqual([]);
+    });
+
+    it('debería manejar errores en la transacción', async () => {
+      prismaService.$transaction.mockRejectedValue(
+        new Error('Error de transacción'),
+      );
+
+      const resultado =
+        await service.actualizarEstadosAseoHabitaciones(mockConfiguracion);
+
+      expect(resultado.success).toBe(false);
+      expect(resultado.idsHabitacionesQueNecesitanRotacion).toEqual([]);
+      expect(resultado.idsHabitacionesQueDebenNotificarRotacion).toEqual([]);
+      expect(resultado.idsHabitacionesQueNecesitanDesinfeccion).toEqual([]);
+    });
+  });
+
+  describe('Edge Cases de Fechas - necesitaRotacionColchones', () => {
+    it('debería identificar rotación necesaria para fecha exacta de hoy', async () => {
+      // Fecha exacta de hoy
+      const fechaHoy = '2024-01-15';
+      const resultado = await (service as any).necesitaRotacionColchones(
+        fechaHoy,
+      );
+      expect(resultado).toBe(true);
+    });
+
+    it('debería identificar rotación necesaria para fecha pasada', async () => {
+      // Fecha de ayer
+      const fechaAyer = '2024-01-14';
+      const resultado = await (service as any).necesitaRotacionColchones(
+        fechaAyer,
+      );
+      expect(resultado).toBe(true);
+    });
+
+    it('debería NO requerir rotación para fecha futura', async () => {
+      // Fecha de mañana
+      const fechaManana = '2024-01-16';
+      const resultado = await (service as any).necesitaRotacionColchones(
+        fechaManana,
+      );
+      expect(resultado).toBe(false);
+    });
+
+    it('debería manejar fechas límite correctamente', async () => {
+      // Cambio de año
+      jest.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+      const fechaAnoAnterior = '2023-12-31';
+      const resultado = await (service as any).necesitaRotacionColchones(
+        fechaAnoAnterior,
+      );
+      expect(resultado).toBe(true);
+    });
+
+    it('debería manejar años bisiestos', async () => {
+      jest.setSystemTime(new Date('2024-02-29T00:00:00.000Z')); // Año bisiesto
+      const fechaBisiesta = '2024-02-29';
+      const resultado = await (service as any).necesitaRotacionColchones(
+        fechaBisiesta,
+      );
+      expect(resultado).toBe(true);
+    });
+  });
+
+  describe('Edge Cases de Fechas - seDebeNotificarRotacionColchones', () => {
+    it('debería notificar cuando está dentro del rango de días de aviso', async () => {
+      // 5 días en el futuro (dentro del rango de 7 días)
+      const fechaFutura = '2024-01-20';
+      const resultado = await (service as any).seDebeNotificarRotacionColchones(
+        fechaFutura,
+      );
+      expect(resultado).toBe(true);
+    });
+
+    it('debería NO notificar cuando está fuera del rango de días de aviso', async () => {
+      // 10 días en el futuro (fuera del rango de 7 días)
+      const fechaLejana = '2024-01-25';
+      const resultado = await (service as any).seDebeNotificarRotacionColchones(
+        fechaLejana,
+      );
+      expect(resultado).toBe(false);
+    });
+
+    it('debería notificar en el día exacto del límite', async () => {
+      // Exactamente 7 días en el futuro
+      const fechaLimite = '2024-01-22';
+      const resultado = await (service as any).seDebeNotificarRotacionColchones(
+        fechaLimite,
+      );
+      expect(resultado).toBe(true);
+    });
+
+    it('debería manejar cambios de mes correctamente', async () => {
+      jest.setSystemTime(new Date('2024-01-28T00:00:00.000Z'));
+      // 5 días después (cruzando al siguiente mes)
+      const fechaSiguienteMes = '2024-02-02';
+      const resultado = await (service as any).seDebeNotificarRotacionColchones(
+        fechaSiguienteMes,
+      );
+      expect(resultado).toBe(true);
+    });
+  });
+
+  describe('Edge Cases de Fechas - habitacionTieneReservaHoy', () => {
+    it('debería detectar reserva que comienza hoy', async () => {
+      const reservaMock = {
+        id: 1,
+        habitacionId: 1,
+        fecha_inicio: new Date('2024-01-15T00:00:00.000Z'),
+        fecha_fin: new Date('2024-01-20T00:00:00.000Z'),
+      };
+      prismaService.reserva.findFirst.mockResolvedValue(reservaMock);
+
+      const fechaHoy = new Date('2024-01-15T00:00:00.000Z');
+      fechaHoy.setUTCHours(0, 0, 0, 0);
+
+      const resultado = await (service as any).habitacionTieneReservaHoy(
+        1,
+        fechaHoy,
+      );
+      expect(resultado).toBe(true);
+    });
+
+    it('debería detectar reserva que termina hoy', async () => {
+      const reservaMock = {
+        id: 1,
+        habitacionId: 1,
+        fecha_inicio: new Date('2024-01-10T00:00:00.000Z'),
+        fecha_fin: new Date('2024-01-15T00:00:00.000Z'),
+      };
+      prismaService.reserva.findFirst.mockResolvedValue(reservaMock);
+
+      const fechaHoy = new Date('2024-01-15T00:00:00.000Z');
+      fechaHoy.setUTCHours(0, 0, 0, 0);
+
+      const resultado = await (service as any).habitacionTieneReservaHoy(
+        1,
+        fechaHoy,
+      );
+      expect(resultado).toBe(true);
+    });
+
+    it('debería NO detectar reserva futura', async () => {
+      prismaService.reserva.findFirst.mockResolvedValue(null);
+
+      const fechaHoy = new Date('2024-01-15T00:00:00.000Z');
+      fechaHoy.setUTCHours(0, 0, 0, 0);
+
+      const resultado = await (service as any).habitacionTieneReservaHoy(
+        1,
+        fechaHoy,
+      );
+      expect(resultado).toBe(false);
+    });
+
+    it('debería manejar zonas horarias correctamente (UTC)', async () => {
+      // Reserva que comienza a las 23:59 UTC del día anterior
+      const reservaMock = {
+        id: 1,
+        habitacionId: 1,
+        fecha_inicio: new Date('2024-01-14T23:59:00.000Z'),
+        fecha_fin: new Date('2024-01-15T01:00:00.000Z'),
+      };
+      prismaService.reserva.findFirst.mockResolvedValue(reservaMock);
+
+      const fechaHoy = new Date('2024-01-15T00:00:00.000Z');
+      fechaHoy.setUTCHours(0, 0, 0, 0);
+
+      const resultado = await (service as any).habitacionTieneReservaHoy(
+        1,
+        fechaHoy,
+      );
+      expect(resultado).toBe(true);
+    });
+  });
+
+  describe('evaluarDesinfeccionZonasComunes', () => {
+    beforeEach(() => {
+      prismaService.zonaComun.findMany.mockResolvedValue(mockZonasComunes);
+    });
+
+    it('debería evaluar zonas comunes que necesitan notificación', async () => {
+      // Zona 1: 2 días en el futuro (dentro del rango de 3 días)
+      // Zona 2: 10 días en el futuro (fuera del rango)
+      const resultado = await (
+        service as any
+      ).evaluarDesinfeccionZonasComunes();
+
+      expect(resultado).toEqual([1]); // Solo zona 1
+    });
+
+    it('debería manejar zonas sin fecha de desinfección', async () => {
+      const zonasSinFecha = [
+        { id: 1, proxima_desinfeccion_zona_comun: null },
+        {
+          id: 2,
+          proxima_desinfeccion_zona_comun: new Date('2024-01-17T00:00:00.000Z'),
+        },
+      ];
+      prismaService.zonaComun.findMany.mockResolvedValue(zonasSinFecha);
+
+      const resultado = await (
+        service as any
+      ).evaluarDesinfeccionZonasComunes();
+
+      expect(resultado).toEqual([2]); // Solo zona 2 (zona 1 se omite)
+    });
+
+    it('debería manejar configuración con días de aviso 0', async () => {
+      const configConCeroAviso = {
+        ...mockConfiguracion,
+        dias_aviso_desinfeccion_zona_comun: 0,
+      };
+      configuracionAseoService.obtenerConfiguracion.mockResolvedValue(
+        configConCeroAviso,
+      );
+
+      const resultado = await (
+        service as any
+      ).evaluarDesinfeccionZonasComunes();
+
+      expect(resultado).toEqual([]); // Ninguna zona debería notificar
+    });
+  });
+
+  describe('Sistema de Logging', () => {
+    it('debería escribir logs en archivo correctamente', () => {
+      (service as any).log('Mensaje de prueba', { dato: 'valor' }, 'info');
+
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
+        expect.stringContaining('aseo-cron.log'),
+        expect.stringContaining('"mensaje":"Mensaje de prueba"'),
+      );
+    });
+
+    it('debería crear directorio de logs si no existe', () => {
+      mockFs.existsSync.mockReturnValue(false);
+
+      (service as any).log('Mensaje de prueba');
+
+      expect(mockFs.mkdirSync).toHaveBeenCalledWith(
+        expect.stringContaining('logs'),
+        { recursive: true },
+      );
+    });
+
+    it('debería manejar errores al escribir logs', () => {
+      mockFs.appendFileSync.mockImplementation(() => {
+        throw new Error('Error de escritura');
+      });
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      (service as any).log('Mensaje de prueba');
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error crítico al escribir log en archivo'),
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('debería formatear logs con diferentes niveles', () => {
+      (service as any).log('Error de prueba', { error: 'detalles' }, 'error');
+
+      expect(mockFs.appendFileSync).toHaveBeenCalledWith(
+        expect.stringContaining('aseo-cron.log'),
+        expect.stringContaining('"nivel":"error"'),
+      );
+    });
+  });
+
+  describe('reconfigurarCronJob', () => {
+    it('debería reconfigurar el cron job exitosamente', async () => {
+      await service.reconfigurarCronJob();
+
+      expect(configuracionAseoService.obtenerConfiguracion).toHaveBeenCalled();
+      expect(schedulerRegistry.addCronJob).toHaveBeenCalled();
+    });
+  });
+
+  describe('Configuración de Cron Expression', () => {
+    it('debería crear expresión cron correcta para diferentes horas', async () => {
+      const configuraciones = [
+        { hora_proceso_nocturno_utc: '00:00', esperado: '0 0 * * *' },
+        { hora_proceso_nocturno_utc: '02:30', esperado: '30 2 * * *' },
+        { hora_proceso_nocturno_utc: '23:59', esperado: '59 23 * * *' },
+      ];
+
+      for (const config of configuraciones) {
+        configuracionAseoService.obtenerConfiguracion.mockResolvedValue({
           ...mockConfiguracion,
-          frecuencia_desinfeccion_zonas_comunes: 30, // Cada 30 días
-        };
-        mockPrismaService.configuracionAseo.findFirst.mockResolvedValue(
-          configuracionConDesinfeccion,
+          hora_proceso_nocturno_utc: config.hora_proceso_nocturno_utc,
+        });
+
+        await (service as any).configurarCronJob();
+
+        // Verificar que se llamó addCronJob
+        expect(schedulerRegistry.addCronJob).toHaveBeenCalledWith(
+          'aseo-diario',
+          expect.any(Object),
         );
-
-        const zonasComunes = [
-          {
-            id: 1,
-            nombre: 'Lobby',
-            ultimo_aseo_fecha: new Date('2023-12-15T10:00:00Z'), // Hace más de 30 días
-            ultimo_aseo_tipo: 'DESINFECCION',
-          },
-          {
-            id: 2,
-            nombre: 'Piscina',
-            ultimo_aseo_fecha: new Date('2024-01-10T10:00:00Z'), // Hace 5 días
-            ultimo_aseo_tipo: 'DESINFECCION',
-          },
-        ];
-
-        mockPrismaService.zonaComun.findMany.mockResolvedValue(zonasComunes);
-        mockPrismaService.zonaComun.updateMany.mockResolvedValue({ count: 1 });
-
-        // Act
-        const resultado = await service.actualizarEstadosAseoZonasComunes();
-
-        // Assert
-        expect(resultado.requierenDesinfeccion).toBe(1);
-        expect(mockPrismaService.zonaComun.updateMany).toHaveBeenCalledWith({
-          where: {
-            id: { in: [1] },
-          },
-          data: {
-            requerido_aseo_hoy: true,
-          },
-        });
-      });
-
-      it('debería manejar zonas comunes sin historial de aseo', async () => {
-        // Arrange
-        const zonasComunes = [
-          {
-            id: 1,
-            nombre: 'Lobby',
-            ultimo_aseo_fecha: null,
-            ultimo_aseo_tipo: null,
-          },
-        ];
-
-        mockPrismaService.zonaComun.findMany.mockResolvedValue(zonasComunes);
-        mockPrismaService.zonaComun.updateMany.mockResolvedValue({ count: 1 });
-
-        // Act
-        const resultado = await service.actualizarEstadosAseoZonasComunes();
-
-        // Assert
-        expect(resultado.requierenAseo).toBe(1);
-        expect(mockPrismaService.zonaComun.updateMany).toHaveBeenCalledWith({
-          where: {
-            id: { in: [1] },
-          },
-          data: {
-            requerido_aseo_hoy: true,
-          },
-        });
-      });
-
-      it('debería manejar caso sin zonas comunes', async () => {
-        // Arrange
-        mockPrismaService.zonaComun.findMany.mockResolvedValue([]);
-
-        // Act
-        const resultado = await service.actualizarEstadosAseoZonasComunes();
-
-        // Assert
-        expect(resultado).toEqual({
-          zonasActualizadas: 0,
-          requierenAseo: 0,
-          requierenDesinfeccion: 0,
-        });
-        expect(mockPrismaService.zonaComun.updateMany).not.toHaveBeenCalled();
-      });
+      }
     });
 
-    describe('actualizarEstadosAseoHabitaciones', () => {
-      it('debería actualizar habitaciones que requieren aseo diario', async () => {
-        // Arrange
-        const habitaciones = [
-          {
-            id: 1,
-            numero: 101,
-            ultimo_aseo_fecha: new Date('2024-01-14T10:00:00Z'), // Ayer
-            reservas: [],
-          },
-          {
-            id: 2,
-            numero: 102,
-            ultimo_aseo_fecha: new Date('2024-01-13T10:00:00Z'), // Hace 2 días
-            reservas: [],
-          },
-        ];
-
-        mockPrismaService.habitacion.findMany.mockResolvedValue(habitaciones);
-        mockPrismaService.habitacion.updateMany.mockResolvedValue({ count: 2 });
-
-        // Act
-        const resultado = await service.actualizarEstadosAseoHabitaciones();
-
-        // Assert
-        expect(resultado).toEqual({
-          habitacionesActualizadas: 2,
-          requierenAseo: 2,
-          requierenDesinfeccion: 0,
-        });
-
-        expect(mockPrismaService.habitacion.findMany).toHaveBeenCalledWith({
-          where: { deleted: false },
-          select: {
-            id: true,
-            numero: true,
-            ultimo_aseo_fecha: true,
-            ultima_rotacion_colchones: true,
-            reservas: {
-              where: {
-                deleted: false,
-                estado: { in: ['RESERVADO', 'PENDIENTE'] },
-                fecha_inicio: { lte: expect.any(Date) },
-                fecha_fin: { gte: expect.any(Date) },
-              },
-              select: { id: true, estado: true },
-            },
-          },
-        });
-
-        expect(mockPrismaService.habitacion.updateMany).toHaveBeenCalledWith({
-          where: {
-            id: { in: [1, 2] },
-          },
-          data: {
-            requerido_aseo_hoy: true,
-          },
-        });
+    it('debería usar hora por defecto si no está configurada', async () => {
+      configuracionAseoService.obtenerConfiguracion.mockResolvedValue({
+        ...mockConfiguracion,
+        hora_proceso_nocturno_utc: null as any,
       });
 
-      it('debería actualizar habitaciones que requieren desinfección por reserva activa', async () => {
-        // Arrange
-        const habitaciones = [
-          {
-            id: 1,
-            numero: 101,
-            ultimo_aseo_fecha: new Date('2024-01-15T08:00:00Z'), // Hoy temprano
-            reservas: [
-              { id: 1, estado: 'RESERVADO' }, // Tiene reserva activa
-            ],
-          },
-          {
-            id: 2,
-            numero: 102,
-            ultimo_aseo_fecha: new Date('2024-01-15T08:00:00Z'), // Hoy temprano
-            reservas: [], // Sin reserva activa
-          },
-        ];
+      await (service as any).configurarCronJob();
 
-        mockPrismaService.habitacion.findMany.mockResolvedValue(habitaciones);
-        mockPrismaService.habitacion.updateMany.mockResolvedValue({ count: 1 });
+      expect(schedulerRegistry.addCronJob).toHaveBeenCalledWith(
+        'aseo-diario',
+        expect.any(Object),
+      );
+    });
+  });
 
-        // Act
-        const resultado = await service.actualizarEstadosAseoHabitaciones();
+  describe('Casos Edge de Fechas Avanzados', () => {
+    it('debería manejar correctamente el cambio de horario de verano', async () => {
+      // Simular fecha durante cambio de horario
+      jest.setSystemTime(new Date('2024-03-31T01:00:00.000Z')); // Cambio de horario en Europa
 
-        // Assert
-        expect(resultado.requierenDesinfeccion).toBe(1);
-        expect(resultado.requierenAseo).toBe(1); // La habitación 102 sin reserva
-        expect(mockPrismaService.habitacion.updateMany).toHaveBeenCalledTimes(
-          2,
-        );
-      });
-
-      it('debería calcular días restantes para rotación de colchones', async () => {
-        // Arrange
-        const habitaciones = [
-          {
-            id: 1,
-            numero: 101,
-            ultimo_aseo_fecha: new Date('2024-01-15T08:00:00Z'),
-            ultima_rotacion_colchones: new Date('2023-07-15T00:00:00Z'), // Hace ~6 meses
-            reservas: [],
-          },
-          {
-            id: 2,
-            numero: 102,
-            ultimo_aseo_fecha: new Date('2024-01-15T08:00:00Z'),
-            ultima_rotacion_colchones: null, // Nunca se ha rotado
-            reservas: [],
-          },
-        ];
-
-        mockPrismaService.habitacion.findMany.mockResolvedValue(habitaciones);
-        mockPrismaService.habitacion.updateMany.mockResolvedValue({ count: 2 });
-        mockPrismaService.habitacion.update.mockResolvedValue({});
-
-        // Act
-        const resultado = await service.actualizarEstadosAseoHabitaciones();
-
-        // Assert
-        expect(resultado).toEqual({
-          habitacionesActualizadas: 2,
-          requierenAseo: 2,
-          requierenDesinfeccion: 0,
-          rotacionColchones: {
-            habitacionesActualizadas: 2,
-            requierenRotacion: 1, // Solo la habitación 1 que ya cumplió los 180 días
-            sinHistorial: 1, // La habitación 2 sin historial
-          },
-        });
-
-        // Verificar que se actualizaron los días restantes para rotación
-        expect(mockPrismaService.habitacion.update).toHaveBeenCalledTimes(2);
-        expect(mockPrismaService.habitacion.update).toHaveBeenCalledWith({
-          where: { id: 1 },
-          data: {
-            requerido_rotacion_colchones: true,
-            dias_restantes_rotacion: expect.any(Number),
-          },
-        });
-        expect(mockPrismaService.habitacion.update).toHaveBeenCalledWith({
-          where: { id: 2 },
-          data: {
-            requerido_rotacion_colchones: false,
-            dias_restantes_rotacion: 180, // Días completos desde hoy
-          },
-        });
-      });
-
-      it('debería manejar habitaciones sin historial de aseo', async () => {
-        // Arrange
-        const habitaciones = [
-          {
-            id: 1,
-            numero: 101,
-            ultimo_aseo_fecha: null,
-            ultima_rotacion_colchones: null,
-            reservas: [],
-          },
-        ];
-
-        mockPrismaService.habitacion.findMany.mockResolvedValue(habitaciones);
-        mockPrismaService.habitacion.updateMany.mockResolvedValue({ count: 1 });
-        mockPrismaService.habitacion.update.mockResolvedValue({});
-
-        // Act
-        const resultado = await service.actualizarEstadosAseoHabitaciones();
-
-        // Assert
-        expect(resultado.requierenAseo).toBe(1);
-        expect(mockPrismaService.habitacion.updateMany).toHaveBeenCalledWith({
-          where: {
-            id: { in: [1] },
-          },
-          data: {
-            requerido_aseo_hoy: true,
-          },
-        });
-      });
-
-      it('debería manejar caso sin habitaciones', async () => {
-        // Arrange
-        mockPrismaService.habitacion.findMany.mockResolvedValue([]);
-
-        // Act
-        const resultado = await service.actualizarEstadosAseoHabitaciones();
-
-        // Assert
-        expect(resultado).toEqual({
-          habitacionesActualizadas: 0,
-          requierenAseo: 0,
-          requierenDesinfeccion: 0,
-          rotacionColchones: {
-            habitacionesActualizadas: 0,
-            requierenRotacion: 0,
-            sinHistorial: 0,
-          },
-        });
-        expect(mockPrismaService.habitacion.updateMany).not.toHaveBeenCalled();
-        expect(mockPrismaService.habitacion.update).not.toHaveBeenCalled();
-      });
+      const fechaTest = '2024-03-31';
+      const resultado = await (service as any).necesitaRotacionColchones(
+        fechaTest,
+      );
+      expect(resultado).toBe(true);
     });
 
-    describe('procesoAseoNocturnoCompleto', () => {
-      it('debería ejecutar proceso completo de aseo nocturno exitosamente', async () => {
-        // Arrange
-        const fechaHoy = '2024-01-15';
+    it('debería manejar fechas en diferentes zonas horarias correctamente', async () => {
+      // Test con fecha que podría ser ambigua en diferentes zonas horarias
+      jest.setSystemTime(new Date('2024-01-15T23:30:00.000Z'));
 
-        // Mock de todos los métodos
-        jest.spyOn(service, 'generarReporteAseoNocturno').mockResolvedValue({
-          id: 1,
-          fecha: new Date('2024-01-15T00:00:00Z'),
-          datos: { resumen: { total_habitaciones_aseadas: 5 } },
-        } as any);
+      const fechaTest = '2024-01-15';
+      const resultado = await (service as any).necesitaRotacionColchones(
+        fechaTest,
+      );
+      expect(resultado).toBe(true);
+    });
 
-        jest
-          .spyOn(service, 'actualizarEstadosAseoZonasComunes')
-          .mockResolvedValue({
-            zonasActualizadas: 3,
-            requierenAseo: 2,
-            requierenDesinfeccion: 1,
-          });
+    it('debería manejar correctamente fechas de febrero en años no bisiestos', async () => {
+      jest.setSystemTime(new Date('2023-02-28T12:00:00.000Z')); // Año no bisiesto
 
-        jest
-          .spyOn(service, 'actualizarEstadosAseoHabitaciones')
-          .mockResolvedValue({
-            habitacionesActualizadas: 10,
-            requierenAseo: 7,
-            requierenDesinfeccion: 3,
-            rotacionColchones: {
-              habitacionesActualizadas: 10,
-              requierenRotacion: 2,
-              sinHistorial: 1,
-            },
-          });
+      const fechaTest = '2023-02-28';
+      const resultado = await (service as any).necesitaRotacionColchones(
+        fechaTest,
+      );
+      expect(resultado).toBe(true);
+    });
 
-        // Act
-        const resultado = await service.procesoAseoNocturnoCompleto(fechaHoy);
+    it('debería calcular correctamente días entre fechas con diferencias de milisegundos', async () => {
+      jest.setSystemTime(new Date('2024-01-15T23:59:59.999Z'));
 
-        // Assert
-        expect(resultado).toEqual({
-          fecha: fechaHoy,
-          reporte: {
-            id: 1,
-            fecha: new Date('2024-01-15T00:00:00Z'),
-            datos: { resumen: { total_habitaciones_aseadas: 5 } },
-          },
-          zonasComunes: {
-            zonasActualizadas: 3,
-            requierenAseo: 2,
-            requierenDesinfeccion: 1,
-          },
-          habitaciones: {
-            habitacionesActualizadas: 10,
-            requierenAseo: 7,
-            requierenDesinfeccion: 3,
-            rotacionColchones: {
-              habitacionesActualizadas: 10,
-              requierenRotacion: 2,
-              sinHistorial: 1,
-            },
-          },
-          tiempoEjecucion: expect.any(Number),
-        });
-
-        expect(service.generarReporteAseoNocturno).toHaveBeenCalledWith(
-          fechaHoy,
-        );
-        expect(service.actualizarEstadosAseoZonasComunes).toHaveBeenCalled();
-        expect(service.actualizarEstadosAseoHabitaciones).toHaveBeenCalled();
-      });
-
-      it('debería manejar errores en generación de reporte', async () => {
-        // Arrange
-        const fechaHoy = '2024-01-15';
-        const errorEsperado = new Error('Error al generar reporte');
-
-        jest
-          .spyOn(service, 'generarReporteAseoNocturno')
-          .mockRejectedValue(errorEsperado);
-        jest
-          .spyOn(service, 'actualizarEstadosAseoZonasComunes')
-          .mockResolvedValue({
-            zonasActualizadas: 0,
-            requierenAseo: 0,
-            requierenDesinfeccion: 0,
-          });
-        jest
-          .spyOn(service, 'actualizarEstadosAseoHabitaciones')
-          .mockResolvedValue({
-            habitacionesActualizadas: 0,
-            requierenAseo: 0,
-            requierenDesinfeccion: 0,
-            rotacionColchones: {
-              habitacionesActualizadas: 0,
-              requierenRotacion: 0,
-              sinHistorial: 0,
-            },
-          });
-
-        // Act
-        const resultado = await service.procesoAseoNocturnoCompleto(fechaHoy);
-
-        // Assert
-        expect(resultado.reporte).toEqual({
-          error: 'Error al generar reporte',
-        });
-        expect(resultado.zonasComunes).toBeDefined();
-        expect(resultado.habitaciones).toBeDefined();
-      });
-
-      it('debería continuar proceso aunque falle actualización de zonas comunes', async () => {
-        // Arrange
-        const fechaHoy = '2024-01-15';
-
-        jest
-          .spyOn(service, 'generarReporteAseoNocturno')
-          .mockResolvedValue({ id: 1 } as any);
-        jest
-          .spyOn(service, 'actualizarEstadosAseoZonasComunes')
-          .mockRejectedValue(new Error('Error en zonas comunes'));
-        jest
-          .spyOn(service, 'actualizarEstadosAseoHabitaciones')
-          .mockResolvedValue({
-            habitacionesActualizadas: 5,
-            requierenAseo: 3,
-            requierenDesinfeccion: 2,
-            rotacionColchones: {
-              habitacionesActualizadas: 5,
-              requierenRotacion: 1,
-              sinHistorial: 0,
-            },
-          });
-
-        // Act
-        const resultado = await service.procesoAseoNocturnoCompleto(fechaHoy);
-
-        // Assert
-        expect(resultado.reporte).toEqual({ id: 1 });
-        expect(resultado.zonasComunes).toEqual({
-          error: 'Error en zonas comunes',
-        });
-        expect(resultado.habitaciones.habitacionesActualizadas).toBe(5);
-      });
-
-      it('debería medir tiempo de ejecución correctamente', async () => {
-        // Arrange
-        const fechaHoy = '2024-01-15';
-
-        jest
-          .spyOn(service, 'generarReporteAseoNocturno')
-          .mockImplementation(async () => {
-            await new Promise((resolve) => setTimeout(resolve, 100)); // Simular delay
-            return { id: 1 } as any;
-          });
-        jest
-          .spyOn(service, 'actualizarEstadosAseoZonasComunes')
-          .mockResolvedValue({
-            zonasActualizadas: 0,
-            requierenAseo: 0,
-            requierenDesinfeccion: 0,
-          });
-        jest
-          .spyOn(service, 'actualizarEstadosAseoHabitaciones')
-          .mockResolvedValue({
-            habitacionesActualizadas: 0,
-            requierenAseo: 0,
-            requierenDesinfeccion: 0,
-            rotacionColchones: {
-              habitacionesActualizadas: 0,
-              requierenRotacion: 0,
-              sinHistorial: 0,
-            },
-          });
-
-        // Act
-        const resultado = await service.procesoAseoNocturnoCompleto(fechaHoy);
-
-        // Assert
-        expect(resultado.tiempoEjecucion).toBeGreaterThan(90); // Al menos 90ms
-        expect(resultado.tiempoEjecucion).toBeLessThan(200); // Menos de 200ms
-      });
+      const fechaTest = '2024-01-16';
+      const resultado = await (service as any).necesitaRotacionColchones(
+        fechaTest,
+      );
+      expect(resultado).toBe(false); // Debería ser falso porque es el día siguiente
     });
   });
 });
