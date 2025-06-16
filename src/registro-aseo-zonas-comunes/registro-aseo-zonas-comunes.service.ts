@@ -7,14 +7,18 @@ import { PaginationDto } from 'src/common/dtos/paginationDto';
 import notFoundError from 'src/common/errors/notfoundError';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
 import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
-import { Prisma } from '@prisma/client';
+import { ConfiguracionAseo, Prisma } from '@prisma/client';
+import { ConfiguracionAseoService } from 'src/configuracion-aseo/configuracion-aseo.service';
 
 /**
  * Service CRUD para manejar registros de aseo de zonas comunes
  */
 @Injectable()
 export class RegistroAseoZonasComunesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configuracionAseoService: ConfiguracionAseoService,
+  ) {}
 
   /**
    * Crea un nuevo registro de aseo de zona común.
@@ -300,16 +304,33 @@ export class RegistroAseoZonasComunesService {
     // Determinar el tipo de aseo más relevante basado en prioridades
     const tipoAseoMasRelevante = this.determinarTipoAseoMasRelevante(tipoAseo);
 
+    // Preparar datos de actualización
+    const dataToUpdate: any = {
+      ultimo_aseo_fecha: fechaRegistro,
+      ultimo_aseo_tipo: tipoAseoMasRelevante,
+      requerido_aseo_hoy: false,
+    };
+
+    // Si se realizó desinfección, calcular próxima fecha
+    if (tipoAseo.includes(TiposAseo.DESINFECCION)) {
+      const configuracion = await this.obtenerConfiguracionAseo();
+      const proximaDesinfeccion = new Date(fechaRegistro);
+      proximaDesinfeccion.setDate(
+        proximaDesinfeccion.getDate() +
+          configuracion.frecuencia_desinfeccion_zona_comun,
+      );
+
+      dataToUpdate.ultima_desinfeccion = fechaRegistro;
+      dataToUpdate.proxima_desinfeccion = proximaDesinfeccion;
+      dataToUpdate.requerido_desinfeccion = false;
+    }
+
     await tx.zonaComun.update({
       where: {
         id: idZonaComun,
         deleted: false,
       },
-      data: {
-        ultimo_aseo_fecha: fechaRegistro,
-        ultimo_aseo_tipo: tipoAseoMasRelevante,
-        requerido_aseo_hoy: false,
-      },
+      data: dataToUpdate,
     });
   }
 
@@ -330,5 +351,15 @@ export class RegistroAseoZonasComunesService {
         ? tipoActual
         : tipoMasRelevante;
     });
+  }
+
+  /**
+   * Obtiene la configuración de aseo
+   * @returns La configuración de aseo
+   */
+  private async obtenerConfiguracionAseo(): Promise<ConfiguracionAseo> {
+    const configuracion =
+      await this.configuracionAseoService.obtenerConfiguracion();
+    return configuracion;
   }
 }

@@ -7,6 +7,7 @@ import { UpdateRegistroAseoZonaComunDto } from './dto/update-registro-aseo-zonas
 import { FiltrosRegistroAseoZonaComunDto } from './dto/filtros-registro-aseo-zona-comun.dto';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
+import { ConfiguracionAseoService } from 'src/configuracion-aseo/configuracion-aseo.service';
 
 describe('RegistroAseoZonasComunesService', () => {
   let service: RegistroAseoZonasComunesService;
@@ -23,6 +24,11 @@ describe('RegistroAseoZonasComunesService', () => {
     $transaction: jest.fn(),
   };
 
+  // Mock de ConfiguracionAseoService
+  const mockConfiguracionAseoService = {
+    obtenerConfiguracion: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -30,6 +36,10 @@ describe('RegistroAseoZonasComunesService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: ConfiguracionAseoService,
+          useValue: mockConfiguracionAseoService,
         },
       ],
     }).compile();
@@ -45,7 +55,7 @@ describe('RegistroAseoZonasComunesService', () => {
 
   describe('Definición del servicio', () => {
     it('debería estar definido', () => {
-      expect(service).toBeDefined();
+    expect(service).toBeDefined();
     });
   });
 
@@ -293,7 +303,261 @@ describe('RegistroAseoZonasComunesService', () => {
         }),
       });
     });
-  });
+
+    it('debería actualizar campos de desinfección cuando se incluye DESINFECCION en tipos realizados', async () => {
+      // Arrange
+      const fechaDesinfeccion = '2024-01-15T10:30:00Z';
+      const createDtoConDesinfeccion: CreateRegistroAseoZonaComunDto = {
+        ...createRegistroDto,
+        tipos_realizados: [TiposAseo.DESINFECCION],
+        fecha_registro: fechaDesinfeccion,
+      };
+
+      const mockConfiguracion = {
+        id: 1,
+        frecuencia_desinfeccion_zona_comun: 7, // 7 días
+        hora_limite_aseo: '17:00',
+        hora_proceso_nocturno_utc: '05:00',
+        frecuencia_rotacion_colchones: 180,
+        dias_aviso_rotacion_colchones: 5,
+        habilitar_notificaciones: false,
+        elementos_aseo_default: [],
+        elementos_proteccion_default: [],
+        productos_quimicos_default: [],
+        areas_intervenir_habitacion_default: [],
+        areas_intervenir_banio_default: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      mockConfiguracionAseoService.obtenerConfiguracion.mockResolvedValue(
+        mockConfiguracion,
+      );
+
+      const fechaEsperada = new Date('2024-01-15T10:30:00Z');
+      const proximaDesinfeccionEsperada = new Date('2024-01-22T10:30:00Z'); // +7 días
+
+      const mockTransaction = {
+        registroAseoZonaComun: {
+          create: jest.fn().mockResolvedValue({ id: 1 }),
+        },
+        zonaComun: {
+          findUnique: jest.fn().mockResolvedValue(mockZonaComun),
+          update: jest.fn().mockResolvedValue(mockZonaComun),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      await service.create(createDtoConDesinfeccion);
+
+      // Assert
+      expect(mockConfiguracionAseoService.obtenerConfiguracion).toHaveBeenCalledTimes(1);
+      expect(mockTransaction.zonaComun.update).toHaveBeenCalledWith({
+        where: { id: 1, deleted: false },
+        data: {
+          ultimo_aseo_fecha: fechaEsperada,
+          ultimo_aseo_tipo: TiposAseo.DESINFECCION,
+          requerido_aseo_hoy: false,
+          ultima_desinfeccion: fechaEsperada,
+          proxima_desinfeccion: proximaDesinfeccionEsperada,
+          requerido_desinfeccion: false,
+        },
+      });
+    });
+
+    it('debería NO actualizar campos de desinfección cuando NO se incluye DESINFECCION', async () => {
+      // Arrange
+      const createDtoSoloLimpieza: CreateRegistroAseoZonaComunDto = {
+        ...createRegistroDto,
+        tipos_realizados: [TiposAseo.LIMPIEZA],
+      };
+
+      const mockTransaction = {
+        registroAseoZonaComun: {
+          create: jest.fn().mockResolvedValue({ id: 1 }),
+        },
+        zonaComun: {
+          findUnique: jest.fn().mockResolvedValue(mockZonaComun),
+          update: jest.fn().mockResolvedValue(mockZonaComun),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      await service.create(createDtoSoloLimpieza);
+
+      // Assert
+      expect(mockConfiguracionAseoService.obtenerConfiguracion).not.toHaveBeenCalled();
+      expect(mockTransaction.zonaComun.update).toHaveBeenCalledWith({
+        where: { id: 1, deleted: false },
+        data: {
+          ultimo_aseo_fecha: new Date('2024-01-15T10:30:00Z'),
+          ultimo_aseo_tipo: TiposAseo.LIMPIEZA,
+          requerido_aseo_hoy: false,
+        },
+      });
+    });
+
+    it('debería calcular correctamente la próxima desinfección con diferentes frecuencias', async () => {
+      // Arrange
+      const fechaBase = '2024-02-01T14:00:00Z';
+      const createDtoDesinfeccion: CreateRegistroAseoZonaComunDto = {
+        ...createRegistroDto,
+        tipos_realizados: [TiposAseo.DESINFECCION],
+        fecha_registro: fechaBase,
+      };
+
+      const mockConfiguracionConFrecuencia14 = {
+        id: 1,
+        frecuencia_desinfeccion_zona_comun: 14, // 14 días
+        hora_limite_aseo: '17:00',
+        hora_proceso_nocturno_utc: '05:00',
+        frecuencia_rotacion_colchones: 180,
+        dias_aviso_rotacion_colchones: 5,
+        habilitar_notificaciones: false,
+        elementos_aseo_default: [],
+        elementos_proteccion_default: [],
+        productos_quimicos_default: [],
+        areas_intervenir_habitacion_default: [],
+        areas_intervenir_banio_default: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      mockConfiguracionAseoService.obtenerConfiguracion.mockResolvedValue(
+        mockConfiguracionConFrecuencia14,
+      );
+
+      const fechaEsperada = new Date('2024-02-01T14:00:00Z');
+      const proximaDesinfeccionEsperada = new Date('2024-02-15T14:00:00Z'); // +14 días
+
+      const mockTransaction = {
+        registroAseoZonaComun: {
+          create: jest.fn().mockResolvedValue({ id: 1 }),
+        },
+        zonaComun: {
+          findUnique: jest.fn().mockResolvedValue(mockZonaComun),
+          update: jest.fn().mockResolvedValue(mockZonaComun),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      await service.create(createDtoDesinfeccion);
+
+      // Assert
+      expect(mockTransaction.zonaComun.update).toHaveBeenCalledWith({
+        where: { id: 1, deleted: false },
+        data: expect.objectContaining({
+          proxima_desinfeccion: proximaDesinfeccionEsperada,
+        }),
+      });
+    });
+
+    it('debería manejar desinfección con múltiples tipos de aseo realizados', async () => {
+      // Arrange
+      const createDtoMultiplesTipos: CreateRegistroAseoZonaComunDto = {
+        ...createRegistroDto,
+        tipos_realizados: [TiposAseo.LIMPIEZA, TiposAseo.DESINFECCION],
+      };
+
+      const mockConfiguracion = {
+        id: 1,
+        frecuencia_desinfeccion_zona_comun: 10,
+        hora_limite_aseo: '17:00',
+        hora_proceso_nocturno_utc: '05:00',
+        frecuencia_rotacion_colchones: 180,
+        dias_aviso_rotacion_colchones: 5,
+        habilitar_notificaciones: false,
+        elementos_aseo_default: [],
+        elementos_proteccion_default: [],
+        productos_quimicos_default: [],
+        areas_intervenir_habitacion_default: [],
+        areas_intervenir_banio_default: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deleted: false,
+      };
+
+      mockConfiguracionAseoService.obtenerConfiguracion.mockResolvedValue(
+        mockConfiguracion,
+      );
+
+      const mockTransaction = {
+        registroAseoZonaComun: {
+          create: jest.fn().mockResolvedValue({ id: 1 }),
+        },
+        zonaComun: {
+          findUnique: jest.fn().mockResolvedValue(mockZonaComun),
+          update: jest.fn().mockResolvedValue(mockZonaComun),
+        },
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        return await callback(mockTransaction);
+      });
+
+      // Act
+      await service.create(createDtoMultiplesTipos);
+
+      // Assert
+      expect(mockTransaction.zonaComun.update).toHaveBeenCalledWith({
+        where: { id: 1, deleted: false },
+        data: expect.objectContaining({
+          ultimo_aseo_tipo: TiposAseo.DESINFECCION, // El más relevante
+          ultima_desinfeccion: new Date('2024-01-15T10:30:00Z'),
+          proxima_desinfeccion: expect.any(Date),
+          requerido_desinfeccion: false,
+                 }),
+       });
+     });
+
+     it('debería manejar errores al obtener la configuración de aseo', async () => {
+       // Arrange
+       const createDtoConDesinfeccion: CreateRegistroAseoZonaComunDto = {
+         ...createRegistroDto,
+         tipos_realizados: [TiposAseo.DESINFECCION],
+       };
+
+       mockConfiguracionAseoService.obtenerConfiguracion.mockRejectedValue(
+         new Error('Error al obtener configuración'),
+       );
+
+       const mockTransaction = {
+         registroAseoZonaComun: {
+           create: jest.fn().mockResolvedValue({ id: 1 }),
+         },
+         zonaComun: {
+           findUnique: jest.fn().mockResolvedValue(mockZonaComun),
+           update: jest.fn(),
+         },
+       };
+
+       mockPrismaService.$transaction.mockImplementation(async (callback) => {
+         return await callback(mockTransaction);
+       });
+
+       // Act & Assert
+       await expect(service.create(createDtoConDesinfeccion)).rejects.toThrow(
+         BadRequestException,
+       );
+       await expect(service.create(createDtoConDesinfeccion)).rejects.toThrow(
+         'Error al crear registro de aseo de zona común',
+       );
+     });
+   });
 
   describe('findAll', () => {
     const paginationDto: PaginationDto = { page: 1, limit: 10 };
