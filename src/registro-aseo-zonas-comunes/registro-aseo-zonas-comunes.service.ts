@@ -275,6 +275,18 @@ export class RegistroAseoZonasComunesService {
       observaciones: true,
       createdAt: true,
       updatedAt: true,
+      usuario: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
+      zonaComun: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
     };
   }
 

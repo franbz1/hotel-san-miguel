@@ -281,6 +281,18 @@ export class RegistroAseoHabitacionesService {
       observaciones: true,
       createdAt: true,
       updatedAt: true,
+      usuario: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
+      habitacion: {
+        select: {
+          id: true,
+          numero_habitacion: true,
+        },
+      },
     };
   }
 
