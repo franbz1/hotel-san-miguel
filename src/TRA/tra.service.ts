@@ -199,42 +199,93 @@ export class TraService {
   private async postToTraEndpoint(endpoint: string, payload: any) {
     const headers = this.createTraHeaders();
 
-    try {
-      // Para entornos reales, descomentar la línea siguiente
-      // const { data } = await firstValueFrom(
-      //   this.httpService.post(endpoint, payload, { headers }),
-      // );
+    this.logger.log(`=== INICIO PETICIÓN TRA ===`);
+    this.logger.log(`Endpoint: ${endpoint}`);
+    this.logger.log(`Headers: ${JSON.stringify(headers, null, 2)}`);
+    this.logger.log(`Payload: ${JSON.stringify(payload, null, 2)}`);
 
-      // Mock para entornos de desarrollo
-      const data = { code: 1222 }; // Mock de respuesta
-      this.logger.debug(`Mock response from TRA endpoint: ${endpoint}`);
-      this.logger.debug(headers);
-      this.logger.debug(payload);
-      return data;
-    } catch (error) {
-      this.logger.error(
-        `Error in TRA request to ${endpoint}: ${error.message}`,
+    try {
+      // Para entornos reales, activar la línea siguiente
+      const { data } = await firstValueFrom(
+        this.httpService.post(endpoint, payload, { headers }),
       );
 
+      // Mock para entornos de desarrollo - comentar en producción
+      // const data = { code: 1222 }; // Mock de respuesta
+
+      this.logger.log(`=== RESPUESTA TRA EXITOSA ===`);
+      this.logger.log(`Respuesta completa: ${JSON.stringify(data, null, 2)}`);
+
+      // Validar estructura básica de respuesta
+      if (
+        !data ||
+        (typeof data.code !== 'number' && typeof data.code !== 'string')
+      ) {
+        this.logger.error(
+          `Respuesta TRA inválida - falta campo 'code': ${JSON.stringify(data, null, 2)}`,
+        );
+        throw new Error(`Respuesta inválida de TRA: falta campo 'code'`);
+      }
+
+      this.logger.log(`=== FIN PETICIÓN TRA EXITOSA ===`);
+      return data;
+    } catch (error) {
+      this.logger.error(`=== ERROR EN PETICIÓN TRA ===`);
+      this.logger.error(`Endpoint: ${endpoint}`);
+      this.logger.error(`Error principal: ${error.message}`);
+
       if (error.response) {
-        this.logger.error(`Status: ${error.response.status}`);
+        this.logger.error(`Status HTTP: ${error.response.status}`);
         this.logger.error(
           `Response data: ${JSON.stringify(error.response.data, null, 2)}`,
         );
         this.logger.error(
           `Response headers: ${JSON.stringify(error.response.headers, null, 2)}`,
         );
+
+        // Manejar errores específicos de TRA según status code
+        switch (error.response.status) {
+          case 400:
+            throw new Error(
+              `Datos inválidos enviados a TRA: ${JSON.stringify(error.response.data)}`,
+            );
+          case 401:
+            throw new Error(`Token de autenticación TRA inválido o expirado`);
+          case 403:
+            throw new Error(`Acceso prohibido al servicio TRA`);
+          case 404:
+            throw new Error(`Endpoint TRA no encontrado: ${endpoint}`);
+          case 500:
+            throw new Error(
+              `Error interno del servidor TRA: ${JSON.stringify(error.response.data)}`,
+            );
+          default:
+            throw new Error(
+              `Error HTTP ${error.response.status} en TRA: ${JSON.stringify(error.response.data)}`,
+            );
+        }
       } else if (error.request) {
         // Si la petición fue hecha pero no hubo respuesta
-        this.logger.error(`No response received from ${endpoint}`);
+        this.logger.error(
+          `Sin respuesta del servidor TRA - Timeout o servidor caído`,
+        );
+        this.logger.error(
+          `Request config: ${JSON.stringify(error.config, null, 2)}`,
+        );
+        throw new Error(
+          `Sin respuesta del servidor TRA - Verifique conectividad`,
+        );
       } else {
         // Errores generales
-        this.logger.error(`Unexpected error: ${error.message}`);
+        this.logger.error(`Error inesperado: ${error.message}`);
+        throw new Error(
+          `Error inesperado al comunicarse con TRA: ${error.message}`,
+        );
       }
-
-      this.logger.debug(`payload: ${JSON.stringify(payload, null, 2)}`);
-      this.logger.debug(`headers: ${JSON.stringify(headers, null, 2)}`);
-      throw new Error('Error al realizar la petición a TRA.');
+    } finally {
+      this.logger.log(`Payload enviado: ${JSON.stringify(payload, null, 2)}`);
+      this.logger.log(`Headers enviados: ${JSON.stringify(headers, null, 2)}`);
+      this.logger.log(`=== FIN PROCESO TRA ===`);
     }
   }
 
