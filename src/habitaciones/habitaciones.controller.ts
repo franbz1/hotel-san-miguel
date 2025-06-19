@@ -89,6 +89,68 @@ export class HabitacionesController {
   }
 
   // ================================================================
+  // ASEO - Obtener habitaciones con información específica para aseo
+  // ================================================================
+  @Roles(Role.ADMINISTRADOR, Role.ASEO, Role.CAJERO)
+  @Get('aseo')
+  @ApiOperation({
+    summary: 'Listar habitaciones con información específica para aseo',
+    description:
+      'Obtiene todas las habitaciones con información relevante para el módulo de aseo, incluyendo estado de limpieza, desinfección y rotación de colchones. Soporta filtros específicos y paginación.',
+  })
+  @ApiQuery(PAGE_QUERY)
+  @ApiQuery(LIMIT_QUERY)
+  @ApiQuery({
+    name: 'requerido_aseo_hoy',
+    required: false,
+    type: Boolean,
+    description: 'Filtrar habitaciones que requieren aseo hoy',
+    example: true,
+  })
+  @ApiQuery({
+    name: 'requerido_desinfeccion_hoy',
+    required: false,
+    type: Boolean,
+    description: 'Filtrar habitaciones que requieren desinfección hoy',
+    example: false,
+  })
+  @ApiQuery({
+    name: 'requerido_rotacion_colchones',
+    required: false,
+    type: Boolean,
+    description: 'Filtrar habitaciones que requieren rotación de colchones',
+    example: false,
+  })
+  @ApiQuery({
+    name: 'ultimo_aseo_tipo',
+    required: false,
+    enum: [
+      'LIMPIEZA',
+      'DESINFECCION',
+      'ROTACION_COLCHONES',
+      'LIMPIEZA_BANIO',
+      'DESINFECCION_BANIO',
+    ],
+    description: 'Filtrar por tipo del último aseo realizado',
+    example: 'LIMPIEZA',
+  })
+  @ApiResponse(
+    createPaginatedApiResponse(HabitacionAseoEntity, 'totalHabitaciones'),
+  )
+  @ApiResponse(AUTH_INVALID_RESPONSE)
+  @ApiResponse(PERMISSIONS_RESPONSE)
+  @ApiResponse({
+    status: 400,
+    description: 'Parámetros de filtro inválidos',
+  })
+  findAllForAseo(@Query() filtrosAseoDto: FiltrosAseoHabitacionDto) {
+    return this.habitacionesService.findAllForAseo(
+      filtrosAseoDto,
+      filtrosAseoDto,
+    );
+  }
+
+  // ================================================================
   // READ - Buscar habitación por número
   // ================================================================
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
@@ -232,71 +294,6 @@ export class HabitacionesController {
     return this.habitacionesService.getHabitacionesDisponiblesEntreFechas(
       rangoFechasDto.fechaInicio,
       rangoFechasDto.fechaFin,
-    );
-  }
-
-  // ================================================================
-  // ASEO - Obtener habitaciones con información específica para aseo
-  // ================================================================
-  @Roles(Role.ADMINISTRADOR, Role.ASEO, Role.CAJERO)
-  @Get('aseo')
-  @ApiOperation({
-    summary: 'Listar habitaciones con información específica para aseo',
-    description:
-      'Obtiene todas las habitaciones con información relevante para el módulo de aseo, incluyendo estado de limpieza, desinfección y rotación de colchones. Soporta filtros específicos y paginación.',
-  })
-  @ApiQuery(PAGE_QUERY)
-  @ApiQuery(LIMIT_QUERY)
-  @ApiQuery({
-    name: 'requerido_aseo_hoy',
-    required: false,
-    type: Boolean,
-    description: 'Filtrar habitaciones que requieren aseo hoy',
-    example: true,
-  })
-  @ApiQuery({
-    name: 'requerido_desinfeccion_hoy',
-    required: false,
-    type: Boolean,
-    description: 'Filtrar habitaciones que requieren desinfección hoy',
-    example: false,
-  })
-  @ApiQuery({
-    name: 'requerido_rotacion_colchones',
-    required: false,
-    type: Boolean,
-    description: 'Filtrar habitaciones que requieren rotación de colchones',
-    example: false,
-  })
-  @ApiQuery({
-    name: 'ultimo_aseo_tipo',
-    required: false,
-    enum: [
-      'LIMPIEZA',
-      'DESINFECCION',
-      'ROTACION_COLCHONES',
-      'LIMPIEZA_BANIO',
-      'DESINFECCION_BANIO',
-    ],
-    description: 'Filtrar por tipo del último aseo realizado',
-    example: 'LIMPIEZA',
-  })
-  @ApiResponse(
-    createPaginatedApiResponse(HabitacionAseoEntity, 'totalHabitaciones'),
-  )
-  @ApiResponse(AUTH_INVALID_RESPONSE)
-  @ApiResponse(PERMISSIONS_RESPONSE)
-  @ApiResponse({
-    status: 400,
-    description: 'Parámetros de filtro inválidos',
-  })
-  findAllForAseo(
-    @Query() paginationDto: PaginationDto,
-    @Query() filtrosAseoDto: FiltrosAseoHabitacionDto,
-  ) {
-    return this.habitacionesService.findAllForAseo(
-      paginationDto,
-      filtrosAseoDto,
     );
   }
 }

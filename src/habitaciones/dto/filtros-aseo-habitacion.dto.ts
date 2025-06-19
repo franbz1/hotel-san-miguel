@@ -2,8 +2,9 @@ import { Transform } from 'class-transformer';
 import { IsOptional, IsBoolean, IsEnum } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { TiposAseo } from '@prisma/client';
+import { PaginationDto } from 'src/common/dtos/paginationDto';
 
-export class FiltrosAseoHabitacionDto {
+export class FiltrosAseoHabitacionDto extends PaginationDto {
   @ApiPropertyOptional({
     description: 'Filtrar habitaciones que requieren aseo hoy',
     type: Boolean,
