@@ -11,6 +11,7 @@ import emptyPaginationResponse from 'src/common/responses/emptyPaginationRespons
 import notFoundError from 'src/common/errors/notfoundError';
 import { TiposAseo } from '@prisma/client';
 import { ConfiguracionAseoService } from 'src/configuracion-aseo/configuracion-aseo.service';
+import { FiltrosAseoHabitacionDto } from './dto/filtros-aseo-habitacion.dto';
 
 @Injectable()
 export class HabitacionesService {
@@ -253,5 +254,95 @@ export class HabitacionesService {
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Obtiene habitaciones con información específica para el módulo de aseo
+   * @param paginationDto Datos de paginación
+   * @param filtrosAseoDto Filtros específicos para aseo
+   * @returns Objeto con la lista de habitaciones para aseo y metadatos de paginación
+   */
+  async findAllForAseo(
+    paginationDto: PaginationDto,
+    filtrosAseoDto: FiltrosAseoHabitacionDto,
+  ) {
+    const { page, limit } = paginationDto;
+    const {
+      requerido_aseo_hoy,
+      requerido_desinfeccion_hoy,
+      requerido_rotacion_colchones,
+      ultimo_aseo_tipo,
+    } = filtrosAseoDto;
+
+    // Construir filtros WHERE
+    const whereConditions: any = {
+      deleted: false,
+    };
+
+    // Aplicar filtros específicos
+    if (requerido_aseo_hoy !== undefined) {
+      whereConditions.requerido_aseo_hoy = requerido_aseo_hoy;
+    }
+
+    if (requerido_desinfeccion_hoy !== undefined) {
+      whereConditions.requerido_desinfeccion_hoy = requerido_desinfeccion_hoy;
+    }
+
+    if (requerido_rotacion_colchones !== undefined) {
+      whereConditions.requerido_rotacion_colchones =
+        requerido_rotacion_colchones;
+    }
+
+    if (ultimo_aseo_tipo !== undefined) {
+      whereConditions.ultimo_aseo_tipo = ultimo_aseo_tipo;
+    }
+
+    const totalHabitaciones = await this.prisma.habitacion.count({
+      where: whereConditions,
+    });
+
+    const lastPage = Math.ceil(totalHabitaciones / limit);
+
+    const emptyData = emptyPaginationResponse(
+      page,
+      limit,
+      totalHabitaciones,
+      lastPage,
+    );
+
+    if (totalHabitaciones === 0 || page > emptyData.meta.lastPage)
+      return emptyData;
+
+    const habitaciones = await this.prisma.habitacion.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      where: whereConditions,
+      select: {
+        id: true,
+        numero_habitacion: true,
+        tipo: true,
+        estado: true,
+        ultimo_aseo_fecha: true,
+        ultimo_aseo_tipo: true,
+        ultima_rotacion_colchones: true,
+        proxima_rotacion_colchones: true,
+        requerido_aseo_hoy: true,
+        requerido_desinfeccion_hoy: true,
+        requerido_rotacion_colchones: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: [
+        { requerido_aseo_hoy: 'desc' },
+        { requerido_desinfeccion_hoy: 'desc' },
+        { requerido_rotacion_colchones: 'desc' },
+        { numero_habitacion: 'asc' },
+      ],
+    });
+
+    return {
+      data: habitaciones,
+      meta: { page, limit, totalHabitaciones, lastPage },
+    };
   }
 }

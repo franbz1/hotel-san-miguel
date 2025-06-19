@@ -6,6 +6,7 @@ Esta documentación describe todos los endpoints del módulo de aseo del Hotel S
 
 - [Tipos de Aseo](#tipos-de-aseo)
 - [Paginación](#paginación)
+- [Habitaciones para Aseo](#habitaciones-para-aseo)
 - [Configuración de Aseo](#configuración-de-aseo)
 - [Zonas Comunes](#zonas-comunes)
 - [Registro de Aseo de Habitaciones](#registro-de-aseo-de-habitaciones)
@@ -48,6 +49,103 @@ Todos los endpoints de listado utilizan el siguiente esquema de paginación:
     total: number;    // Total de elementos
     lastPage: number; // Última página disponible
   };
+}
+```
+
+---
+
+## Habitaciones para Aseo
+
+### `GET /habitaciones/aseo` (Listar habitaciones con información de aseo)
+
+**Permisos:** ADMINISTRADOR, ASEO, CAJERO
+
+**Query Parameters:** `FiltrosAseoHabitacionDto + PaginationDto`
+```typescript
+{
+  // Paginación
+  page?: number;
+  limit?: number;
+  
+  // Filtros específicos de aseo
+  requerido_aseo_hoy?: boolean;           // true/false - habitaciones que requieren aseo hoy
+  requerido_desinfeccion_hoy?: boolean;   // true/false - habitaciones que requieren desinfección hoy
+  requerido_rotacion_colchones?: boolean; // true/false - habitaciones que requieren rotación de colchones
+  ultimo_aseo_tipo?: TiposAseo;           // Enum TiposAseo - filtrar por último tipo de aseo
+}
+```
+
+**Respuesta:** Paginada de `HabitacionAseo`
+```typescript
+{
+  data: [
+    {
+      id: number;                                   // 1
+      numero_habitacion: number;                    // 101
+      tipo: TiposHabitacion;                       // "SENCILLA"
+      estado: EstadosHabitacion;                   // "LIBRE"
+      ultimo_aseo_fecha: Date | null;              // "2024-01-15T10:30:00Z"
+      ultimo_aseo_tipo: TiposAseo | null;          // "LIMPIEZA"
+      ultima_rotacion_colchones: Date | null;      // "2024-01-10T08:00:00Z"
+      proxima_rotacion_colchones: Date | null;     // "2024-07-10T08:00:00Z"
+      requerido_aseo_hoy: boolean;                 // false
+      requerido_desinfeccion_hoy: boolean;         // true
+      requerido_rotacion_colchones: boolean;       // false
+      createdAt: Date;                             // "2024-01-01T00:00:00Z"
+      updatedAt: Date;                             // "2024-01-15T12:00:00Z"
+    }
+  ],
+  meta: { page, limit, totalHabitaciones, lastPage }
+}
+```
+
+**Características Especiales:**
+- **Información optimizada:** Solo devuelve campos relevantes para aseo (sin reservas, precios, etc.)
+- **Ordenamiento inteligente:** Prioriza habitaciones que requieren aseo, desinfección o rotación
+- **Filtros específicos:** Permite buscar habitaciones según necesidades de aseo
+- **Acceso multi-rol:** Disponible para personal de aseo, administradores y cajeros
+
+**Ejemplos de uso:**
+
+1. **Obtener habitaciones que requieren aseo hoy:**
+   ```
+   GET /habitaciones/aseo?requerido_aseo_hoy=true&page=1&limit=10
+   ```
+
+2. **Buscar habitaciones que necesitan desinfección:**
+   ```
+   GET /habitaciones/aseo?requerido_desinfeccion_hoy=true
+   ```
+
+3. **Filtrar por último tipo de aseo realizado:**
+   ```
+   GET /habitaciones/aseo?ultimo_aseo_tipo=LIMPIEZA&page=1&limit=20
+   ```
+
+4. **Habitaciones pendientes de rotación de colchones:**
+   ```
+   GET /habitaciones/aseo?requerido_rotacion_colchones=true
+   ```
+
+**Estados de Habitación:**
+```typescript
+enum EstadosHabitacion {
+  LIBRE = 'LIBRE',
+  OCUPADO = 'OCUPADO', 
+  RESERVADO = 'RESERVADO',
+  EN_DESINFECCION = 'EN_DESINFECCION',
+  EN_MANTENIMIENTO = 'EN_MANTENIMIENTO',
+  EN_LIMPIEZA = 'EN_LIMPIEZA'
+}
+```
+
+**Tipos de Habitación:**
+```typescript
+enum TiposHabitacion {
+  SENCILLA = 'SENCILLA',
+  DOBLE = 'DOBLE',
+  TRIPLE = 'TRIPLE',
+  FAMILIAR = 'FAMILIAR'
 }
 ```
 
