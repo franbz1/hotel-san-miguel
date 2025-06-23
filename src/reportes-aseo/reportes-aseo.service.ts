@@ -132,6 +132,20 @@ export class ReportesAseoService {
       take: limit,
       where: whereConditions,
       orderBy: { fecha: 'desc' },
+      select: {
+        id: true,
+        fecha: true,
+        elementos_aseo: true,
+        elementos_proteccion: true,
+        productos_quimicos: true,
+        procedimiento_aseo_habitacion: true,
+        procedimiento_desinfeccion_habitacion: true,
+        procedimiento_limpieza_zona_comun: true,
+        procedimiento_desinfeccion_zona_comun: true,
+        datos: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     return {
@@ -296,6 +310,18 @@ export class ReportesAseoService {
             lt: fechaFin,
           },
           deleted: false,
+        },
+        include: {
+          zonaComun: {
+            select: {
+              nombre: true,
+            },
+          },
+          usuario: {
+            select: {
+              nombre: true,
+            },
+          },
         },
       });
 
