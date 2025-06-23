@@ -18,10 +18,29 @@ describe('CronService', () => {
     habitacion: {
       findMany: jest.fn(),
       updateMany: jest.fn(),
+      update: jest.fn(),
     },
     reserva: {
       findMany: jest.fn(),
       updateMany: jest.fn(),
+    },
+    zonaComun: {
+      findMany: jest.fn(),
+      updateMany: jest.fn(),
+      update: jest.fn(),
+    },
+    configuracionAseo: {
+      findFirst: jest.fn(),
+    },
+    reporteAseoDiario: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+    },
+    registroAseoHabitacion: {
+      findMany: jest.fn(),
+    },
+    registroAseoZonaComun: {
+      findMany: jest.fn(),
     },
   };
 

@@ -10,7 +10,6 @@ import { CreateRegistroFormularioDto } from './dto/createRegistroFormularioDto';
 import { CreateHuespedDto } from 'src/huespedes/dto/create-huesped.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import { CreateReservaDto } from 'src/reservas/dto/create-reserva.dto';
-import { Formulario } from '@prisma/client';
 import { CreateFacturaDto } from 'src/facturas/dto/create-factura.dto';
 import { TraService } from 'src/TRA/tra.service';
 import { ProcessTransactionResult } from './interfaces/processTransacctionResult';
@@ -43,88 +42,6 @@ export class RegistroFormularioService {
   ) {}
 
   private readonly logger = new Logger(RegistroFormularioService.name);
-
-  async createWithTra(
-    createRegistroFormularioDto: CreateRegistroFormularioDto,
-    tokenId: number,
-  ) {
-    try {
-      const huesped = await this.getOrCreateHuesped(
-        createRegistroFormularioDto,
-      );
-
-      const habitacion = await this.habitacionesService.findByNumeroHabitacion(
-        createRegistroFormularioDto.numero_habitacion,
-      );
-
-      if (!habitacion) {
-        throw new NotFoundException(
-          `La habitación con número ${createRegistroFormularioDto.numero_habitacion} no existe`,
-        );
-      }
-
-      const reserva = this.createReservaDto(
-        createRegistroFormularioDto,
-        huesped.id,
-        habitacion.id,
-      );
-      const factura = this.createFacturaDto(
-        createRegistroFormularioDto,
-        huesped.id,
-        reserva,
-      );
-
-      // Primero ejecutar la transacción principal del formulario
-      const transactionResult = await this.executeTransaction(
-        createRegistroFormularioDto,
-        reserva,
-        factura,
-        huesped,
-        tokenId,
-      );
-
-      if (!transactionResult || !transactionResult.success) {
-        throw new InternalServerErrorException(
-          'Error al procesar la transacción',
-        );
-      }
-
-      // Luego registrar en TRA como operación separada pero controlada
-      let traResult = null;
-      try {
-        traResult = await this.registerTraSeparate(
-          transactionResult.formulario.id,
-        );
-        // TODO: Registrar en Sire pendiente
-      } catch (traError) {
-        this.logger.warn(
-          `Formulario creado exitosamente pero falló el registro en TRA: ${traError.message}`,
-          traError.stack,
-        );
-        // Devolvemos éxito parcial con el estado del registro TRA
-        return {
-          success: true,
-          result: transactionResult,
-          traRegistration: { success: false, error: traError.message },
-          message:
-            'Formulario registrado exitosamente pero falló el registro en TRA',
-        };
-      }
-
-      return {
-        success: true,
-        result: transactionResult,
-        traFormulario: traResult,
-        message: 'Formulario registrado exitosamente',
-      };
-    } catch (error) {
-      this.logger.error(
-        `Error al crear registro de formulario: ${error.message}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
 
   private async getOrCreateHuesped(dto: CreateRegistroFormularioDto) {
     try {
@@ -263,59 +180,6 @@ export class RegistroFormularioService {
     return createdGuests;
   }
 
-  /**
-   * Registra un formulario en el sistema TRA como operación separada
-   */
-  private async registerTraSeparate(formularioId: number): Promise<Formulario> {
-    return await this.prisma.$transaction(async (tx) => {
-      try {
-        // Verificar que el formulario existe
-        const formulario = await tx.formulario.findFirstOrThrow({
-          where: { id: formularioId },
-        });
-
-        // Si ya está registrado en TRA, retornar el formulario actual
-        if (formulario.SubidoATra) {
-          return formulario;
-        }
-
-        // Registrar en TRA
-        const traData = await this.traService.postTra(formularioId);
-
-        if (!traData || !traData.huespedPrincipal?.code) {
-          throw new BadRequestException('Respuesta inválida del servicio TRA');
-        }
-
-        // Actualizar formulario dentro de la transacción
-        return await tx.formulario.update({
-          where: { id: formularioId },
-          data: { SubidoATra: true, traId: traData.huespedPrincipal.code },
-        });
-      } catch (error) {
-        this.logger.error(
-          `Error al registrar en TRA: ${error.message}`,
-          error.stack,
-        );
-
-        // Asegurar que el formulario se marque como no subido a TRA
-        try {
-          await tx.formulario.update({
-            where: { id: formularioId },
-            data: { SubidoATra: false, traId: null },
-          });
-        } catch (updateError) {
-          this.logger.error(
-            `Error adicional al actualizar estado del formulario tras fallo TRA: ${updateError.message}`,
-          );
-        }
-
-        throw new BadRequestException(
-          `Error al registrar en TRA: ${error.message}`,
-        );
-      }
-    });
-  }
-
   private handleDatabaseError(error: any): never {
     this.logger.error(
       `Error en transacción de base de datos: ${error.message}`,
@@ -356,10 +220,14 @@ export class RegistroFormularioService {
   }
 
   /**
-   * Intenta registrar un formulario existente en el sistema TRA con transacción atómica
-   * @param formularioId ID del formulario a registrar en TRA
+   * Sube un formulario existente al sistema TRA
+   * @param formularioId ID del formulario a subir a TRA
    */
-  async registerFormularioInTra(formularioId: number) {
+  async subirFormularioATra(formularioId: number) {
+    this.logger.log(
+      `Iniciando proceso de subida a TRA para formulario ID: ${formularioId}`,
+    );
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         // Verificar si el formulario existe dentro de la transacción
@@ -367,17 +235,30 @@ export class RegistroFormularioService {
           where: { id: formularioId },
         });
 
+        this.logger.log(
+          `Formulario encontrado. ID: ${formulario.id}, SubidoATra: ${formulario.SubidoATra}, traId: ${formulario.traId}`,
+        );
+
         // Verificar si ya está subido a TRA
         if (formulario.SubidoATra) {
-          return {
-            success: true,
-            message: `El formulario ya estaba registrado en TRA con ID ${formulario.traId}`,
-            formulario,
-          };
+          this.logger.warn(
+            `El formulario ${formularioId} ya estaba registrado en TRA con ID ${formulario.traId}`,
+          );
+          throw new BadRequestException(
+            `El formulario ya fue subido a TRA anteriormente con ID ${formulario.traId}`,
+          );
         }
+
+        this.logger.log(
+          `Llamando al servicio TRA para formulario ID: ${formularioId}`,
+        );
 
         // Registrar en TRA
         const traData = await this.traService.postTra(formularioId);
+
+        this.logger.log(
+          `Respuesta recibida de TRA: ${JSON.stringify(traData, null, 2)}`,
+        );
 
         if (!traData || !traData.huespedPrincipal?.code) {
           throw new BadRequestException('Respuesta inválida del servicio TRA');
@@ -392,16 +273,20 @@ export class RegistroFormularioService {
           },
         });
 
+        this.logger.log(
+          `Formulario ${formularioId} actualizado exitosamente en BD con traId: ${traData.huespedPrincipal.code}`,
+        );
+
         return {
           success: true,
-          message: 'Formulario registrado exitosamente en TRA',
+          message: 'Formulario subido exitosamente a TRA',
           formulario: updatedFormulario,
           traData,
         };
       });
     } catch (error) {
       this.logger.error(
-        `Error al registrar formulario ${formularioId} en TRA: ${error.message}`,
+        `Error al subir formulario ${formularioId} a TRA: ${error.message}`,
         error.stack,
       );
 
@@ -412,9 +297,14 @@ export class RegistroFormularioService {
         );
       }
 
-      // Para otros errores, lanzar BadRequestException
+      // Si es un BadRequestException, lo relanzamos tal cual
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      // Para otros errores, lanzar BadRequestException con más contexto
       throw new BadRequestException(
-        `Error al registrar formulario en TRA: ${error.message}`,
+        `Error al subir formulario a TRA: ${error.message}`,
       );
     }
   }

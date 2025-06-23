@@ -5,6 +5,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { envs } from './config/envs';
 
 async function bootstrap() {
+  process.env.TZ = 'UTC';
+
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('App');
 
@@ -35,5 +37,6 @@ async function bootstrap() {
 
   await app.listen(envs.port);
   logger.log(`Application is running on: ${envs.port}`);
+  logger.log(`Timezone: ${process.env.TZ}`);
 }
 bootstrap();

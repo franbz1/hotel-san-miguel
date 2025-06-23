@@ -16,6 +16,7 @@ export class LoginDto {
     description: 'Nombre de usuario',
     minLength: 3,
     maxLength: 50,
+    example: 'juan',
   })
   @IsString()
   @MinLength(3)
@@ -32,6 +33,7 @@ export class LoginDto {
     description: 'Contraseña del usuario',
     minLength: 6,
     maxLength: 50,
+    example: '123456',
   })
   @IsString()
   @MinLength(6)

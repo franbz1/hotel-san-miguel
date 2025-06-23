@@ -18,6 +18,13 @@ import { SseModule } from './sse/sse.module';
 import { HabitacionSseService } from './sse/habitacionSse.service';
 import { CronModule } from './cron/cron.module';
 import { AnaliticsModule } from './analitics/analitics.module';
+import { ConfiguracionAseoModule } from './configuracion-aseo/configuracion-aseo.module';
+import { ZonasComunesModule } from './zonas-comunes/zonas-comunes.module';
+import { RegistroAseoHabitacionesModule } from './registro-aseo-habitaciones/registro-aseo-habitaciones.module';
+import { RegistroAseoZonasComunesModule } from './registro-aseo-zonas-comunes/registro-aseo-zonas-comunes.module';
+import { ReportesAseoModule } from './reportes-aseo/reportes-aseo.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -38,6 +45,13 @@ import { AnaliticsModule } from './analitics/analitics.module';
     SseModule,
     CronModule,
     AnaliticsModule,
+    ConfiguracionAseoModule,
+    ZonasComunesModule,
+    RegistroAseoHabitacionesModule,
+    RegistroAseoZonasComunesModule,
+    ReportesAseoModule,
+    NotificacionesModule,
+    EventEmitterModule.forRoot(),
   ],
   controllers: [],
   providers: [CreateDocService, HabitacionSseService],
