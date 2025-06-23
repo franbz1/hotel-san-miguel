@@ -24,6 +24,7 @@ import { RegistroAseoHabitacionesModule } from './registro-aseo-habitaciones/reg
 import { RegistroAseoZonasComunesModule } from './registro-aseo-zonas-comunes/registro-aseo-zonas-comunes.module';
 import { ReportesAseoModule } from './reportes-aseo/reportes-aseo.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
     RegistroAseoZonasComunesModule,
     ReportesAseoModule,
     NotificacionesModule,
+    EventEmitterModule.forRoot(),
   ],
   controllers: [],
   providers: [CreateDocService, HabitacionSseService],

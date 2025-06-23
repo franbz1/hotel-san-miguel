@@ -1,13 +1,18 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { UpdateConfiguracionAseoDto } from './dto/update-configuracion-aseo.dto';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ConfiguracionAseo } from '@prisma/client';
 
 /**
  * Service para manejar la configuración del módulo de aseo
  */
 @Injectable()
 export class ConfiguracionAseoService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   /**
    * Obtiene la configuración de aseo actual.
@@ -58,16 +63,24 @@ export class ConfiguracionAseoService {
       // Buscar si existe una configuración
       const configuracionExistente =
         await this.prisma.configuracionAseo.findFirst({
-          select: { id: true },
           orderBy: { createdAt: 'desc' },
         });
 
       if (configuracionExistente) {
         // Actualizar la configuración existente
-        return await this.prisma.configuracionAseo.update({
-          where: { id: configuracionExistente.id },
-          data: updateConfiguracionAseoDto,
-        });
+        const configuracionActualizada =
+          await this.prisma.configuracionAseo.update({
+            where: { id: configuracionExistente.id },
+            data: updateConfiguracionAseoDto,
+          });
+
+        // Emitir evento de actualización de configuración
+        this.emitirEventosSiHayCambiosRelevantes(
+          configuracionExistente,
+          configuracionActualizada,
+        );
+
+        return configuracionActualizada;
       } else {
         // Crear nueva configuración con valores por defecto y los datos proporcionados
         return await this.prisma.configuracionAseo.create({
@@ -91,5 +104,30 @@ export class ConfiguracionAseoService {
         'Error al actualizar configuración de aseo',
       );
     }
+  }
+
+  private emitirEventosSiHayCambiosRelevantes(
+    anterior: ConfiguracionAseo,
+    nueva: ConfiguracionAseo,
+  ) {
+    // Cambió la hora del cron
+    if (
+      anterior.hora_proceso_nocturno_utc !== nueva.hora_proceso_nocturno_utc
+    ) {
+      this.eventEmitter.emit('configuracion-aseo.hora-proceso-cambiada', {
+        horaAnterior: anterior.hora_proceso_nocturno_utc,
+        horaNueva: nueva.hora_proceso_nocturno_utc,
+      });
+    }
+
+    // Cambió configuración de notificaciones
+    if (anterior.habilitar_notificaciones !== nueva.habilitar_notificaciones) {
+      this.eventEmitter.emit('configuracion-aseo.notificaciones-cambiadas', {
+        anterior: anterior.habilitar_notificaciones,
+        nueva: nueva.habilitar_notificaciones,
+      });
+    }
+
+    // Otros cambios relevantes...
   }
 }
