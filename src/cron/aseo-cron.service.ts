@@ -8,6 +8,7 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import * as fs from 'fs';
 import * as path from 'path';
+import { OnEvent } from '@nestjs/event-emitter';
 
 @Injectable()
 export class AseoCronService implements OnModuleInit {
@@ -27,6 +28,29 @@ export class AseoCronService implements OnModuleInit {
    */
   async onModuleInit() {
     await this.configurarCronJob();
+  }
+
+  /**
+   * Maneja el cambio de hora de proceso de aseo
+   * @param payload Datos del cambio de hora
+   */
+  @OnEvent('configuracion-aseo.hora-proceso-cambiada')
+  async manejarCambioHoraProceso(payload: {
+    horaAnterior: string;
+    horaNueva: string;
+  }) {
+    this.log('Reconfiguración solicitada por cambio de hora', payload);
+
+    try {
+      await this.reconfigurarCronJob();
+      this.log('Cron job reconfigurado exitosamente', payload);
+    } catch (error) {
+      this.log(
+        'Error al reconfigurar cron job',
+        { error: error.message, ...payload },
+        'error',
+      );
+    }
   }
 
   /**
