@@ -297,21 +297,15 @@ export class HabitacionesService {
       whereConditions.ultimo_aseo_tipo = ultimo_aseo_tipo;
     }
 
-    const totalHabitaciones = await this.prisma.habitacion.count({
+    const total = await this.prisma.habitacion.count({
       where: whereConditions,
     });
 
-    const lastPage = Math.ceil(totalHabitaciones / limit);
+    const lastPage = Math.ceil(total / limit);
 
-    const emptyData = emptyPaginationResponse(
-      page,
-      limit,
-      totalHabitaciones,
-      lastPage,
-    );
+    const emptyData = emptyPaginationResponse(page, limit, total, lastPage);
 
-    if (totalHabitaciones === 0 || page > emptyData.meta.lastPage)
-      return emptyData;
+    if (total === 0 || page > emptyData.meta.lastPage) return emptyData;
 
     const habitaciones = await this.prisma.habitacion.findMany({
       skip: (page - 1) * limit,
@@ -342,7 +336,7 @@ export class HabitacionesService {
 
     return {
       data: habitaciones,
-      meta: { page, limit, totalHabitaciones, lastPage },
+      meta: { page, limit, total, lastPage },
     };
   }
 }
