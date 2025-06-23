@@ -273,6 +273,18 @@ export class ReportesAseoService {
           },
           deleted: false,
         },
+        include: {
+          habitacion: {
+            select: {
+              numero_habitacion: true,
+            },
+          },
+          usuario: {
+            select: {
+              nombre: true,
+            },
+          },
+        },
       });
 
     // Obtener registros de zonas comunes del día
