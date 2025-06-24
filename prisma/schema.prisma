@@ -32,11 +32,20 @@ model Usuario {
 enum TipoDocumento {
   CC
   CE
-  TI
   PASAPORTE
   PEP
   DNI
   PPT
+}
+
+enum TipoDocumentoHuespedSecundario {
+  TI
+  CC
+  PASAPORTE
+  CE
+  REGISTRO_CIVIL
+  PEP
+  DNI
 }
 
 enum Genero {
@@ -80,7 +89,7 @@ model Huesped {
 
 model HuespedSecundario {
   id                 Int           @id @default(autoincrement())
-  tipo_documento     TipoDocumento
+  tipo_documento     TipoDocumentoHuespedSecundario
   numero_documento   String        @unique
   primer_apellido    String
   segundo_apellido   String?
