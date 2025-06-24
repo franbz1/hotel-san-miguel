@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { $Enums, TipoDocumento } from '@prisma/client';
+import { $Enums, TipoDocumentoHuespedSecundario } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsDate,
@@ -12,21 +12,20 @@ import {
   MinLength,
 } from 'class-validator';
 import { Genero } from 'src/common/enums/generos.enum';
-import { TipoDoc } from 'src/common/enums/tipoDoc.enum';
 
 export class CreateHuespedSecundarioDto {
   @ApiProperty({
     description:
       'Tipo de documento del huésped secundario. Debe ser uno de los valores definidos en el enum.',
-    enum: TipoDoc,
-    example: TipoDoc.CC, // Ajusta el ejemplo según corresponda
+    enum: TipoDocumentoHuespedSecundario,
+    example: TipoDocumentoHuespedSecundario.CC,
   })
-  @IsEnum(TipoDoc, {
+  @IsEnum(TipoDocumentoHuespedSecundario, {
     message: `El tipo de documento es obligatorio y debe ser uno de los siguientes: ${Object.values(
-      TipoDoc,
+      TipoDocumentoHuespedSecundario,
     ).join(', ')}`,
   })
-  tipo_documento: TipoDoc | TipoDocumento;
+  tipo_documento: TipoDocumentoHuespedSecundario;
 
   @ApiProperty({
     description: 'Número de documento del huésped secundario',
