@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { TipoDocumentoHuespedSecundario } from '@prisma/client';
 import { Genero } from 'src/common/enums/generos.enum';
 import { TipoDoc } from 'src/common/enums/tipoDoc.enum';
 import { Documento } from 'src/documentos/entities/documento.entity';
@@ -17,7 +18,7 @@ export class HuespedSecundario {
     enum: TipoDoc,
     example: TipoDoc.CC,
   })
-  tipo_documento: TipoDoc;
+  tipo_documento: TipoDocumentoHuespedSecundario;
 
   @ApiProperty({
     description: 'Número de documento del huésped secundario (debe ser único)',
