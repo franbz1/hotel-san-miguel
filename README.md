@@ -1,99 +1,315 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🏨 Hotel San Miguel - Sistema de Gestión Hotelera Integral
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+**🚧 Proyecto en desarrollo activo 🚧**
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)](https://www.prisma.io/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](https://swagger.io/)
 
-## Description
+## 📋 Descripción
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+**Hotel San Miguel** es un sistema de gestión hotelera integral desarrollado con tecnologías modernas y escalables. Diseñado específicamente para hoteles que requieren cumplimiento con normativas gubernamentales Colombianas, el sistema ofrece una solución completa para la administración hotelera con funcionalidades avanzadas de aseo, analytics y integraciones oficiales.
 
-## Project setup
+---
 
-```bash
-$ npm install
+## ✨ Características Principales
+
+### 🏢 **Gestión Hotelera Completa**
+- **Reservas Inteligentes**: Sistema completo de reservas con gestión de disponibilidad y precios dinámicos
+- **Huéspedes Primarios y Secundarios**: Manejo detallado de información de huéspedes con validaciones gubernamentales
+- **Habitaciones Multi-tipo**: Soporte para apartamentos, suites, habitaciones dobles, camping y más
+- **Facturación Automatizada**: Sistema de facturación integrado con analytics financieros
+
+### 🧹 **Sistema de Aseo Profesional**
+- **Módulo de Aseo Avanzado**: Control completo de limpieza, desinfección y rotación de colchones
+- **Programación Automática**: Cron jobs que programan tareas de aseo según configuraciones personalizables
+- **Zonas Comunes**: Gestión independiente del aseo de áreas comunes del hotel
+- **Reportes de Aseo**: Dashboard de reportes con métricas de limpieza y cumplimiento
+- **Notificaciones**: Sistema de alertas para tareas pendientes y vencimientos
+
+### 📊 **Analytics y Reportes**
+- **Ingresos Diarios/Mensuales**: Análisis financiero detallado con promedios y tendencias
+- **Dashboards Ejecutivos**: Métricas en tiempo real para toma de decisiones
+- **Reportes Personalizables**: Generación de reportes por rangos de fechas específicos
+- **Análisis de Ocupación**: Estadísticas de ocupación por tipo de habitación
+
+### 🇦🇷 **Integraciones Gubernamentales**
+- **TRA (TARJETA DE REGISTRO DE ALOJAMIENTO)**: Integración con la plataforma oficial de turismo
+- **SIRE (Sistema de Información y Reporte de Extranjeros)**: Cumplimiento automático de reportes migratorios
+- **Generación de Documentos**: Automatización de documentos oficiales requeridos
+
+### 🔐 **Seguridad y Autenticación**
+- **JWT Authentication**: Sistema de autenticación seguro con roles granulares
+- **Control de Acceso por Roles**: Administrador, Cajero, Aseo, Registro de Formularios
+- **Blacklist de Tokens**: Gestión segura de sesiones y logout
+- **Validación de Datos**: Validaciones robustas con class-validator
+
+### 🔄 **Comunicación en Tiempo Real**
+- **Server-Sent Events (SSE)**: Actualizaciones en tiempo real de habitaciones y reservas
+- **Notificaciones Push**: Sistema de notificaciones para eventos críticos
+- **Formularios Dinámicos**: Enlaces temporales para registro de huéspedes externos
+
+---
+
+## 🏗️ Arquitectura Técnica
+
+### **Stack Tecnológico**
+```typescript
+Framework:     NestJS (v10) - Framework Node.js empresarial
+Lenguaje:      TypeScript - Desarrollo type-safe
+Base de Datos: PostgreSQL - Base de datos relacional robusta
+ORM:           Prisma - ORM moderno con type-safety
+Contenedores:  Docker Compose - Orquestación de servicios
+Documentación: Swagger/OpenAPI - API autodocumentada
+Autenticación: JWT + bcryptjs - Seguridad empresarial
+Validación:    class-validator + class-transformer
+Web Scraping:  Puppeteer - Automatización de documentos
 ```
 
-## Compile and run the project
+### **Arquitectura Modular**
+El sistema está diseñado con una arquitectura modular basada en **Domain-Driven Design (DDD)**:
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```
+📁 Módulos Principales:
+├── 🏠 Reservas & Habitaciones    → Gestión principal del hotel
+├── 👥 Huéspedes & Documentos     → Gestión de clientes
+├── 🧹 Sistema de Aseo            → Mantenimiento y limpieza
+├── 📊 Analytics & Reportes       → Business Intelligence
+├── 🔐 Autenticación & Usuarios   → Seguridad y acceso
+├── 🇦🇷 Integraciones TRA/SIRE    → Compliance gubernamental
+├── 📋 Formularios Dinámicos      → Registro externo
+└── ⚡ Notificaciones & SSE       → Comunicación tiempo real
 ```
 
-## Run tests
+---
 
-```bash
-# unit tests
-$ npm run test
+## 🚀 Características Avanzadas
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+### **1. Sistema de Aseo Inteligente**
+```typescript
+// Ejemplo de configuración de aseo
+const configuracion = {
+  hora_limite_aseo: "17:00",
+  frecuencia_rotacion_colchones: 180, // días
+  notificaciones_automaticas: true,
+  zonas_comunes_frecuencia: 30 // días
+}
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g mau
-$ mau deploy
+### **2. Analytics Financieros**
+```typescript
+// Analytics disponibles
+GET /analitics/daily-revenue/2024-01-15     // Ingresos diarios
+GET /analitics/monthly-revenue/2024/1       // Ingresos mensuales
+GET /analitics/invoices-range?start=&end=   // Facturas por rango
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### **3. Gestión de Estados**
+```typescript
+// Estados de habitación dinámicos
+enum EstadosHabitacion {
+  LIBRE, OCUPADO, RESERVADO,
+  EN_DESINFECCION, EN_MANTENIMIENTO, EN_LIMPIEZA
+}
+```
 
-## Resources
+### **4. Roles de Usuario Granulares**
+```typescript
+enum Role {
+  ADMINISTRADOR,    // Acceso completo al sistema
+  CAJERO,          // Reservas, check-in/out, facturación
+  ASEO,            // Módulo de limpieza y mantenimiento
+  REGISTRO_FORMULARIO // Gestión de huespedes que ingresan a completar un formulario
+}
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+---
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## 🛠️ Instalación y Configuración
 
-## Support
+### **Prerrequisitos**
+- Node.js (v18+)
+- Docker & Docker Compose
+- PostgreSQL (si no usa Docker)
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### **Instalación Rápida**
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/tu-usuario/hotel-san-miguel.git
+cd hotel-san-miguel
 
-## Stay in touch
+# 2. Instalar dependencias
+npm install
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# 3. Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus configuraciones
 
-## License
+# 4. Levantar base de datos con Docker
+docker-compose up -d
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+# 5. Ejecutar migraciones
+npx prisma migrate dev
+
+# 6. Iniciar aplicación
+npm run start:dev
+```
+
+### **Variables de Entorno**
+```env
+# Base de datos
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hotel-san-miguel"
+
+# JWT
+JWT_SECRET="tu-jwt-secret-super-seguro"
+
+# Aplicación
+PORT=3000
+NODE_ENV=development
+FRONT_ORIGIN=http://localhost:3001
+```
+
+---
+
+## 📖 Documentación API
+
+### **Swagger UI**
+Una vez que la aplicación esté ejecutándose, accede a la documentación interactiva:
+```
+http://localhost:3000/api#
+```
+
+### **Endpoints Principales**
+```typescript
+// Autenticación
+POST   /auth/login           // Iniciar sesión
+POST   /auth/logout          // Cerrar sesión
+POST   /auth/validate        // Validar token
+
+// Reservas
+GET    /reservas             // Listar reservas (paginado)
+POST   /reservas             // Crear reserva
+GET    /reservas/:id         // Obtener reserva
+PATCH  /reservas/:id         // Actualizar reserva
+DELETE /reservas/:id         // Eliminar reserva (soft delete)
+
+// Habitaciones
+GET    /habitaciones         // Listar habitaciones
+GET    /habitaciones/aseo    // Habitaciones con info de aseo
+POST   /habitaciones         // Crear habitación
+PATCH  /habitaciones/:id     // Actualizar habitación
+
+// Aseo
+GET    /registro-aseo-habitaciones     // Registros de aseo
+POST   /registro-aseo-habitaciones     // Crear registro de aseo
+GET    /configuracion-aseo             // Configuración de aseo
+PUT    /configuracion-aseo             // Actualizar configuración
+
+// Analytics
+GET    /analitics/daily-revenue/:date           // Ingresos diarios
+GET    /analitics/monthly-revenue/:year/:month  // Ingresos mensuales
+GET    /analitics/invoices-range               // Facturas por rango
+```
+
+---
+
+## 🎯 Casos de Uso Principales
+
+### **1. Check-in de Huésped**
+```typescript
+// Flujo completo de check-in
+1. Crear/buscar huésped
+2. Validar documentación
+3. Crear reserva
+4. Asignar habitación
+5. Generar factura
+6. Reportar a SIRE (extranjeros)
+7. Programar aseo post-checkout
+```
+
+### **2. Gestión de Aseo Diario**
+```typescript
+// Proceso automatizado de aseo
+1. Cron job evalúa habitaciones (5:00 UTC)
+2. Marca habitaciones que requieren aseo
+3. Personal de aseo ve dashboard
+4. Registra actividades realizadas
+5. Sistema actualiza estados
+6. Genera reportes de cumplimiento
+```
+
+### **3. Reportes Ejecutivos**
+```typescript
+// Analytics para administración
+1. Ingresos diarios/mensuales
+2. Ocupación por tipo de habitación
+3. Eficiencia del personal de aseo
+4. Compliance gubernamental
+5. Tendencias de reservas
+```
+
+---
+
+## 🧪 Testing
+
+### **Ejecutar Tests**
+```bash
+# Tests unitarios
+npm run test
+
+# Tests con coverage
+npm run test:cov
+
+# Tests e2e
+npm run test:e2e
+
+# Watch mode
+npm run test:watch
+```
+
+### **Estructura de Testing**
+- **Unit Tests**: Para servicios y lógica de negocio
+- **Integration Tests**: Para controladores y endpoints
+
+---
+
+## 🔄 Flujos de Trabajo
+
+### **CI/CD Pipeline**
+```yaml
+# Flujo recomendado
+Development → Staging → Production
+     ↓           ↓         ↓
+   Testing    Integration  Deploy
+```
+
+### **Base de Datos**
+```bash
+# Migraciones
+npx prisma migrate dev      # Desarrollo
+npx prisma migrate deploy   # Producción
+
+# Generar cliente
+npx prisma generate
+
+# Visualizar BD
+npx prisma studio
+```
+
+---
+
+## 📊 Métricas del Proyecto
+
+| Métrica | Valor |
+|---------|-------|
+| **Líneas de Código** | ~15,000+ |
+| **Módulos** | 20+ módulos funcionales |
+| **Endpoints** | 100+ endpoints RESTful |
+| **Migraciones** | 25+ migraciones de BD |
+| **Tests** | 50+ tests automatizados |
+| **Documentación** | 100% documentado con Swagger |
+
+---
