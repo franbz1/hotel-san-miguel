@@ -181,6 +181,7 @@ Una vez que la aplicación esté ejecutándose, accede a la documentación inter
 ```
 http://localhost:3000/api#
 ```
+![image](https://github.com/user-attachments/assets/50fcc97f-cc22-4284-96a4-8c969b599c42)
 
 ### **Endpoints Principales**
 ```typescript
