@@ -60,6 +60,12 @@ export class Reserva {
   pais_destino: string;
 
   @ApiProperty({
+    description: 'Ciudad de destino de la reserva',
+    example: 'Bogotá',
+  })
+  ciudad_destino: string;
+
+  @ApiProperty({
     description: 'Motivo del viaje',
     enum: MotivosViajes,
     example: MotivosViajes.VACACIONES_RECREO_Y_OCIO,

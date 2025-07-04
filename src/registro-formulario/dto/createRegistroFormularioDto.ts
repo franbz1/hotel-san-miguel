@@ -162,6 +162,24 @@ export class CreateRegistroFormularioDto {
   ciudad_procedencia: string;
 
   @ApiProperty({
+    description: 'País de destino del huésped',
+    example: 'Colombia',
+  })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  pais_destino: string;
+
+  @ApiProperty({
+    description: 'Ciudad de destino del huésped',
+    example: 'Bogotá',
+  })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  ciudad_destino: string;
+
+  @ApiProperty({
     description: 'Fecha de nacimiento del huésped',
     example: '1990-01-01T00:00:00.000Z',
   })

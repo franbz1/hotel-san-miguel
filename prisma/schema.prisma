@@ -98,6 +98,8 @@ model HuespedSecundario {
   ciudad_residencia  String
   pais_procedencia   String
   ciudad_procedencia String
+  pais_destino       String
+  ciudad_destino     String
   fecha_nacimiento   DateTime
   nacionalidad       String
   ocupacion          String
@@ -160,6 +162,7 @@ model Reserva {
   pais_procedencia      String
   ciudad_procedencia    String
   pais_destino          String
+  ciudad_destino        String
   motivo_viaje          MotivosViajes
   check_in              DateTime
   check_out             DateTime

@@ -83,6 +83,17 @@ export class CreateReservaDto {
   pais_destino: string;
 
   @ApiProperty({
+    description: 'Ciudad de destino',
+    example: 'Bogotá',
+  })
+  @IsString({
+    message: 'La ciudad de destino es obligatorio y debe ser una cadena',
+  })
+  @MinLength(2)
+  @MaxLength(50)
+  ciudad_destino: string;
+
+  @ApiProperty({
     description: 'Motivo del viaje',
     enum: MotivosViajes,
     example: MotivosViajes.COMPRAS,

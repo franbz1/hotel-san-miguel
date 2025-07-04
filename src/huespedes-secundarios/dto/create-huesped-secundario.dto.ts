@@ -117,6 +117,28 @@ export class CreateHuespedSecundarioDto {
   ciudad_procedencia: string;
 
   @ApiProperty({
+    description: 'País de destino del huésped secundario',
+    example: 'Colombia',
+  })
+  @IsString({
+    message: 'El pais de destino es obligatorio y debe ser un texto',
+  })
+  @MinLength(2)
+  @MaxLength(50)
+  pais_destino: string;
+
+  @ApiProperty({
+    description: 'Ciudad de destino del huésped secundario',
+    example: 'Bogotá',
+  })
+  @IsString({
+    message: 'La ciudad de destino es obligatorio y debe ser un texto',
+  })
+  @MinLength(2)
+  @MaxLength(50)
+  ciudad_destino: string;
+
+  @ApiProperty({
     description: 'Fecha de nacimiento del huésped secundario',
     example: '1990-01-01T00:00:00.000Z',
   })

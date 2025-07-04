@@ -69,6 +69,18 @@ export class HuespedSecundario {
   ciudad_procedencia: string;
 
   @ApiProperty({
+    description: 'País de destino del huésped secundario',
+    example: 'Colombia',
+  })
+  pais_destino: string;
+
+  @ApiProperty({
+    description: 'Ciudad de destino del huésped secundario',
+    example: 'Bogotá',
+  })
+  ciudad_destino: string;
+
+  @ApiProperty({
     description: 'Fecha de nacimiento del huésped secundario',
     example: '1990-01-01T00:00:00.000Z',
     type: Date,
