@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { $Enums, TipoDocumentoHuespedSecundario } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsDate,
   IsEnum,
@@ -53,6 +53,7 @@ export class CreateHuespedSecundarioDto {
     description: 'Segundo apellido del huésped secundario (opcional)',
     example: 'García',
   })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsString({
     message: 'El segundo apellido es opcional y debe ser un texto',
   })
@@ -187,6 +188,7 @@ export class CreateHuespedSecundarioDto {
     description: 'Teléfono del huésped secundario (opcional)',
     example: '+573001112233',
   })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsString({
     message: 'El telefono es opcional y debe ser un texto',
   })
@@ -197,6 +199,7 @@ export class CreateHuespedSecundarioDto {
     description: 'Correo del huésped secundario (opcional)',
     example: 'correo@example.com',
   })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsString({
     message: 'El correo es opcional y debe ser un correo',
   })
