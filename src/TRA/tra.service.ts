@@ -206,12 +206,12 @@ export class TraService {
 
     try {
       // Para entornos reales, activar la línea siguiente
-      const { data } = await firstValueFrom(
-        this.httpService.post(endpoint, payload, { headers }),
-      );
+      //const { data } = await firstValueFrom(
+      //  this.httpService.post(endpoint, payload, { headers }),
+      //);
 
       // Mock para entornos de desarrollo - comentar en producción
-      // const data = { code: 1222 }; // Mock de respuesta
+      const data = { code: 1222 }; // Mock de respuesta
 
       this.logger.log(`=== RESPUESTA TRA EXITOSA ===`);
       this.logger.log(`Respuesta completa: ${JSON.stringify(data, null, 2)}`);

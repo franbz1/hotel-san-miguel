@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { $Enums, TipoDocumento } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { $Enums, TipoDocumentoHuespedSecundario } from '@prisma/client';
+import { Transform, Type } from 'class-transformer';
 import {
   IsDate,
   IsEnum,
@@ -12,21 +12,20 @@ import {
   MinLength,
 } from 'class-validator';
 import { Genero } from 'src/common/enums/generos.enum';
-import { TipoDoc } from 'src/common/enums/tipoDoc.enum';
 
 export class CreateHuespedSecundarioDto {
   @ApiProperty({
     description:
       'Tipo de documento del huésped secundario. Debe ser uno de los valores definidos en el enum.',
-    enum: TipoDoc,
-    example: TipoDoc.CC, // Ajusta el ejemplo según corresponda
+    enum: TipoDocumentoHuespedSecundario,
+    example: TipoDocumentoHuespedSecundario.CC,
   })
-  @IsEnum(TipoDoc, {
+  @IsEnum(TipoDocumentoHuespedSecundario, {
     message: `El tipo de documento es obligatorio y debe ser uno de los siguientes: ${Object.values(
-      TipoDoc,
+      TipoDocumentoHuespedSecundario,
     ).join(', ')}`,
   })
-  tipo_documento: TipoDoc | TipoDocumento;
+  tipo_documento: TipoDocumentoHuespedSecundario;
 
   @ApiProperty({
     description: 'Número de documento del huésped secundario',
@@ -54,6 +53,7 @@ export class CreateHuespedSecundarioDto {
     description: 'Segundo apellido del huésped secundario (opcional)',
     example: 'García',
   })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsString({
     message: 'El segundo apellido es opcional y debe ser un texto',
   })
@@ -118,6 +118,28 @@ export class CreateHuespedSecundarioDto {
   ciudad_procedencia: string;
 
   @ApiProperty({
+    description: 'País de destino del huésped secundario',
+    example: 'Colombia',
+  })
+  @IsString({
+    message: 'El pais de destino es obligatorio y debe ser un texto',
+  })
+  @MinLength(2)
+  @MaxLength(50)
+  pais_destino: string;
+
+  @ApiProperty({
+    description: 'Ciudad de destino del huésped secundario',
+    example: 'Bogotá',
+  })
+  @IsString({
+    message: 'La ciudad de destino es obligatorio y debe ser un texto',
+  })
+  @MinLength(2)
+  @MaxLength(50)
+  ciudad_destino: string;
+
+  @ApiProperty({
     description: 'Fecha de nacimiento del huésped secundario',
     example: '1990-01-01T00:00:00.000Z',
   })
@@ -166,6 +188,7 @@ export class CreateHuespedSecundarioDto {
     description: 'Teléfono del huésped secundario (opcional)',
     example: '+573001112233',
   })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsString({
     message: 'El telefono es opcional y debe ser un texto',
   })
@@ -176,6 +199,7 @@ export class CreateHuespedSecundarioDto {
     description: 'Correo del huésped secundario (opcional)',
     example: 'correo@example.com',
   })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsString({
     message: 'El correo es opcional y debe ser un correo',
   })

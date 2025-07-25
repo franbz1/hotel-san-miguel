@@ -1,2 +1,2 @@
 -- CreateEnum
-CREATE TYPE "TipoDocumento" AS ENUM ('CC', 'CE', 'TI', 'PASAPORTE', 'PEP', 'DNI');
+CREATE TYPE "TipoDocumento" AS ENUM ('CC', 'CE', 'PASAPORTE', 'PEP', 'DNI');

@@ -5,7 +5,7 @@ import { Role } from '../entities/rol.enum';
 export class CreateUsuarioDto {
   @ApiProperty({
     description: 'El nombre del usuario. Debe ser un texto sencillo y corto.',
-    example: 'Juan Pérez',
+    example: 'juan',
   })
   @IsString({
     message: 'El nombre es obligatorio y debe ser un texto',
@@ -39,7 +39,7 @@ export class CreateUsuarioDto {
   @ApiProperty({
     description:
       'La contraseña del usuario. Debe ser un texto con una longitud mínima de 6 caracteres.',
-    example: 'contraseña123',
+    example: '123456',
   })
   @IsString({
     message: 'La contraseña es obligatoria y debe ser un texto',

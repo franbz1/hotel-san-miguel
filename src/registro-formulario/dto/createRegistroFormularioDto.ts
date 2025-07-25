@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsDate,
   IsEmail,
@@ -104,6 +104,7 @@ export class CreateRegistroFormularioDto {
     description: 'Segundo apellido del huésped (opcional)',
     example: 'García',
   })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsString()
   @MinLength(2)
   @MaxLength(50)
@@ -162,6 +163,24 @@ export class CreateRegistroFormularioDto {
   ciudad_procedencia: string;
 
   @ApiProperty({
+    description: 'País de destino del huésped',
+    example: 'Colombia',
+  })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  pais_destino: string;
+
+  @ApiProperty({
+    description: 'Ciudad de destino del huésped',
+    example: 'Bogotá',
+  })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  ciudad_destino: string;
+
+  @ApiProperty({
     description: 'Fecha de nacimiento del huésped',
     example: '1990-01-01T00:00:00.000Z',
   })
@@ -199,6 +218,7 @@ export class CreateRegistroFormularioDto {
     description: 'Teléfono del huésped (opcional)',
     example: '+573001112233',
   })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsPhoneNumber()
   @IsOptional()
   telefono?: string;
@@ -207,6 +227,7 @@ export class CreateRegistroFormularioDto {
     description: 'Correo electrónico del huésped (opcional)',
     example: 'correo@ejemplo.com',
   })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsEmail()
   @IsOptional()
   correo?: string;
