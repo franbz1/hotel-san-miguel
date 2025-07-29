@@ -9,12 +9,10 @@ import {
   IsString,
   ArrayNotEmpty,
   ArrayMinSize,
-  MinLength,
   MaxLength,
   Min,
   ValidateIf,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
 import { TiposAseo } from 'src/common/enums/tipos-aseo.enum';
 
 export class CreateRegistroAseoHabitacionDto {
@@ -69,16 +67,9 @@ export class CreateRegistroAseoHabitacionDto {
   @IsArray({
     message: 'Las áreas intervenidas deben ser un array',
   })
-  @ArrayNotEmpty({
-    message: 'Debe especificar al menos un área intervenida',
-  })
   @IsString({
     each: true,
     message: 'Cada área intervenida debe ser un texto',
-  })
-  @MinLength(2, {
-    each: true,
-    message: 'Cada área intervenida debe tener al menos 2 caracteres',
   })
   @MaxLength(100, {
     each: true,
@@ -94,16 +85,9 @@ export class CreateRegistroAseoHabitacionDto {
   @IsArray({
     message: 'Las áreas del baño intervenidas deben ser un array',
   })
-  @ArrayNotEmpty({
-    message: 'Debe especificar al menos un área del baño intervenida',
-  })
   @IsString({
     each: true,
     message: 'Cada área del baño intervenida debe ser un texto',
-  })
-  @MinLength(2, {
-    each: true,
-    message: 'Cada área del baño intervenida debe tener al menos 2 caracteres',
   })
   @MaxLength(100, {
     each: true,
@@ -118,25 +102,14 @@ export class CreateRegistroAseoHabitacionDto {
     example: 'Rotación 180° y volteo del colchón principal',
     required: false,
   })
-  @Transform(({ value }) => {
-    // Convertir strings vacías a undefined para que @IsOptional funcione correctamente
-    if (typeof value === 'string' && value.trim() === '') {
-      return undefined;
-    }
-    return value;
-  })
   @IsOptional()
   @ValidateIf((object, value) => value !== undefined && value !== null)
   @IsString({
     message: 'El procedimiento de rotación de colchones debe ser un texto',
   })
-  @MinLength(10, {
+  @MaxLength(1000, {
     message:
-      'El procedimiento de rotación de colchones debe tener al menos 10 caracteres',
-  })
-  @MaxLength(500, {
-    message:
-      'El procedimiento de rotación de colchones no puede tener más de 500 caracteres',
+      'El procedimiento de rotación de colchones no puede tener más de 1000 caracteres',
   })
   public procedimiento_rotacion_colchones?: string;
 
@@ -194,20 +167,10 @@ export class CreateRegistroAseoHabitacionDto {
     example: 'Habitación en excelente estado, sin incidencias',
     required: false,
   })
-  @Transform(({ value }) => {
-    // Convertir strings vacías a undefined para que @IsOptional funcione correctamente
-    if (typeof value === 'string' && value.trim() === '') {
-      return undefined;
-    }
-    return value;
-  })
   @IsOptional()
   @ValidateIf((object, value) => value !== undefined && value !== null)
   @IsString({
     message: 'Las observaciones deben ser un texto',
-  })
-  @MinLength(5, {
-    message: 'Las observaciones deben tener al menos 5 caracteres',
   })
   @MaxLength(1000, {
     message: 'Las observaciones no pueden tener más de 1000 caracteres',

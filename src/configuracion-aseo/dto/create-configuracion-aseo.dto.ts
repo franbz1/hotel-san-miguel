@@ -12,6 +12,7 @@ import {
   ArrayMaxSize,
   MaxLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateConfiguracionAseoDto {
   @ApiProperty({
@@ -98,6 +99,13 @@ export class CreateConfiguracionAseoDto {
     description: 'Email para enviar notificaciones de aseo',
     example: 'admin@hotel.com',
     required: false,
+  })
+  @Transform(({ value }) => {
+    // Convertir strings vacías a undefined para que @IsOptional funcione correctamente
+    if (typeof value === 'string' && value.trim() === '') {
+      return undefined;
+    }
+    return value;
   })
   @IsEmail(
     {},

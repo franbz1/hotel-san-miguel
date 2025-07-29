@@ -9,7 +9,6 @@ import {
   IsString,
   ArrayNotEmpty,
   ArrayMinSize,
-  MinLength,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -114,9 +113,6 @@ export class CreateRegistroAseoZonaComunDto {
   })
   @IsString({
     message: 'Las observaciones deben ser un texto',
-  })
-  @MinLength(5, {
-    message: 'Las observaciones deben tener al menos 5 caracteres',
   })
   @MaxLength(1000, {
     message: 'Las observaciones no pueden tener más de 1000 caracteres',
