@@ -317,7 +317,7 @@ export class RegistroAseoZonasComunesService {
     const tipoAseoMasRelevante = this.determinarTipoAseoMasRelevante(tipoAseo);
 
     // Preparar datos de actualización
-    const dataToUpdate: any = {
+    const dataToUpdate: Prisma.ZonaComunUpdateInput = {
       ultimo_aseo_fecha: fechaRegistro,
       ultimo_aseo_tipo: tipoAseoMasRelevante,
       requerido_aseo_hoy: false,
@@ -332,9 +332,8 @@ export class RegistroAseoZonasComunesService {
           configuracion.frecuencia_desinfeccion_zona_comun,
       );
 
-      dataToUpdate.ultima_desinfeccion = fechaRegistro;
-      dataToUpdate.proxima_desinfeccion = proximaDesinfeccion;
-      dataToUpdate.requerido_desinfeccion = false;
+      dataToUpdate.proxima_desinfeccion_zona_comun = proximaDesinfeccion;
+      dataToUpdate.requerido_desinfeccion_hoy = false;
     }
 
     await tx.zonaComun.update({
