@@ -8,13 +8,17 @@ import { UpdateReportesAseoDto } from './dto/update-reportes-aseo.dto';
 import { FiltrosReportesAseoDto } from './dto/filtros-reportes-aseo.dto';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 import emptyPaginationResponse from 'src/common/responses/emptyPaginationResponse';
+import { ConfiguracionAseoService } from 'src/configuracion-aseo/configuracion-aseo.service';
 
 /**
  * Service CRUD para manejar reportes de aseo diarios
  */
 @Injectable()
 export class ReportesAseoService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configuracionAseoService: ConfiguracionAseoService,
+  ) {}
 
   /**
    * Crea un nuevo reporte de aseo diario.
@@ -339,18 +343,23 @@ export class ReportesAseoService {
       ].filter((registro) => registro.rastros_de_animales).length,
     };
 
-    // Crear el reporte con datos por defecto
+    // Crear el reporte con datos por defecto primero obteniendo la configuracion de aseo
+    const configuracionAseo =
+      await this.configuracionAseoService.obtenerConfiguracion();
+
     const datosReporte = {
       fecha: new Date(`${fecha}T00:00:00.000Z`),
-      elementos_aseo: ['Escoba', 'Trapeador', 'Aspiradora'],
-      elementos_proteccion: ['Guantes de látex', 'Mascarilla N95'],
-      productos_quimicos: ['Desinfectante multiusos', 'Detergente líquido'],
+      elementos_aseo: configuracionAseo.elementos_aseo_default,
+      elementos_proteccion: configuracionAseo.elementos_proteccion_default,
+      productos_quimicos: configuracionAseo.productos_quimicos_default,
       procedimiento_aseo_habitacion:
-        'Ventilación, retiro de ropa de cama, limpieza de superficies',
+        configuracionAseo.procedimiento_aseo_habitacion_default,
       procedimiento_desinfeccion_habitacion:
-        'Aplicación de desinfectante en todas las superficies',
-      procedimiento_limpieza_zona_comun: 'Barrido, trapeado con desinfectante',
-      procedimiento_desinfeccion_zona_comun: 'Nebulización con desinfectante',
+        configuracionAseo.procedimiento_desinfeccion_habitacion_default,
+      procedimiento_limpieza_zona_comun:
+        configuracionAseo.procedimiento_limieza_zona_comun_default,
+      procedimiento_desinfeccion_zona_comun:
+        configuracionAseo.procedimiento_desinfeccion_zona_comun_default,
       datos: {
         habitaciones: registrosHabitaciones,
         zonas_comunes: registrosZonasComunes,

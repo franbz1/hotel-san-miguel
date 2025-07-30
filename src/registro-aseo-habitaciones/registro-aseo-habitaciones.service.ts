@@ -329,6 +329,11 @@ export class RegistroAseoHabitacionesService {
       requerido_aseo_hoy: false,
     };
 
+    // Si se realizo desinfeccion, marcar como no requiere desinfeccion hoy
+    if (tiposRealizados.includes(TiposAseo.DESINFECCION)) {
+      dataToUpdate.requerido_desinfeccion_hoy = false;
+    }
+
     // Si se realizó rotación de colchones, calcular próxima fecha
     if (tiposRealizados.includes(TiposAseo.ROTACION_COLCHONES)) {
       const configuracion = await this.obtenerConfiguracionAseo();

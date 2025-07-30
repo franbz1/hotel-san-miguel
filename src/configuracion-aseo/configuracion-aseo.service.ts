@@ -40,6 +40,10 @@ export class ConfiguracionAseoService {
             productos_quimicos_default: [],
             areas_intervenir_habitacion_default: [],
             areas_intervenir_banio_default: [],
+            procedimiento_aseo_habitacion_default: '',
+            procedimiento_desinfeccion_habitacion_default: '',
+            procedimiento_limieza_zona_comun_default: '',
+            procedimiento_desinfeccion_zona_comun_default: '',
           },
         });
       }
