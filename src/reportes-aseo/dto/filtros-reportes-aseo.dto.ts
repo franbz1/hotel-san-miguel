@@ -1,11 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsDateString,
-  IsString,
-  MinLength,
-  MaxLength,
-} from 'class-validator';
+import { IsOptional, IsDateString, IsString, MaxLength } from 'class-validator';
 import { PaginationDto } from 'src/common/dtos/paginationDto';
 
 export class FiltrosReportesAseoDto extends PaginationDto {
@@ -62,9 +56,6 @@ export class FiltrosReportesAseoDto extends PaginationDto {
   @IsString({
     message: 'El elemento de aseo debe ser un texto',
   })
-  @MinLength(2, {
-    message: 'El elemento de aseo debe tener al menos 2 caracteres',
-  })
   @MaxLength(100, {
     message: 'El elemento de aseo no puede tener más de 100 caracteres',
   })
@@ -79,9 +70,6 @@ export class FiltrosReportesAseoDto extends PaginationDto {
   @IsString({
     message: 'El producto químico debe ser un texto',
   })
-  @MinLength(2, {
-    message: 'El producto químico debe tener al menos 2 caracteres',
-  })
   @MaxLength(100, {
     message: 'El producto químico no puede tener más de 100 caracteres',
   })
@@ -95,9 +83,6 @@ export class FiltrosReportesAseoDto extends PaginationDto {
   })
   @IsString({
     message: 'El elemento de protección debe ser un texto',
-  })
-  @MinLength(2, {
-    message: 'El elemento de protección debe tener al menos 2 caracteres',
   })
   @MaxLength(100, {
     message: 'El elemento de protección no puede tener más de 100 caracteres',
