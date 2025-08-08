@@ -9,11 +9,13 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/loginDto';
 import { AuthGuard } from './guards/auth.guard';
+import { Throttle } from '@nestjs/throttler';
 
 /**
  * Controlador de autenticación
  * Agrupa las rutas bajo el tag "auth" en la documentación de Swagger
  */
+@Throttle({ default: { limit: 5, ttl: 60000 } })
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {

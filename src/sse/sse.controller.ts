@@ -22,6 +22,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { ReservaCambio, ReservaSseService } from './reservasSse.service';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @ApiTags('sse')
 @ApiBearerAuth()
@@ -40,6 +41,7 @@ export class SseController {
    *
    * @returns Un stream observable de eventos con los cambios de estado de habitaciones
    */
+  @SkipThrottle()
   @Sse('habitaciones-cambios')
   @Roles(Role.ADMINISTRADOR, Role.CAJERO)
   @UseGuards(AuthGuard)

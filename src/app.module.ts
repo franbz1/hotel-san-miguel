@@ -25,6 +25,8 @@ import { RegistroAseoZonasComunesModule } from './registro-aseo-zonas-comunes/re
 import { ReportesAseoModule } from './reportes-aseo/reportes-aseo.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -51,9 +53,24 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     RegistroAseoZonasComunesModule,
     ReportesAseoModule,
     NotificacionesModule,
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60000,
+          limit: 10,
+        },
+      ],
+    }),
     EventEmitterModule.forRoot(),
   ],
   controllers: [],
-  providers: [CreateDocService, HabitacionSseService],
+  providers: [
+    CreateDocService,
+    HabitacionSseService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
