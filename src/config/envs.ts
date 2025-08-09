@@ -4,6 +4,7 @@ import * as joi from 'joi';
 interface EnvVars {
   PORT: number;
   DATABASE_URL: string;
+  DIRECT_URL: string;
   JWT_SECRET: string;
   FRONT_ORIGIN: string;
   NODE_ENV: 'development' | 'production';
@@ -19,6 +20,9 @@ const envSchema = joi
     }),
     DATABASE_URL: joi.string().required().messages({
       'any.required': 'DATABASE_URL is required',
+    }),
+    DIRECT_URL: joi.string().required().messages({
+      'any.required': 'DIRECT_URL is required',
     }),
     JWT_SECRET: joi.string().required().messages({
       'any.required': 'JWT_SECRET is required',
@@ -41,6 +45,7 @@ const envVars: EnvVars = value;
 export const envs = {
   port: envVars.PORT,
   databaseUrl: envVars.DATABASE_URL,
+  directUrl: envVars.DIRECT_URL,
   jwtSecret: envVars.JWT_SECRET,
   origin: envVars.FRONT_ORIGIN,
   NODE_ENV: envVars.NODE_ENV,
