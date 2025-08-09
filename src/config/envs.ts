@@ -6,6 +6,8 @@ interface EnvVars {
   DATABASE_URL: string;
   DIRECT_URL: string;
   JWT_SECRET: string;
+  FIRST_ADMIN: string;
+  PASS_FIRST_ADMIN: string;
   FRONT_ORIGIN: string;
   NODE_ENV: 'development' | 'production';
 }
@@ -27,6 +29,12 @@ const envSchema = joi
     JWT_SECRET: joi.string().required().messages({
       'any.required': 'JWT_SECRET is required',
     }),
+    FIRST_ADMIN: joi.string().required().messages({
+      'any.required': 'FIRST_ADMIN is required',
+    }),
+    PASS_FIRST_ADMIN: joi.string().required().messages({
+      'any.required': 'PASS_FIRST_ADMIN is required',
+    }),
     FRONT_ORIGIN: joi.string().required().messages({
       'any.required': 'FRONT_ORIGIN is required',
     }),
@@ -47,6 +55,8 @@ export const envs = {
   databaseUrl: envVars.DATABASE_URL,
   directUrl: envVars.DIRECT_URL,
   jwtSecret: envVars.JWT_SECRET,
+  firstAdmin: envVars.FIRST_ADMIN,
+  passFirstAdmin: envVars.PASS_FIRST_ADMIN,
   origin: envVars.FRONT_ORIGIN,
   NODE_ENV: envVars.NODE_ENV,
 };
