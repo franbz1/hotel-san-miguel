@@ -7,8 +7,6 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "postbuild": "node dist/scripts/init-first-admin.js",
-    "init:first-admin": "node dist/scripts/init-first-admin.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
