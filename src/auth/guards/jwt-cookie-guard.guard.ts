@@ -19,6 +19,8 @@ export class JwtCookieGuardGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
+    console.log(cookies);
+
     req.headers['authorization'] = `Bearer ${cookies.auth_token}`;
 
     return true;
