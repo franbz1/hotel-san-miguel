@@ -12,8 +12,10 @@ export class JwtCookieGuardGuard implements CanActivate {
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
     const req = context.switchToHttp().getRequest();
+    console.log('req', req);
+    console.log('req.headers', req.headers);
     const raw = req.headers['cookie'] as string;
-    console.log(raw);
+    console.log('raw', raw);
     const cookies = parseCookies(raw);
 
     if (!cookies?.auth_token) {
