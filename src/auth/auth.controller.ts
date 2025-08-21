@@ -80,7 +80,7 @@ export class AuthController {
     @Body() loginDto: LoginDto,
   ) {
     const response = await this.authService.login(loginDto);
-    res.cookie('__Host-auth_token', response.token, {
+    res.cookie('__Host_auth_token', response.token, {
       httpOnly: false,
       sameSite: 'none',
       path: '/',
