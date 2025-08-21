@@ -1,4 +1,11 @@
-import { Body, Controller, Post, UseGuards, Headers } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  UseGuards,
+  Headers,
+  Res,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -10,12 +17,13 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/loginDto';
 import { AuthGuard } from './guards/auth.guard';
 import { Throttle } from '@nestjs/throttler';
+import { Response } from 'express';
 
 /**
  * Controlador de autenticación
  * Agrupa las rutas bajo el tag "auth" en la documentación de Swagger
  */
-@Throttle({ default: { limit: 5, ttl: 60000 } })
+@Throttle({ default: { limit: 15, ttl: 60000 } })
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -67,8 +75,19 @@ export class AuthController {
     status: 401,
     description: 'Credenciales inválidas',
   })
-  login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(
+    @Res({ passthrough: true }) res: Response,
+    @Body() loginDto: LoginDto,
+  ) {
+    const response = await this.authService.login(loginDto);
+    res.cookie('__Host_auth_token', response.token, {
+      httpOnly: false,
+      sameSite: 'none',
+      path: '/',
+      secure: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    return response;
   }
 
   // ================================================================
