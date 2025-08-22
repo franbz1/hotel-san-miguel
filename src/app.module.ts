@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { HuespedesModule } from './huespedes/huespedes.module';
 import { DocumentosModule } from './documentos/documentos.module';
@@ -27,6 +27,7 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { ParseJwtQueryBarearMiddleware } from './auth/Middlewares/parse-jwt-query-barear.middleware';
 
 @Module({
   imports: [
@@ -73,4 +74,8 @@ import { APP_GUARD } from '@nestjs/core';
     },
   ],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(ParseJwtQueryBarearMiddleware).forRoutes('sse');
+  }
+}

@@ -1,33 +1,25 @@
-import {
-  Controller,
-  Param,
-  ParseIntPipe,
-  Sse,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Param, ParseIntPipe, Sse } from '@nestjs/common';
 import {
   HabitacionesCambio,
   HabitacionSseService,
 } from './habitacionSse.service';
 import { map, Observable } from 'rxjs';
-import { JwtCookieGuardGuard } from 'src/auth/guards/jwt-cookie-guard.guard';
-import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/usuarios/entities/rol.enum';
-import { AuthGuard } from 'src/auth/guards/auth.guard';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { ReservaCambio, ReservaSseService } from './reservasSse.service';
 import { SkipThrottle } from '@nestjs/throttler';
+import { Auth } from 'src/auth/decorators/auth.decorator';
 
 @ApiTags('sse')
-@ApiBearerAuth()
+@ApiQuery({ name: 'token', type: String, required: true })
 @Controller('sse')
-@UseGuards(JwtCookieGuardGuard)
+@Auth(Role.ADMINISTRADOR, Role.CAJERO)
 export class SseController {
   constructor(
     private readonly habitacionesSseService: HabitacionSseService,
@@ -43,8 +35,6 @@ export class SseController {
    */
   @SkipThrottle()
   @Sse('habitaciones-cambios')
-  @Roles(Role.ADMINISTRADOR, Role.CAJERO)
-  @UseGuards(AuthGuard)
   @ApiOperation({
     summary: 'Stream de cambios de estado de habitaciones en tiempo real',
     description:
@@ -74,8 +64,6 @@ export class SseController {
    * Clientes se suscriben a /sse/habitaciones/:id/reservas
    */
   @Sse(':id/reservas')
-  @UseGuards(JwtCookieGuardGuard, AuthGuard)
-  @Roles(Role.ADMINISTRADOR, Role.CAJERO)
   @ApiOperation({
     summary: 'Stream de cambios de reservas por habitación',
     description:
