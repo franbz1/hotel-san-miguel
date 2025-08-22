@@ -9,6 +9,7 @@ interface EnvVars {
   FIRST_ADMIN: string;
   PASS_FIRST_ADMIN: string;
   FRONT_ORIGIN: string;
+  SELF_ORIGIN: string;
   NODE_ENV: 'development' | 'production';
 }
 
@@ -38,6 +39,9 @@ const envSchema = joi
     FRONT_ORIGIN: joi.string().required().messages({
       'any.required': 'FRONT_ORIGIN is required',
     }),
+    SELF_ORIGIN: joi.string().required().messages({
+      'any.required': 'SELF_ORIGIN is required',
+    }),
     NODE_ENV: joi.string().valid('development', 'production').required(),
   })
   .unknown(true);
@@ -58,5 +62,6 @@ export const envs = {
   firstAdmin: envVars.FIRST_ADMIN,
   passFirstAdmin: envVars.PASS_FIRST_ADMIN,
   origin: envVars.FRONT_ORIGIN,
+  selfOrigin: envVars.SELF_ORIGIN,
   NODE_ENV: envVars.NODE_ENV,
 };
