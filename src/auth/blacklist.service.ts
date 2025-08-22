@@ -17,6 +17,7 @@ export class BlacklistService {
       });
       return !!blacklistedToken;
     } catch (error) {
+      console.log(error)
       throw new BadRequestException(
         'Error al verificar el token en la lista negra',
       );
